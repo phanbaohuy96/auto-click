@@ -22,9 +22,9 @@ chính bộ chạy đó ([ADR-0002](../adr/0002-buoc-la-hanh-dong-nhan-vi-tri.md
   lần cho cả **Bước**. `DM-19` phụ thuộc vào điều này.
 - **EX-7** `[Lát 2]` `[đã làm]` Giải `lệchCửaSổ` cần **Cửa sổ neo**; không lấy được cửa sổ nào thì dừng
   **Kịch bản** với thông báo nêu rõ tên ứng dụng.
-- **EX-8** `[Lát 4]` Giải `theoẢnh`/`theoChữ` thử lại theo nhịp bằng khoảng chờ của **Bước**,
+- **EX-8** `[Lát 4]` `[đã làm]` Giải `theoẢnh`/`theoChữ` thử lại theo nhịp bằng khoảng chờ của **Bước**,
   tối thiểu 150 ms, cho đến khi hết `chờTốiĐaMs`. Hết giờ thì làm theo `khiHếtGiờ` (`DM-16`).
-- **EX-9** `[Lát 4]` `bỏQuaBước` bỏ **toàn bộ** các lần lặp còn lại của **Bước** đó, không phải
+- **EX-9** `[Lát 4]` `[đã làm]` `bỏQuaBước` bỏ **toàn bộ** các lần lặp còn lại của **Bước** đó, không phải
   chỉ lần lặp hiện tại.
 
 ## Ứng dụng khoá

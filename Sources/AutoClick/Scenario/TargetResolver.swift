@@ -3,6 +3,8 @@ import Foundation
 
 enum TargetResolutionError: LocalizedError, Equatable {
     case anchorWindowUnavailable
+    /// Vị trí này phải đi tìm mục tiêu trên màn hình nên không giải được đồng bộ.
+    case requiresRecognition
 }
 
 /// Giải một Vị trí ra toạ độ thật (EX-6, EX-7).
@@ -29,6 +31,29 @@ struct TargetResolver: Sendable {
                 WindowAnchor.Offset(corner: corner, dx: dx, dy: dy),
                 in: anchorWindowFrame
             )
+        case .template, .text:
+            throw TargetResolutionError.requiresRecognition
+        }
+    }
+
+    /// Giải một **Vùng tìm** ra hình chữ nhật thật.
+    ///
+    /// [ADR-0006]: vùng tương đối cửa sổ mà không giải được thì **lùi về phạm vi mặc định**
+    /// (`RG-7`) chứ không báo lỗi — Vùng tìm không bao giờ được ràng buộc Kịch bản phải có
+    /// Ứng dụng khoá.
+    func resolve(_ region: SearchRegion?, anchorWindowFrame: CGRect?) -> CGRect? {
+        switch region {
+        case nil:
+            return anchorWindowFrame
+        case let .screenRect(x, y, width, height):
+            return CGRect(x: x, y: y, width: width, height: height)
+        case let .windowRelative(corner, dx, dy, width, height):
+            guard let anchorWindowFrame else { return nil }
+            let origin = WindowAnchor.resolve(
+                WindowAnchor.Offset(corner: corner, dx: dx, dy: dy),
+                in: anchorWindowFrame
+            )
+            return CGRect(x: origin.x, y: origin.y, width: width, height: height)
         }
     }
 }

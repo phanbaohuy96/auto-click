@@ -151,12 +151,15 @@ extension StepAction: Codable {
 extension StepTarget: Codable {
     private enum CodingKeys: String, CodingKey {
         case kind, x, y, corner, dx, dy
+        case name, text, threshold, searchRegion, waitMilliseconds, onTimeout
     }
 
     private enum Kind: String {
         case cursor
         case screenPoint
         case windowRelative
+        case template
+        case text
     }
 
     init(from decoder: Decoder) throws {
@@ -180,7 +183,40 @@ extension StepTarget: Codable {
                 dx: try container.decodeIfPresent(Double.self, forKey: .dx) ?? 0,
                 dy: try container.decodeIfPresent(Double.self, forKey: .dy) ?? 0
             )
+        case .template:
+            self = .template(
+                name: try container.decodeIfPresent(String.self, forKey: .name) ?? "",
+                settings: try Self.decodeSettings(from: container)
+            )
+        case .text:
+            self = .text(
+                try container.decodeIfPresent(String.self, forKey: .text) ?? "",
+                settings: try Self.decodeSettings(from: container)
+            )
         }
+    }
+
+    private static func decodeSettings(
+        from container: KeyedDecodingContainer<CodingKeys>
+    ) throws -> RecognitionSettings {
+        RecognitionSettings(
+            threshold: try container.decodeIfPresent(Double.self, forKey: .threshold)
+                ?? ScenarioLimits.defaultRecognitionThreshold,
+            searchRegion: try container.decodeIfPresent(SearchRegion.self, forKey: .searchRegion),
+            waitMilliseconds: try container.decodeIfPresent(Int.self, forKey: .waitMilliseconds) ?? 0,
+            onTimeout: try container.decodeIfPresent(TimeoutBehaviour.self, forKey: .onTimeout)
+                ?? .stopScenario
+        )
+    }
+
+    private func encodeSettings(
+        _ settings: RecognitionSettings,
+        into container: inout KeyedEncodingContainer<CodingKeys>
+    ) throws {
+        try container.encode(settings.threshold, forKey: .threshold)
+        try container.encodeIfPresent(settings.searchRegion, forKey: .searchRegion)
+        try container.encode(settings.waitMilliseconds, forKey: .waitMilliseconds)
+        try container.encode(settings.onTimeout, forKey: .onTimeout)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -197,6 +233,14 @@ extension StepTarget: Codable {
             try container.encode(corner, forKey: .corner)
             try container.encode(dx, forKey: .dx)
             try container.encode(dy, forKey: .dy)
+        case let .template(name, settings):
+            try container.encode(Kind.template.rawValue, forKey: .kind)
+            try container.encode(name, forKey: .name)
+            try encodeSettings(settings, into: &container)
+        case let .text(text, settings):
+            try container.encode(Kind.text.rawValue, forKey: .kind)
+            try container.encode(text, forKey: .text)
+            try encodeSettings(settings, into: &container)
         }
     }
 }
@@ -270,5 +314,67 @@ extension Scenario: Codable {
         try container.encode(runCount, forKey: .runCount)
         try container.encodeIfPresent(lockedApplication, forKey: .lockedApplication)
         try container.encode(steps, forKey: .steps)
+    }
+}
+
+
+// MARK: - SearchRegion
+
+extension SearchRegion: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case kind, x, y, width, height, corner, dx, dy
+    }
+
+    private enum Kind: String {
+        case screenRect
+        case windowRelative
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let rawKind = try container.decode(String.self, forKey: .kind)
+        guard let kind = Kind(rawValue: rawKind) else {
+            throw ScenarioDecodingError.unknownTargetKind(rawKind)
+        }
+
+        let width = try container.decodeIfPresent(Double.self, forKey: .width) ?? 0
+        let height = try container.decodeIfPresent(Double.self, forKey: .height) ?? 0
+
+        switch kind {
+        case .screenRect:
+            self = .screenRect(
+                x: try container.decodeIfPresent(Double.self, forKey: .x) ?? 0,
+                y: try container.decodeIfPresent(Double.self, forKey: .y) ?? 0,
+                width: width,
+                height: height
+            )
+        case .windowRelative:
+            self = .windowRelative(
+                corner: try container.decodeIfPresent(WindowCorner.self, forKey: .corner) ?? .topLeft,
+                dx: try container.decodeIfPresent(Double.self, forKey: .dx) ?? 0,
+                dy: try container.decodeIfPresent(Double.self, forKey: .dy) ?? 0,
+                width: width,
+                height: height
+            )
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case let .screenRect(x, y, width, height):
+            try container.encode(Kind.screenRect.rawValue, forKey: .kind)
+            try container.encode(x, forKey: .x)
+            try container.encode(y, forKey: .y)
+            try container.encode(width, forKey: .width)
+            try container.encode(height, forKey: .height)
+        case let .windowRelative(corner, dx, dy, width, height):
+            try container.encode(Kind.windowRelative.rawValue, forKey: .kind)
+            try container.encode(corner, forKey: .corner)
+            try container.encode(dx, forKey: .dx)
+            try container.encode(dy, forKey: .dy)
+            try container.encode(width, forKey: .width)
+            try container.encode(height, forKey: .height)
+        }
     }
 }

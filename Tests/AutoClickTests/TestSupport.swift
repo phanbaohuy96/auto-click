@@ -75,10 +75,36 @@ final class EventRecorder {
     var types: [CGEventType] { records.map(\.type) }
 }
 
+/// Bộ nhận dạng giả: kiểm chứng ngữ nghĩa thử lại của `EX-8`/`EX-9` mà không chụp màn hình thật.
+@MainActor
+final class FakeRecognizer: TargetRecognizing {
+    /// Lần thử thứ mấy thì "thấy" mục tiêu; `nil` là không bao giờ thấy.
+    var foundOnAttempt: Int? = 1
+    var point = CGPoint(x: 500, y: 400)
+    var error: Error?
+
+    private(set) var attempts = 0
+    private(set) var regions: [CGRect?] = []
+    private(set) var preparedDirectories: [URL?] = []
+
+    func prepare(templatesDirectory: URL?) {
+        preparedDirectories.append(templatesDirectory)
+    }
+
+    func locate(_ target: StepTarget, within region: CGRect?) async throws -> CGPoint? {
+        attempts += 1
+        regions.append(region)
+        if let error { throw error }
+        guard let foundOnAttempt, attempts >= foundOnAttempt else { return nil }
+        return point
+    }
+}
+
 @MainActor
 func makeRunner(
     recorder: EventRecorder,
     system: FakeSystem = FakeSystem(),
+    recognizer: TargetRecognizing = FakeRecognizer(),
     cursor: CGPoint = CGPoint(x: 7, y: 8),
     countdownSeconds: Int = 0
 ) -> ScenarioRunner {
@@ -87,6 +113,7 @@ func makeRunner(
         mouse: MouseEventEmitter(sink: recorder.mouseSink),
         keyboard: KeyboardEventEmitter(sink: recorder.keyboardSink),
         system: system.bridge,
+        recognizer: recognizer,
         countdownSeconds: countdownSeconds
     )
 }

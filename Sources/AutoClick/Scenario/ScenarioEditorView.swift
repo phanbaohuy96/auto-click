@@ -10,6 +10,7 @@ struct ScenarioEditorView: View {
     @State private var pointSelector: ClickPointSelector?
     @State private var pickError: String?
     @State private var runningApplications: [RunningApplicationOption] = []
+    @State private var captureCoordinator = TemplateCaptureCoordinator()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -300,6 +301,12 @@ struct ScenarioEditorView: View {
                 onPickScreenPoint: { apply in pickPoint { point, _ in apply(point) } },
                 onPickWindowOffset: { apply in
                     pickWindowOffset(in: scenario.wrappedValue, apply: apply)
+                },
+                onCaptureTemplate: { apply in
+                    captureTemplate(for: scenario.wrappedValue, apply: apply)
+                },
+                onPickSearchRegion: { apply in
+                    pickSearchRegion(in: scenario.wrappedValue, apply: apply)
                 }
             )
         } else {
@@ -396,6 +403,67 @@ struct ScenarioEditorView: View {
         }
     }
 
+    /// RG-4: chụp Ảnh mẫu độc lập hoàn toàn với Ứng dụng khoá.
+    private func captureTemplate(for scenario: Scenario, apply: @escaping (String) -> Void) {
+        let window = NSApp.keyWindow
+        window?.orderOut(nil)
+        pickError = nil
+
+        Task {
+            defer {
+                NSApp.activate(ignoringOtherApps: true)
+                window?.makeKeyAndOrderFront(nil)
+            }
+            do {
+                let library = store.templateLibrary(for: scenario.id)
+                if let name = try await captureCoordinator.captureTemplate(into: library) {
+                    apply(name)
+                }
+            } catch {
+                pickError = error.localizedDescription
+            }
+        }
+    }
+
+    /// RG-6: vùng tìm lưu tương đối Cửa sổ neo khi có sẵn, ngược lại lưu tuyệt đối — và nói rõ
+    /// điều đó trên giao diện. Không bao giờ bắt buộc phải khoá ứng dụng ([ADR-0006]).
+    private func pickSearchRegion(in scenario: Scenario, apply: @escaping (SearchRegion) -> Void) {
+        let window = NSApp.keyWindow
+        window?.orderOut(nil)
+        pickError = nil
+
+        Task {
+            defer {
+                NSApp.activate(ignoringOtherApps: true)
+                window?.makeKeyAndOrderFront(nil)
+            }
+            guard let rect = await captureCoordinator.selectRegion(
+                prompt: "Kéo để chọn vùng tìm  •  Esc để hủy"
+            ) else { return }
+
+            if let locked = scenario.lockedApplication,
+               let processIdentifier = RunningApplicationOption.processIdentifier(
+                   forBundleIdentifier: locked.bundleIdentifier
+               ),
+               let frame = WindowAnchor.focusedWindowFrame(ofProcess: processIdentifier) {
+                let offset = WindowAnchor.offset(for: rect.origin, in: frame)
+                apply(
+                    .windowRelative(
+                        corner: offset.corner,
+                        dx: offset.dx,
+                        dy: offset.dy,
+                        width: rect.width,
+                        height: rect.height
+                    )
+                )
+            } else {
+                apply(
+                    .screenRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height)
+                )
+            }
+        }
+    }
+
     private func integerField(value: Binding<Int>, range: ClosedRange<Int>) -> some View {
         TextField(
             "",
@@ -441,6 +509,11 @@ enum StepSummary {
             return "Điểm màn hình X: \(Int(x.rounded()))  Y: \(Int(y.rounded()))"
         case let .windowRelative(corner, dx, dy):
             return "Lệch góc \(corner.title): \(Int(dx.rounded())), \(Int(dy.rounded()))"
+        case let .template(name, settings):
+            let label = name.isEmpty ? "chưa chụp" : name
+            return "Ảnh mẫu \(label) (ngưỡng \(String(format: "%.2f", settings.threshold)))"
+        case let .text(text, _):
+            return text.isEmpty ? "Chữ (chưa nhập)" : "Chữ “\(text)”"
         }
     }
 

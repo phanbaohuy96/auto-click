@@ -25,6 +25,56 @@ enum ScenarioLimits {
 
     /// Thời gian tối đa chờ Ứng dụng khoá lên trước khi gõ phím (SF-4).
     static let activationTimeoutMilliseconds = 500
+
+    static let recognitionThreshold = 0.50...1.0
+    static let recognitionWaitMilliseconds = 0...600_000
+    /// Nhịp thử lại tối thiểu khi giải Vị trí theo Ảnh mẫu, để không đốt CPU (EX-8).
+    static let recognitionRetryFloorMilliseconds = 150
+    static let defaultRecognitionThreshold = 0.90
+}
+
+/// Việc phải làm khi hết thời gian chờ mà vẫn không tìm thấy mục tiêu (DM-16).
+enum TimeoutBehaviour: String, CaseIterable, Identifiable, Codable, Sendable {
+    case stopScenario
+    case skipStep
+
+    var id: String { rawValue }
+}
+
+/// Phần màn hình được thu hẹp để tìm mục tiêu (DM-17).
+///
+/// Không bao giờ đòi hỏi **Ứng dụng khoá**: xem [ADR-0006]. Dạng tương đối cửa sổ bền hơn nên
+/// được ưu tiên khi khoanh, nhưng khi chạy mà không giải được thì lùi về phạm vi mặc định
+/// thay vì báo lỗi.
+enum SearchRegion: Equatable, Sendable {
+    case screenRect(x: Double, y: Double, width: Double, height: Double)
+    case windowRelative(
+        corner: WindowCorner,
+        dx: Double,
+        dy: Double,
+        width: Double,
+        height: Double
+    )
+}
+
+struct RecognitionSettings: Equatable, Sendable {
+    var threshold: Double
+    var searchRegion: SearchRegion?
+    var waitMilliseconds: Int
+    var onTimeout: TimeoutBehaviour
+
+    init(
+        threshold: Double = ScenarioLimits.defaultRecognitionThreshold,
+        searchRegion: SearchRegion? = nil,
+        waitMilliseconds: Int = 0,
+        onTimeout: TimeoutBehaviour = .stopScenario
+    ) {
+        self.threshold = threshold.clamped(to: ScenarioLimits.recognitionThreshold)
+        self.searchRegion = searchRegion
+        self.waitMilliseconds = waitMilliseconds
+            .clamped(to: ScenarioLimits.recognitionWaitMilliseconds)
+        self.onTimeout = onTimeout
+    }
 }
 
 /// Góc của Cửa sổ neo mà một Vị trí tương đối bám vào (DM-13).
@@ -107,10 +157,30 @@ indirect enum StepTarget: Equatable, Sendable {
     case screenPoint(x: Double, y: Double)
     /// Lệch so với một góc của Cửa sổ neo (DM-13). Chỉ giải được khi có Ứng dụng khoá (DM-18).
     case windowRelative(corner: WindowCorner, dx: Double, dy: Double)
+    /// Tâm của Ảnh mẫu tìm thấy trên màn hình (DM-14).
+    case template(name: String, settings: RecognitionSettings)
+    /// Tâm của đoạn chữ tìm thấy trên màn hình (DM-15).
+    case text(String, settings: RecognitionSettings)
 
+    /// Chỉ `windowRelative` mới **bắt buộc** phải có Cửa sổ neo. Ảnh mẫu và chữ thì không —
+    /// xem [ADR-0006].
     var needsAnchorWindow: Bool {
         if case .windowRelative = self { return true }
         return false
+    }
+
+    /// Cấu hình nhận dạng, nếu Vị trí này phải đi tìm mục tiêu.
+    var recognitionSettings: RecognitionSettings? {
+        switch self {
+        case let .template(_, settings), let .text(_, settings): return settings
+        case .cursor, .screenPoint, .windowRelative: return nil
+        }
+    }
+
+    /// Tên tệp Ảnh mẫu mà Vị trí này cần, nếu có.
+    var templateName: String? {
+        if case let .template(name, _) = self { return name }
+        return nil
     }
 }
 
@@ -174,6 +244,11 @@ struct Scenario: Identifiable, Equatable, Sendable {
     /// DM-18: Vị trí tương đối cửa sổ không giải được nếu thiếu Ứng dụng khoá.
     var requiresLockedApplication: Bool {
         steps.contains { $0.targets.contains(where: \.needsAnchorWindow) }
+    }
+
+    /// Tên các tệp Ảnh mẫu mà Kịch bản này dùng tới.
+    var templateNames: Set<String> {
+        Set(steps.flatMap(\.targets).compactMap(\.templateName))
     }
 }
 

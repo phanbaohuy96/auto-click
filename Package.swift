@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "AutoClick",
     platforms: [
-        .macOS(.v13)
+        .macOS(.v14)
     ],
     products: [
         .executable(name: "AutoClick", targets: ["AutoClick"])
@@ -17,6 +17,8 @@ let package = Package(
                 .linkedFramework("AppKit"),
                 .linkedFramework("ApplicationServices"),
                 .linkedFramework("Carbon"),
+                .linkedFramework("ScreenCaptureKit"),
+                .linkedFramework("Vision"),
                 .linkedFramework("ServiceManagement")
             ]
         ),

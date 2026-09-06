@@ -17,17 +17,40 @@ Một **Bước** là một cặp **Hành động** × **Vị trí**, hai trục
 | Di chuột | Lệch theo góc gần nhất của cửa sổ ứng dụng |
 | Kéo thả | |
 | Gõ chuỗi ký tự | |
-| Nhấn tổ hợp phím | |
+| Nhấn tổ hợp phím | Tâm ảnh mẫu tìm thấy trên màn hình |
+| | Tâm đoạn chữ tìm thấy trên màn hình |
 
-Nhờ tách hai trục, "double-click tại một điểm" hay "kéo từ cửa sổ này sang chỗ kia" không phải là
-loại bước mới nào cả. Vị trí theo ảnh mẫu và theo chữ nằm ở lát tiếp theo, xem
-[`docs/sdd/01-pham-vi.md`](docs/sdd/01-pham-vi.md).
+Nhờ tách hai trục, "double-click theo ảnh mẫu" hay "cuộn tại chỗ có chữ Đồng ý" không phải là
+loại bước mới nào cả — chúng có sẵn từ 6 hành động × 5 vị trí.
 
 Neo theo cửa sổ bám vào **góc gần điểm nhất**, không phải luôn góc trên-trái: nút ở góc phải-dưới
 nhờ vậy vẫn đúng khi bạn phóng to cửa sổ.
 
 Kịch bản lưu ở `~/Library/Application Support/AutoClick/Scenarios/<id>/scenario.json`,
 mỗi kịch bản một thư mục. Xoá kịch bản là xoá cả thư mục.
+
+## Nhận dạng ảnh và chữ
+
+Một Bước có thể nhắm vào **ảnh mẫu** hoặc **đoạn chữ** thay vì toạ độ cố định.
+
+Khoanh một vùng bất kỳ trên màn hình để cắt ảnh mẫu. Không cần khoá ứng dụng, và **không cần mục
+tiêu đang hiển thị**: nút bạn muốn bấm thường chỉ xuất hiện sau khi trang tải, nên cứ mở một ảnh
+chụp màn hình cũ trong Preview rồi cắt từ chính ảnh đó.
+
+Mỗi bước theo ảnh có **thời gian chờ** và **việc phải làm khi hết giờ**:
+
+```
+Bước 2  click @ ảnh "nút Lưu"     chờ tối đa 10s  → hết giờ: Dừng kịch bản
+Bước 5  click @ ảnh "đóng quảng cáo"  chờ tối đa 0s  → hết giờ: Bỏ qua bước
+```
+
+Bước 2 là "đợi nút hiện ra rồi bấm". Bước 5 là "có thì đóng, không có thì chạy tiếp". Cả hai chỉ
+là hai con số — kịch bản không có `if`, không có rẽ nhánh.
+
+**Tìm theo chữ** bền hơn ảnh mẫu khi đổi giao diện sáng/tối hay cỡ chữ hệ thống, nhưng chỉ nhắm
+được thứ có chữ. Ảnh mẫu nhắm được icon và phần tử đồ hoạ.
+
+Tính năng này cần thêm quyền **Screen Recording**, chỉ hỏi khi bạn thật sự dùng tới.
 
 ## Ghi thao tác
 
@@ -65,7 +88,7 @@ toạ độ tuyệt đối và nói rõ điều đó.
 
 ## Build và cài đặt
 
-Yêu cầu macOS 13 trở lên và Xcode Command Line Tools.
+Yêu cầu macOS 14 trở lên và Xcode Command Line Tools.
 
 ```bash
 ./scripts/install.sh
@@ -90,7 +113,8 @@ Lần đầu bấm **Bắt đầu**, macOS sẽ yêu cầu quyền Accessibility
 
 `System Settings → Privacy & Security → Accessibility`
 
-Sau đó bật quyền cho **Auto Click**. Nên chạy app từ `/Applications` trước khi bật “Khởi động cùng MacBook” để macOS đăng ký đúng vị trí ứng dụng.
+Sau đó bật quyền cho **Auto Click**. Kịch bản dùng nhận dạng ảnh hoặc chữ cần thêm quyền
+**Screen Recording** ở cùng màn hình đó — hai quyền tách biệt, cấp một cái không tự có cái kia. Nên chạy app từ `/Applications` trước khi bật “Khởi động cùng MacBook” để macOS đăng ký đúng vị trí ứng dụng.
 
 Bản build local mặc định dùng chữ ký ad-hoc, vì vậy macOS có thể yêu cầu bật lại quyền Accessibility sau khi cập nhật. Nếu có certificate macOS ổn định, có thể chỉ định khi build/cài:
 

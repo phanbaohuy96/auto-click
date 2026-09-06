@@ -22,6 +22,8 @@ enum ScenarioRunError: LocalizedError, Equatable {
     case anchorWindowUnavailable(String)
     case activationFailed(String)
     case unknownKey(String)
+    case targetNotFound(String)
+    case recognitionFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -43,6 +45,10 @@ enum ScenarioRunError: LocalizedError, Equatable {
             return "Không đưa được \(name) lên trước để gõ phím; Auto Click đã dừng."
         case let .unknownKey(key):
             return "Không nhận ra phím \"\(key)\"."
+        case let .targetNotFound(description):
+            return "Không tìm thấy \(description) trên màn hình; Auto Click đã dừng."
+        case let .recognitionFailed(reason):
+            return reason
         }
     }
 }
@@ -71,6 +77,9 @@ final class ScenarioRunner: ObservableObject {
     private let keyboard: KeyboardEventEmitter
     private let resolver: TargetResolver
     private let system: ScenarioSystemBridge
+    private let recognizer: TargetRecognizing
+    /// Thoát khỏi mọi lần lặp còn lại của một Bước (EX-9).
+    private struct SkipStep: Error {}
 
     /// Số giây đếm ngược trước khi phát sự kiện đầu tiên (EX-1). Test đặt về 0.
     let countdownSeconds: Int
@@ -80,13 +89,20 @@ final class ScenarioRunner: ObservableObject {
         mouse: MouseEventEmitter = MouseEventEmitter(),
         keyboard: KeyboardEventEmitter = KeyboardEventEmitter(),
         system: ScenarioSystemBridge = .live,
+        recognizer: TargetRecognizing = ScreenTargetRecognizer(),
         countdownSeconds: Int = ScenarioRunner.defaultCountdownSeconds
     ) {
         self.resolver = resolver
         self.mouse = mouse
         self.keyboard = keyboard
         self.system = system
+        self.recognizer = recognizer
         self.countdownSeconds = countdownSeconds
+    }
+
+    /// Thư mục Ảnh mẫu của Kịch bản sắp chạy; đặt trước khi gọi `start`.
+    var templatesDirectory: URL? {
+        didSet { recognizer.prepare(templatesDirectory: templatesDirectory) }
     }
 
     var statusText: String {
@@ -236,11 +252,16 @@ final class ScenarioRunner: ObservableObject {
                 throw ScenarioRunError.lockedApplicationTerminated
             }
 
-            if step.action.isKeyboard {
-                try await bringLockedApplicationToFront(in: context)
-                try applyKeyboard(step.action)
-            } else {
-                try await applyPointer(step.action, target: step.target, in: context)
+            do {
+                if step.action.isKeyboard {
+                    try await bringLockedApplicationToFront(in: context)
+                    try applyKeyboard(step.action)
+                } else {
+                    try await applyPointer(step.action, step: step, in: context)
+                }
+            } catch is SkipStep {
+                // EX-9: bỏ qua **toàn bộ** các lần lặp còn lại của Bước, không chỉ lần này.
+                return
             }
 
             try await sleepBetweenEvents(step.delayMillisecondsAfter)
@@ -251,11 +272,11 @@ final class ScenarioRunner: ObservableObject {
 
     private func applyPointer(
         _ action: StepAction,
-        target: StepTarget,
+        step: Step,
         in context: RunContext
     ) async throws {
         let anchorFrame = context.lockedProcessIdentifier.flatMap(system.anchorWindowFrame)
-        let point = try resolve(target, anchorFrame: anchorFrame, in: context)
+        let point = try await resolve(step.target, step: step, anchorFrame: anchorFrame, in: context)
         try authorize(point, in: context)
 
         switch action {
@@ -280,7 +301,7 @@ final class ScenarioRunner: ObservableObject {
             }
 
         case let .drag(button, destination):
-            let end = try resolve(destination, anchorFrame: anchorFrame, in: context)
+            let end = try await resolve(destination, step: step, anchorFrame: anchorFrame, in: context)
             try authorize(end, in: context)
             try await drag(button, from: point, to: end)
 
@@ -317,13 +338,55 @@ final class ScenarioRunner: ObservableObject {
 
     private func resolve(
         _ target: StepTarget,
+        step: Step,
         anchorFrame: CGRect?,
         in context: RunContext
-    ) throws -> CGPoint {
+    ) async throws -> CGPoint {
         do {
             return try resolver.resolve(target, anchorWindowFrame: anchorFrame)
         } catch TargetResolutionError.anchorWindowUnavailable {
             throw ScenarioRunError.anchorWindowUnavailable(context.lockedApplicationName)
+        } catch TargetResolutionError.requiresRecognition {
+            return try await locate(target, step: step, anchorFrame: anchorFrame)
+        }
+    }
+
+    /// EX-8: thử lại theo nhịp bằng khoảng chờ của Bước, tối thiểu 150 ms, cho tới khi hết thời
+    /// gian chờ. Đây là chỗ "đợi nút Lưu hiện ra rồi bấm" được diễn đạt — không cần luồng điều khiển.
+    private func locate(
+        _ target: StepTarget,
+        step: Step,
+        anchorFrame: CGRect?
+    ) async throws -> CGPoint {
+        guard let settings = target.recognitionSettings else {
+            throw ScenarioRunError.targetNotFound(StepSummary.target(target))
+        }
+        let region = resolver.resolve(settings.searchRegion, anchorWindowFrame: anchorFrame)
+        let deadline = ContinuousClock.now + .milliseconds(settings.waitMilliseconds)
+        let retryGap = max(
+            step.delayMillisecondsAfter,
+            ScenarioLimits.recognitionRetryFloorMilliseconds
+        )
+
+        while true {
+            try Task.checkCancellation()
+            do {
+                if let point = try await recognizer.locate(target, within: region) { return point }
+            } catch let error as ScreenCaptureError {
+                throw ScenarioRunError.recognitionFailed(
+                    error.errorDescription ?? "Không chụp được màn hình."
+                )
+            }
+
+            if ContinuousClock.now >= deadline { break }
+            try await Task.sleep(for: .milliseconds(retryGap))
+        }
+
+        switch settings.onTimeout {
+        case .stopScenario:
+            throw ScenarioRunError.targetNotFound(StepSummary.target(target))
+        case .skipStep:
+            throw SkipStep()
         }
     }
 

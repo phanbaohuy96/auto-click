@@ -52,6 +52,18 @@ final class ScenarioStore: ObservableObject {
         readOnlyScenarioIDs.contains(scenario.id)
     }
 
+    /// Thư mục Ảnh mẫu của một Kịch bản (ST-2). Nằm trong chính thư mục Kịch bản nên xoá Kịch
+    /// bản là xoá luôn ảnh, không cần đếm tham chiếu ([ADR-0005]).
+    func templatesDirectory(for scenarioID: UUID) -> URL {
+        rootDirectory
+            .appendingPathComponent(scenarioID.uuidString, isDirectory: true)
+            .appendingPathComponent("templates", isDirectory: true)
+    }
+
+    func templateLibrary(for scenarioID: UUID) -> TemplateLibrary {
+        TemplateLibrary(directory: templatesDirectory(for: scenarioID))
+    }
+
     /// Binding ghi thẳng xuống đĩa: trình soạn thảo không có nút Lưu (UI-11).
     func binding(for id: UUID) -> Binding<Scenario> {
         Binding(
@@ -130,6 +142,10 @@ final class ScenarioStore: ObservableObject {
             Self.logger.error("Không lưu được kịch bản: \(error.localizedDescription, privacy: .public)")
             return
         }
+
+        // Ảnh mẫu không còn Bước nào dùng tới thì xoá, để thư mục Kịch bản không phình theo mỗi
+        // lần người dùng chụp lại.
+        templateLibrary(for: scenario.id).removeUnused(keeping: scenario.templateNames)
 
         if let index = scenarios.firstIndex(where: { $0.id == scenario.id }) {
             // Không sắp xếp lại ở đây: đổi tên được lưu theo từng ký tự gõ, và sắp xếp lại mỗi

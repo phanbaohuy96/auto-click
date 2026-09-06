@@ -89,6 +89,14 @@ struct AutoClickMenuView: View {
                 }
                 .buttonStyle(.link)
 
+                if needsScreenRecording {
+                    Button("Cấp quyền Screen Recording") {
+                        ScreenRecordingPermission.request()
+                        ScreenRecordingPermission.openSettings()
+                    }
+                    .buttonStyle(.link)
+                }
+
                 Spacer()
 
                 Button("Thoát") {
@@ -116,8 +124,20 @@ struct AutoClickMenuView: View {
         case .scenario:
             guard let scenario = store.selectedScenario else { return "Chưa có kịch bản nào." }
             if store.isReadOnly(scenario) { return "Kịch bản này chỉ xem được." }
+            if needsScreenRecording {
+                return "Kịch bản dùng nhận dạng ảnh/chữ nên cần thêm quyền Screen Recording."
+            }
             return runner.validate(scenario)?.errorDescription ?? recorder.message
         }
+    }
+
+    /// Chỉ hỏi tới quyền thứ hai khi Kịch bản thật sự dùng nhận dạng (SF-5).
+    private var needsScreenRecording: Bool {
+        guard let scenario = store.selectedScenario else { return false }
+        let usesRecognition = scenario.steps
+            .flatMap(\.targets)
+            .contains { $0.recognitionSettings != nil }
+        return usesRecognition && !ScreenRecordingPermission.isGranted
     }
 
     private var canRun: Bool {
@@ -148,7 +168,12 @@ struct AutoClickMenuView: View {
                 case .simple:
                     started = clicker.start()
                 case .scenario:
-                    started = store.selectedScenario.map { runner.start($0) } ?? false
+                    if let scenario = store.selectedScenario {
+                        runner.templatesDirectory = store.templatesDirectory(for: scenario.id)
+                        started = runner.start(scenario)
+                    } else {
+                        started = false
+                    }
                 }
                 if started { NSApp.keyWindow?.orderOut(nil) }
             } label: {

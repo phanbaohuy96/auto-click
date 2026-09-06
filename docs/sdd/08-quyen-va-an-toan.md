@@ -18,11 +18,11 @@
 
 - **SF-3** `[Lát 1]` `[đã làm]` **Accessibility** — cần để phát sự kiện và để hỏi tiến trình tại một điểm.
   Xin lúc bấm Bắt đầu lần đầu.
-- **SF-5** `[Lát 4]` **Screen Recording** — cần cho **Ảnh mẫu** và tìm theo chữ. Chỉ xin khi
+- **SF-5** `[Lát 4]` `[đã làm]` **Screen Recording** — cần cho **Ảnh mẫu** và tìm theo chữ. Chỉ xin khi
   người dùng dùng tới, không xin lúc khởi động.
 - **SF-6** Auto Click **không bao giờ** xin **Input Monitoring**.
   Xem [ADR-0003](../adr/0003-khong-ghi-ban-phim-khi-record.md).
-- **SF-7** `[Lát 4]` Màn hình trạng thái quyền phải phân biệt được "chưa cấp" với "đã cấp nhưng
+- **SF-7** `[Lát 4]` `[một phần]` Màn hình trạng thái quyền phải phân biệt được "chưa cấp" với "đã cấp nhưng
   cần khởi động lại app" — bản build ký ad-hoc hay rơi vào trường hợp thứ hai sau mỗi lần cập nhật.
 
 ## Gõ phím và focus

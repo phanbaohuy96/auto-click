@@ -9,6 +9,8 @@ struct StepDetailView: View {
     let lockedApplicationName: String?
     let onPickScreenPoint: (@escaping (CGPoint) -> Void) -> Void
     let onPickWindowOffset: (@escaping (WindowAnchor.Offset) -> Void) -> Void
+    let onCaptureTemplate: (@escaping (String) -> Void) -> Void
+    let onPickSearchRegion: (@escaping (SearchRegion) -> Void) -> Void
 
     var body: some View {
         Form {
@@ -159,6 +161,135 @@ struct StepDetailView: View {
             } else {
                 warning("Phải khoá kịch bản vào một ứng dụng thì mới neo được theo cửa sổ.")
             }
+
+        case let .template(name, settings):
+            HStack {
+                Text("Ảnh mẫu")
+                Spacer()
+                Text(name.isEmpty ? "Chưa chụp" : name)
+                    .foregroundStyle(name.isEmpty ? .secondary : .primary)
+                    .lineLimit(1)
+                Button(name.isEmpty ? "Chụp vùng…" : "Chụp lại…") {
+                    onCaptureTemplate { captured in
+                        target.wrappedValue = .template(name: captured, settings: settings)
+                    }
+                }
+            }
+            footnote("Khoanh được ở bất cứ đâu — kể cả từ một ảnh chụp màn hình đang mở trong ứng dụng khác, khi mục tiêu chưa hiện ra.")
+            thresholdField(target, settings: settings)
+            recognitionFields(target, settings: settings)
+
+        case let .text(text, settings):
+            TextField("Chữ cần tìm", text: Binding(
+                get: { text },
+                set: { target.wrappedValue = .text($0, settings: settings) }
+            ))
+            footnote("Không phân biệt hoa thường. Bền hơn ảnh mẫu khi đổi giao diện sáng/tối hay cỡ chữ, nhưng chỉ nhắm được thứ có chữ.")
+            recognitionFields(target, settings: settings)
+        }
+    }
+
+    // MARK: - Cấu hình nhận dạng
+
+    @ViewBuilder
+    private func thresholdField(
+        _ target: Binding<StepTarget>,
+        settings: RecognitionSettings
+    ) -> some View {
+        HStack {
+            Text("Ngưỡng khớp")
+            Slider(
+                value: Binding(
+                    get: { settings.threshold },
+                    set: { update(target, settings, threshold: $0) }
+                ),
+                in: ScenarioLimits.recognitionThreshold
+            )
+            Text(String(format: "%.2f", settings.threshold))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .frame(width: 44, alignment: .trailing)
+        }
+    }
+
+    @ViewBuilder
+    private func recognitionFields(
+        _ target: Binding<StepTarget>,
+        settings: RecognitionSettings
+    ) -> some View {
+        labelledField(
+            "Chờ tối đa",
+            value: Binding(
+                get: { settings.waitMilliseconds },
+                set: { update(target, settings, wait: $0) }
+            ),
+            range: ScenarioLimits.recognitionWaitMilliseconds,
+            suffix: "ms"
+        )
+
+        Picker(
+            "Hết giờ thì",
+            selection: Binding(
+                get: { settings.onTimeout },
+                set: { update(target, settings, onTimeout: $0) }
+            )
+        ) {
+            Text("Dừng kịch bản").tag(TimeoutBehaviour.stopScenario)
+            Text("Bỏ qua bước").tag(TimeoutBehaviour.skipStep)
+        }
+
+        HStack {
+            Text("Vùng tìm")
+            Spacer()
+            Text(searchRegionDescription(settings.searchRegion))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            if settings.searchRegion != nil {
+                Button("Bỏ") { update(target, settings, searchRegion: .some(nil)) }
+            }
+            Button("Khoanh…") {
+                onPickSearchRegion { region in
+                    update(target, settings, searchRegion: .some(region))
+                }
+            }
+        }
+        if settings.waitMilliseconds > 0 {
+            footnote("Thử lại tới \(settings.waitMilliseconds) ms — đủ để đợi nút hiện ra sau khi trang tải.")
+        }
+    }
+
+    private func searchRegionDescription(_ region: SearchRegion?) -> String {
+        switch region {
+        case nil:
+            return "Cả màn hình (hoặc cửa sổ đã khoá)"
+        case let .screenRect(_, _, width, height):
+            return "Tuyệt đối \(Int(width))×\(Int(height)) — trượt nếu cửa sổ dịch"
+        case let .windowRelative(_, _, _, width, height):
+            return "Theo cửa sổ \(Int(width))×\(Int(height))"
+        }
+    }
+
+    private func update(
+        _ target: Binding<StepTarget>,
+        _ settings: RecognitionSettings,
+        threshold: Double? = nil,
+        wait: Int? = nil,
+        onTimeout: TimeoutBehaviour? = nil,
+        searchRegion: SearchRegion?? = nil
+    ) {
+        let updated = RecognitionSettings(
+            threshold: threshold ?? settings.threshold,
+            searchRegion: searchRegion ?? settings.searchRegion,
+            waitMilliseconds: wait ?? settings.waitMilliseconds,
+            onTimeout: onTimeout ?? settings.onTimeout
+        )
+        switch target.wrappedValue {
+        case let .template(name, _):
+            target.wrappedValue = .template(name: name, settings: updated)
+        case let .text(text, _):
+            target.wrappedValue = .text(text, settings: updated)
+        default:
+            break
         }
     }
 
@@ -180,13 +311,15 @@ struct StepDetailView: View {
     }
 
     private enum TargetKind: String, CaseIterable, Identifiable {
-        case cursor, screenPoint, windowRelative
+        case cursor, screenPoint, windowRelative, template, text
         var id: String { rawValue }
         var title: String {
             switch self {
             case .cursor: return "Theo con trỏ"
             case .screenPoint: return "Điểm cố định"
             case .windowRelative: return "Lệch theo cửa sổ"
+            case .template: return "Theo ảnh mẫu"
+            case .text: return "Theo chữ"
             }
         }
     }
@@ -249,6 +382,8 @@ struct StepDetailView: View {
                 case .cursor: return .cursor
                 case .screenPoint: return .screenPoint
                 case .windowRelative: return .windowRelative
+                case .template: return .template
+                case .text: return .text
                 }
             },
             set: { kind in
@@ -261,6 +396,18 @@ struct StepDetailView: View {
                 case .windowRelative:
                     if case .windowRelative = target.wrappedValue { return }
                     target.wrappedValue = .windowRelative(corner: .topLeft, dx: 0, dy: 0)
+                case .template:
+                    if case .template = target.wrappedValue { return }
+                    target.wrappedValue = .template(
+                        name: "",
+                        settings: target.wrappedValue.recognitionSettings ?? RecognitionSettings()
+                    )
+                case .text:
+                    if case .text = target.wrappedValue { return }
+                    target.wrappedValue = .text(
+                        "",
+                        settings: target.wrappedValue.recognitionSettings ?? RecognitionSettings()
+                    )
                 }
             }
         )

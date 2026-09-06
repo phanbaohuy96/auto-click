@@ -41,10 +41,10 @@ Hình dạng cốt lõi và lý do chọn nó: [ADR-0002](../adr/0002-buoc-la-ha
   (gốc ở góc **trên-trái** màn hình chính, đơn vị **point**).
 - **DM-13** `[Lát 2]` `[đã làm]` `lệchCửaSổ(góc, dx, dy)` — `góc` ∈ {trênTrái, trênPhải, dướiTrái, dướiPhải}
   của **Cửa sổ neo**. Góc được chọn **tự động lúc ghi điểm**: góc gần điểm nhất.
-- **DM-14** `[Lát 4]` `theoẢnh(tênẢnhMẫu, ngưỡng, vùngTìm?, chờTốiĐaMs, khiHếtGiờ)`.
-- **DM-15** `[Lát 4]` `theoChữ(chuỗi, vùngTìm?, chờTốiĐaMs, khiHếtGiờ)`.
-- **DM-16** `[Lát 4]` `khiHếtGiờ` ∈ {dừngKịchBản, bỏQuaBước}.
-- **DM-17** `[Lát 4]` `vùngTìm` là tuỳ chọn và **không bao giờ** đòi hỏi **Ứng dụng khoá**.
+- **DM-14** `[Lát 4]` `[đã làm]` `theoẢnh(tênẢnhMẫu, ngưỡng, vùngTìm?, chờTốiĐaMs, khiHếtGiờ)`.
+- **DM-15** `[Lát 4]` `[đã làm]` `theoChữ(chuỗi, vùngTìm?, chờTốiĐaMs, khiHếtGiờ)`.
+- **DM-16** `[Lát 4]` `[đã làm]` `khiHếtGiờ` ∈ {dừngKịchBản, bỏQuaBước}.
+- **DM-17** `[Lát 4]` `[đã làm]` `vùngTìm` là tuỳ chọn và **không bao giờ** đòi hỏi **Ứng dụng khoá**.
   Nó được lưu ở dạng bền nhất còn khả dụng tại thời điểm khoanh: lệch so với một góc của
   **Cửa sổ neo** nếu **Kịch bản** có **Ứng dụng khoá** và lấy được cửa sổ, ngược lại là toạ độ
   tuyệt đối trên màn hình. Xem `RG-6`.

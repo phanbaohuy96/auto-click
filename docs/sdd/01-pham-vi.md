@@ -35,7 +35,7 @@ Thay bộ chạy nằm dưới nút Bắt đầu, không thay đổi thứ ngư�
 - Bắt sự kiện chuột toàn hệ thống, suy luận thành **Hành động**
 - Tự nâng **Vị trí** lên tương đối **Cửa sổ neo** khi cả phiên nằm trong một ứng dụng
 
-### Lát 4 — Nhận dạng mục tiêu
+### Lát 4 — Nhận dạng mục tiêu  ✅
 
 - Nâng min macOS lên 14, chụp màn hình bằng ScreenCaptureKit
 - **Vị trí** theo **Ảnh mẫu** (khớp kim tự tháp) và theo chữ (Vision OCR)
