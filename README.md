@@ -1,9 +1,33 @@
 # Auto Click cho macOS
 
-Ứng dụng native nằm trên menu bar, hỗ trợ:
+Ứng dụng native nằm trên menu bar. Có hai mặt giao diện, nhưng chỉ **một** bộ chạy bên dưới:
+
+- **Đơn giản** — một thao tác lặp lại, đúng như các phiên bản trước.
+- **Kịch bản** — chuỗi thao tác có thứ tự, mỗi bước có hành động, vị trí, số lần lặp và
+  khoảng chờ riêng.
+
+## Kịch bản
+
+Một **Bước** là một cặp **Hành động** × **Vị trí**, hai trục độc lập nhau:
+
+| Hành động | Vị trí |
+|---|---|
+| Click (trái/phải/giữa, n lần, giữ N ms) | Theo con trỏ |
+| Cuộn (ngang, dọc) | Điểm cố định trên màn hình |
+| Di chuột | |
+
+Nhờ tách hai trục, "double-click tại một điểm" hay "cuộn tại vị trí con trỏ" không phải là loại
+bước mới nào cả. Các dạng Vị trí còn lại — lệch theo cửa sổ, theo ảnh mẫu, theo chữ — và các
+Hành động kéo thả, gõ phím nằm ở các lát tiếp theo, xem [`docs/sdd/01-pham-vi.md`](docs/sdd/01-pham-vi.md).
+
+Kịch bản lưu ở `~/Library/Application Support/AutoClick/Scenarios/<id>/scenario.json`,
+mỗi kịch bản một thư mục. Xoá kịch bản là xoá cả thư mục.
+
+## Các tính năng khác
 
 - Chọn khoảng thời gian giữa hai lần click (10–3.600.000 ms).
-- Chọn số lần lặp (1–1.000.000).
+- Chọn số lần lặp (1–1.000.000), ở cấp bước và cấp kịch bản.
+- Kịch bản lặp đến khi bấm Dừng.
 - Click theo vị trí con trỏ hoặc một điểm cố định đã lưu.
 - Chọn điểm trực tiếp trên bất kỳ màn hình nào; nhấn `Esc` để hủy chọn.
 - Khóa click vào một ứng dụng đang chạy và xác minh ứng dụng sở hữu điểm click.
@@ -13,6 +37,7 @@
 - Hiện live activity nổi khi chạy, với nút **Dừng** luôn nhìn thấy.
 - Phím tắt toàn cục `⌥⌘S` để dừng ngay cả khi đang dùng ứng dụng khác.
 - Ghi nhớ cấu hình và tự khởi động khi đăng nhập macOS.
+- Luôn nhả nút chuột khi dừng, kể cả đang giữa một thao tác giữ nhấn.
 
 ## Build và cài đặt
 
@@ -52,6 +77,18 @@ AUTO_CLICK_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)" ./scr
 Để giới hạn click, bật **Chỉ click trong ứng dụng** và chọn một app đang chạy. Nút làm mới bên cạnh danh sách sẽ nhận các app vừa được mở. Auto Click đưa app đó lên trước khi chạy, kiểm tra UI tại tọa độ thuộc đúng PID đã chọn rồi mới phát click toàn hệ thống. App tự dừng nếu ứng dụng bị đóng hoặc điểm click nằm ngoài ứng dụng đó.
 
 Ở chế độ **Theo con trỏ**, mỗi lần click sử dụng vị trí con trỏ tại đúng thời điểm đó. Ở chế độ **Điểm cố định**, app luôn click vào tọa độ đã lưu. Sau khi chọn một điểm mới, cửa sổ cấu hình sẽ tự hiện lại.
+
+## Tài liệu
+
+| Tài liệu | Trả lời câu hỏi |
+|---|---|
+| [`CONTEXT.md`](CONTEXT.md) | Các khái niệm tên là gì và nghĩa là gì |
+| [`docs/adr/`](docs/adr/) | Vì sao chọn phương án này thay vì phương án kia |
+| [`docs/sdd/`](docs/sdd/) | Hệ thống phải làm gì, chính xác đến mức kiểm chứng được |
+
+Mọi hành vi quan sát được đều có một mã yêu cầu trong `docs/sdd/` (`DM-`, `EX-`, `ST-`, `UI-`,
+`SF-`, `RC-`, `RG-`). Code trích dẫn mã đó ở những chỗ hành vi không hiển nhiên. Sửa hành vi thì
+sửa đặc tả trước.
 
 ## Phát triển
 

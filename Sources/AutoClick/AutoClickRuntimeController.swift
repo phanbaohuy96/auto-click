@@ -4,16 +4,16 @@ import SwiftUI
 
 @MainActor
 final class AutoClickRuntimeController: ObservableObject {
-    private let clicker: AutoClicker
+    private let runner: ScenarioRunner
     private let activityPanel: RunningActivityPanelController
     private var hotKey: EventHotKeyRef?
     private var hotKeyHandler: EventHandlerRef?
 
-    init(clicker: AutoClicker) {
-        self.clicker = clicker
-        activityPanel = RunningActivityPanelController(clicker: clicker)
+    init(runner: ScenarioRunner) {
+        self.runner = runner
+        activityPanel = RunningActivityPanelController(runner: runner)
 
-        clicker.onRunningStateChanged = { [weak self] isRunning in
+        runner.onRunningStateChanged = { [weak self] isRunning in
             self?.activityPanel.setVisible(isRunning)
         }
 
@@ -21,8 +21,8 @@ final class AutoClickRuntimeController: ObservableObject {
     }
 
     private func stopFromShortcut() {
-        guard clicker.isRunning else { return }
-        clicker.stop()
+        guard runner.isRunning else { return }
+        runner.stop()
     }
 
     private func registerStopHotKey() {
@@ -69,8 +69,8 @@ final class AutoClickRuntimeController: ObservableObject {
 private final class RunningActivityPanelController {
     private let panel: NSPanel
 
-    init(clicker: AutoClicker) {
-        let panelSize = NSSize(width: 390, height: 72)
+    init(runner: ScenarioRunner) {
+        let panelSize = NSSize(width: 390, height: 86)
         panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: panelSize),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -85,7 +85,7 @@ private final class RunningActivityPanelController {
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.isMovableByWindowBackground = true
-        panel.contentView = NSHostingView(rootView: RunningActivityView(clicker: clicker))
+        panel.contentView = NSHostingView(rootView: RunningActivityView(runner: runner))
     }
 
     func setVisible(_ isVisible: Bool) {
@@ -109,19 +109,24 @@ private final class RunningActivityPanelController {
 }
 
 private struct RunningActivityView: View {
-    @ObservedObject var clicker: AutoClicker
+    @ObservedObject var runner: ScenarioRunner
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: clicker.countdown == nil ? "cursorarrow.rays" : "timer")
+            Image(systemName: runner.countdown == nil ? "cursorarrow.rays" : "timer")
                 .font(.title2)
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(clicker.statusText)
+                Text(runner.runningScenarioName ?? "Auto Click")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Text(runner.statusText)
                     .font(.headline)
                     .lineLimit(1)
+                // Lối thoát duy nhất khi chuỗi click đang cướp con trỏ (UI-15).
                 Text("Dừng nhanh bằng ⌥⌘S")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -130,7 +135,7 @@ private struct RunningActivityView: View {
             Spacer(minLength: 8)
 
             Button {
-                clicker.stop()
+                runner.stop()
             } label: {
                 Label("Dừng", systemImage: "stop.fill")
             }
@@ -139,7 +144,7 @@ private struct RunningActivityView: View {
             .keyboardShortcut("s", modifiers: [.command, .option])
         }
         .padding(.horizontal, 16)
-        .frame(width: 390, height: 72)
+        .frame(width: 390, height: 86)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 16, style: .continuous)

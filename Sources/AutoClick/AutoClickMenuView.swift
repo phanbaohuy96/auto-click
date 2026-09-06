@@ -1,66 +1,68 @@
 import AppKit
 import SwiftUI
 
+enum PopoverMode: String, CaseIterable, Identifiable {
+    case simple
+    case scenario
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .simple: return "Đơn giản"
+        case .scenario: return "Kịch bản"
+        }
+    }
+}
+
+/// Bề mặt **chạy** (UI-1). Việc sửa Bước nằm ở cửa sổ soạn thảo, không ở đây.
 struct AutoClickMenuView: View {
     @ObservedObject var clicker: AutoClicker
+    @ObservedObject var runner: ScenarioRunner
+    @ObservedObject var store: ScenarioStore
     @ObservedObject var launchAtLogin: LaunchAtLoginManager
+
+    @AppStorage("popoverMode") private var rawMode = PopoverMode.simple.rawValue
+    @Environment(\.openWindow) private var openWindow
+
+    private var mode: Binding<PopoverMode> {
+        Binding(
+            get: { PopoverMode(rawValue: rawMode) ?? .simple },
+            set: { rawMode = $0.rawValue }
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
 
-            VStack(spacing: 10) {
-                numberField(
-                    title: "Time interval",
-                    suffix: "ms",
-                    text: $clicker.intervalText
-                )
-                numberField(
-                    title: "Repeat",
-                    suffix: "lần",
-                    text: $clicker.repeatText
-                )
+            Picker("Chế độ", selection: mode) {
+                ForEach(PopoverMode.allCases) { Text($0.title).tag($0) }
             }
-            .disabled(clicker.isRunning)
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .disabled(runner.isRunning)
 
-            targetPicker
-                .disabled(clicker.isRunning)
+            Group {
+                switch mode.wrappedValue {
+                case .simple: simpleSection
+                case .scenario: scenarioSection
+                }
+            }
+            .disabled(runner.isRunning)
 
-            applicationLockPicker
-                .disabled(clicker.isRunning)
-
-            if let validationMessage = clicker.validationMessage {
-                Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
+            if let blocker {
+                Label(blocker, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
-            Label(clicker.statusText, systemImage: statusIcon)
+            Label(runner.statusText, systemImage: statusIcon)
                 .font(.callout)
-                .foregroundStyle(clicker.isRunning ? Color.accentColor : .secondary)
+                .foregroundStyle(runner.isRunning ? Color.accentColor : .secondary)
 
-            if clicker.isRunning {
-                Button("Dừng", role: .destructive) {
-                    clicker.stop()
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
-                .keyboardShortcut("s", modifiers: [.command, .option])
-            } else {
-                Button {
-                    if clicker.start() {
-                        NSApp.keyWindow?.orderOut(nil)
-                    }
-                } label: {
-                    Label("Bắt đầu sau 3 giây", systemImage: "play.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(clicker.validationMessage != nil)
-            }
+            runButton
 
             Divider()
 
@@ -98,6 +100,130 @@ struct AutoClickMenuView: View {
         .frame(width: 340)
         .onAppear {
             clicker.refreshRunningApplications()
+            store.reload()
+        }
+    }
+
+    // MARK: - Bắt đầu / Dừng
+
+    private var blocker: String? {
+        if runner.isRunning { return nil }
+        switch mode.wrappedValue {
+        case .simple:
+            return clicker.validationMessage ?? clicker.message
+        case .scenario:
+            guard let scenario = store.selectedScenario else { return "Chưa có kịch bản nào." }
+            if store.isReadOnly(scenario) { return "Kịch bản này chỉ xem được." }
+            return runner.validate(scenario)?.errorDescription
+        }
+    }
+
+    private var canRun: Bool {
+        switch mode.wrappedValue {
+        case .simple:
+            return clicker.validationMessage == nil
+        case .scenario:
+            guard let scenario = store.selectedScenario else { return false }
+            return !store.isReadOnly(scenario) && runner.validate(scenario) == nil
+        }
+    }
+
+    @ViewBuilder
+    private var runButton: some View {
+        if runner.isRunning {
+            Button("Dừng", role: .destructive) {
+                runner.stop()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.red)
+            .controlSize(.large)
+            .frame(maxWidth: .infinity)
+            .keyboardShortcut("s", modifiers: [.command, .option])
+        } else {
+            Button {
+                let started: Bool
+                switch mode.wrappedValue {
+                case .simple:
+                    started = clicker.start()
+                case .scenario:
+                    started = store.selectedScenario.map { runner.start($0) } ?? false
+                }
+                if started { NSApp.keyWindow?.orderOut(nil) }
+            } label: {
+                Label("Bắt đầu sau \(runner.countdownSeconds) giây", systemImage: "play.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(!canRun)
+        }
+    }
+
+    // MARK: - Kịch bản
+
+    private var scenarioSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Picker("Kịch bản", selection: $store.selectedScenarioID) {
+                    if store.scenarios.isEmpty {
+                        Text("Chưa có kịch bản").tag(UUID?.none)
+                    }
+                    ForEach(store.scenarios) { scenario in
+                        Text(scenario.name).tag(UUID?.some(scenario.id))
+                    }
+                }
+                .labelsHidden()
+                .frame(maxWidth: .infinity)
+
+                Button {
+                    openEditor()
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                }
+                .help("Soạn kịch bản")
+            }
+
+            if let scenario = store.selectedScenario {
+                Label(summary(of: scenario), systemImage: "list.number")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Button("Soạn kịch bản…") { openEditor() }
+                .buttonStyle(.link)
+                .font(.caption)
+        }
+    }
+
+    private func summary(of scenario: Scenario) -> String {
+        let steps = "\(scenario.steps.count) bước"
+        switch scenario.runCount {
+        case let .times(count) where count > 1:
+            return "\(steps) · lặp \(count) vòng"
+        case .untilStopped:
+            return "\(steps) · lặp đến khi dừng"
+        case .times:
+            return steps
+        }
+    }
+
+    private func openEditor() {
+        // App là agent (LSUIElement) nên cửa sổ mở ra sẽ không nhận bàn phím nếu thiếu dòng này (UI-3).
+        NSApp.activate(ignoringOtherApps: true)
+        openWindow(id: ScenarioEditorScene.windowID)
+    }
+
+    // MARK: - Chế độ đơn giản
+
+    private var simpleSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(spacing: 10) {
+                numberField(title: "Time interval", suffix: "ms", text: $clicker.intervalText)
+                numberField(title: "Repeat", suffix: "lần", text: $clicker.repeatText)
+            }
+
+            targetPicker
+            applicationLockPicker
         }
     }
 
@@ -110,7 +236,7 @@ struct AutoClickMenuView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Auto Click")
                     .font(.headline)
-                Text("Click theo con trỏ hoặc điểm cố định")
+                Text("Click theo con trỏ, điểm cố định, hoặc kịch bản")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -152,8 +278,8 @@ struct AutoClickMenuView: View {
     }
 
     private var statusIcon: String {
-        if clicker.countdown != nil { return "timer" }
-        if clicker.isRunning { return "cursorarrow.rays" }
+        if runner.countdown != nil { return "timer" }
+        if runner.isRunning { return "cursorarrow.rays" }
         return "checkmark.circle"
     }
 
@@ -190,12 +316,9 @@ struct AutoClickMenuView: View {
                     .help("Làm mới danh sách ứng dụng")
                 }
 
-                Label(
-                    "Chỉ click khi điểm thuộc ứng dụng đã chọn",
-                    systemImage: "lock.fill"
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Label("Chỉ click khi điểm thuộc ứng dụng đã chọn", systemImage: "lock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }

@@ -1,7 +1,11 @@
 import AppKit
-import ApplicationServices
 import Foundation
 
+/// Trạng thái biểu mẫu của **Chế độ đơn giản**.
+///
+/// Đây không phải một bộ chạy. Bấm Bắt đầu ở đây dựng ra một Kịch bản một bước rồi giao cho
+/// `ScenarioRunner` — cùng bộ chạy mà cửa sổ soạn thảo dùng (ADR-0002, UI-6). Kịch bản đó là
+/// vật thể tạm và không được lưu ra đĩa (UI-7).
 @MainActor
 final class AutoClicker: ObservableObject {
     @Published var intervalText: String {
@@ -27,19 +31,15 @@ final class AutoClicker: ObservableObject {
     @Published private(set) var fixedPoint: CGPoint?
     @Published private(set) var selectedApplicationName: String
     @Published private(set) var runningApplications: [RunningApplicationOption] = []
-    @Published private(set) var isRunning = false {
-        didSet { onRunningStateChanged?(isRunning) }
-    }
-    @Published private(set) var completedClicks = 0
-    @Published private(set) var countdown: Int?
+    /// Phản hồi cho thao tác chọn điểm. Trạng thái *khi chạy* nằm ở `ScenarioRunner`.
     @Published private(set) var message: String?
 
-    private var clickTask: Task<Void, Never>?
     private var pointSelector: ClickPointSelector?
     private let defaults: UserDefaults
-    var onRunningStateChanged: ((Bool) -> Void)?
+    private let runner: ScenarioRunner
 
-    init(defaults: UserDefaults = .standard) {
+    init(runner: ScenarioRunner, defaults: UserDefaults = .standard) {
+        self.runner = runner
         self.defaults = defaults
         let interval = defaults.object(forKey: "intervalMilliseconds") as? Int ?? 100
         let repeatCount = defaults.object(forKey: "repeatCount") as? Int ?? 10
@@ -86,16 +86,6 @@ final class AutoClicker: ObservableObject {
         }
     }
 
-    var statusText: String {
-        if let countdown {
-            return "Bắt đầu sau \(countdown) giây…"
-        }
-        if isRunning {
-            return "Đã click \(completedClicks) lần"
-        }
-        return message ?? "Sẵn sàng"
-    }
-
     var fixedPointDescription: String {
         guard let fixedPoint else { return "Chưa chọn điểm" }
         return "X: \(Int(fixedPoint.x.rounded()))  Y: \(Int(fixedPoint.y.rounded()))"
@@ -127,71 +117,57 @@ final class AutoClicker: ObservableObject {
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
-    @discardableResult
-    func start() -> Bool {
-        guard !isRunning else { return false }
-
+    /// Dựng Kịch bản một bước tương đương với biểu mẫu hiện tại (UI-6).
+    func makeScenario() -> Scenario? {
         guard case let .success(settings) = SettingsValidator.validate(
             intervalText: intervalText,
             repeatText: repeatText
-        ) else {
+        ) else { return nil }
+
+        let target: StepTarget
+        switch targetMode {
+        case .cursor:
+            target = .cursor
+        case .fixedPoint:
+            guard let fixedPoint else { return nil }
+            target = .screenPoint(x: fixedPoint.x, y: fixedPoint.y)
+        }
+
+        var lockedApplication: LockedApplication?
+        if applicationLockEnabled, !selectedApplicationIdentifier.isEmpty {
+            lockedApplication = LockedApplication(
+                bundleIdentifier: selectedApplicationIdentifier,
+                name: selectedApplicationName
+            )
+        }
+
+        return Scenario(
+            name: "Chế độ đơn giản",
+            steps: [
+                Step(
+                    action: .click(button: .left, count: 1, holdMilliseconds: 0),
+                    target: target,
+                    repeatCount: settings.repeatCount,
+                    delayMillisecondsAfter: settings.intervalMilliseconds
+                )
+            ],
+            runCount: .times(1),
+            lockedApplication: lockedApplication
+        )
+    }
+
+    @discardableResult
+    func start() -> Bool {
+        guard let scenario = makeScenario() else {
             message = validationMessage
             return false
         }
-
-
-        let targetPoint: CGPoint?
-        switch targetMode {
-        case .cursor:
-            targetPoint = nil
-        case .fixedPoint:
-            guard let fixedPoint else {
-                message = "Hãy chọn một điểm click cố định."
-                return false
-            }
-            targetPoint = fixedPoint
-        }
-
-        let selectedApplication: NSRunningApplication?
-        if applicationLockEnabled {
-            guard let runningApplication = selectedRunningApplication else {
-                message = ApplicationLockValidator.validate(
-                    isEnabled: true,
-                    selectedBundleIdentifier: selectedApplicationIdentifier,
-                    isApplicationRunning: false
-                )?.errorDescription
-                refreshRunningApplications()
-                return false
-            }
-            selectedApplication = runningApplication
-        } else {
-            selectedApplication = nil
-        }
-
-        guard requestAccessibilityAccessIfNeeded() else {
-            message = "Hãy cấp quyền Accessibility rồi thử lại."
-            return false
-        }
-
-        selectedApplication?.activate(options: [.activateAllWindows])
-        let targetProcessIdentifier = selectedApplication?.processIdentifier
-
         message = nil
-        completedClicks = 0
-        isRunning = true
-
-        clickTask = Task { [weak self] in
-            await self?.run(
-                settings: settings,
-                targetPoint: targetPoint,
-                targetProcessIdentifier: targetProcessIdentifier
-            )
-        }
-        return true
+        return runner.start(scenario)
     }
 
     func chooseFixedPoint(returningTo returnWindow: NSWindow?) {
-        guard !isRunning else { return }
+        guard !runner.isRunning else { return }
 
         message = "Click vào vị trí muốn lưu; nhấn Esc để hủy."
         let selector = ClickPointSelector()
@@ -216,123 +192,11 @@ final class AutoClicker: ObservableObject {
         }
     }
 
-    func stop() {
-        clickTask?.cancel()
-        clickTask = nil
-        countdown = nil
-        isRunning = false
-        message = "Đã dừng"
-    }
-
     func openAccessibilitySettings() {
         guard let url = URL(
             string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
         ) else { return }
         NSWorkspace.shared.open(url)
-    }
-
-    private func run(
-        settings: AutoClickSettings,
-        targetPoint: CGPoint?,
-        targetProcessIdentifier: pid_t?
-    ) async {
-        defer {
-            clickTask = nil
-            countdown = nil
-            isRunning = false
-        }
-
-        do {
-            for second in stride(from: 3, through: 1, by: -1) {
-                countdown = second
-                try await Task.sleep(for: .seconds(1))
-            }
-
-            countdown = nil
-            let positionPolicy = ClickPositionPolicy(
-                fixedPoint: targetPoint
-            )
-
-            for index in 0..<settings.repeatCount {
-                try Task.checkCancellation()
-                if let targetProcessIdentifier,
-                   NSRunningApplication(processIdentifier: targetProcessIdentifier) == nil {
-                    throw AutoClickError.targetApplicationTerminated
-                }
-
-                let point = positionPolicy.pointForNextClick(
-                    currentCursorPoint: CGEvent(source: nil)?.location ?? .zero
-                )
-                try postLeftClick(at: point, targetProcessIdentifier: targetProcessIdentifier)
-                completedClicks = index + 1
-
-                if index < settings.repeatCount - 1 {
-                    try await Task.sleep(for: .milliseconds(settings.intervalMilliseconds))
-                }
-            }
-
-            message = "Hoàn tất \(settings.repeatCount) lần click"
-        } catch is CancellationError {
-            message = "Đã dừng"
-        } catch {
-            message = "Có lỗi: \(error.localizedDescription)"
-        }
-    }
-
-    private func postLeftClick(at point: CGPoint, targetProcessIdentifier: pid_t?) throws {
-        let source = CGEventSource(stateID: .hidSystemState)
-        let mouseDown = CGEvent(
-            mouseEventSource: source,
-            mouseType: .leftMouseDown,
-            mouseCursorPosition: point,
-            mouseButton: .left
-        )
-        let mouseUp = CGEvent(
-            mouseEventSource: source,
-            mouseType: .leftMouseUp,
-            mouseCursorPosition: point,
-            mouseButton: .left
-        )
-
-        let route = ClickRoutingPolicy.route(
-            targetProcessIdentifier: targetProcessIdentifier,
-            processIdentifierAtPoint: targetProcessIdentifier == nil
-                ? nil
-                : processIdentifierAtPoint(point)
-        )
-        switch route {
-        case .systemEventTap:
-            mouseDown?.post(tap: .cghidEventTap)
-            mouseUp?.post(tap: .cghidEventTap)
-        case nil:
-            throw AutoClickError.pointOutsideTargetApplication
-        }
-    }
-
-    private func processIdentifierAtPoint(_ point: CGPoint) -> pid_t? {
-        let systemWideElement = AXUIElementCreateSystemWide()
-        var element: AXUIElement?
-        let copyResult = AXUIElementCopyElementAtPosition(
-            systemWideElement,
-            Float(point.x),
-            Float(point.y),
-            &element
-        )
-        guard copyResult == .success, let element else { return nil }
-
-        var processIdentifier: pid_t = 0
-        guard AXUIElementGetPid(element, &processIdentifier) == .success else { return nil }
-        return processIdentifier
-    }
-
-    private func requestAccessibilityAccessIfNeeded() -> Bool {
-        if AXIsProcessTrusted() { return true }
-
-        // The SDK exposes kAXTrustedCheckOptionPrompt as mutable global state,
-        // which Swift 6 rejects under strict concurrency checking. This is its
-        // documented CFString value.
-        let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-        return AXIsProcessTrustedWithOptions(options)
     }
 
     private func saveValidSettings() {
@@ -359,20 +223,6 @@ final class AutoClicker: ObservableObject {
         }) {
             selectedApplicationName = selectedOption.name
             defaults.set(selectedOption.name, forKey: "selectedApplicationName")
-        }
-    }
-}
-
-private enum AutoClickError: LocalizedError {
-    case targetApplicationTerminated
-    case pointOutsideTargetApplication
-
-    var errorDescription: String? {
-        switch self {
-        case .targetApplicationTerminated:
-            return "Ứng dụng đích đã đóng; Auto Click đã dừng."
-        case .pointOutsideTargetApplication:
-            return "Điểm click không nằm trong ứng dụng đã khóa; Auto Click đã dừng."
         }
     }
 }
