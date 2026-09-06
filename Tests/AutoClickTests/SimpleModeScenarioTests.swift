@@ -11,7 +11,7 @@ private func makeClicker(
     defaults.set(interval, forKey: "intervalMilliseconds")
     defaults.set(repeatCount, forKey: "repeatCount")
     return AutoClicker(
-        runner: ScenarioRunner(countdownSeconds: 0, isAccessibilityTrusted: { true }),
+        runner: makeRunner(recorder: EventRecorder()),
         defaults: defaults
     )
 }

@@ -17,6 +17,48 @@ enum ScenarioLimits {
 
     /// Khoảng cách giữa hai cặp nhấn/nhả trong cùng một Hành động click (EX-17).
     static let interClickGapMilliseconds = 30
+
+    /// Số điểm trung gian khi kéo thả (EX-20). Nhiều ứng dụng bỏ qua thao tác kéo nếu con trỏ
+    /// nhảy thẳng từ đầu tới cuối mà không có điểm nào ở giữa.
+    static let dragIntermediateSteps = 24
+    static let dragStepGapMilliseconds = 8
+
+    /// Thời gian tối đa chờ Ứng dụng khoá lên trước khi gõ phím (SF-4).
+    static let activationTimeoutMilliseconds = 500
+}
+
+/// Góc của Cửa sổ neo mà một Vị trí tương đối bám vào (DM-13).
+///
+/// Góc được chọn tự động lúc ghi điểm — góc gần điểm nhất — nên nút ở góc phải-dưới vẫn đúng
+/// khi cửa sổ được phóng to, thứ mà neo cố định vào góc trên-trái không làm được.
+enum WindowCorner: String, CaseIterable, Identifiable, Codable, Sendable {
+    case topLeft
+    case topRight
+    case bottomLeft
+    case bottomRight
+
+    var id: String { rawValue }
+}
+
+enum KeyModifier: String, CaseIterable, Identifiable, Codable, Sendable {
+    case command
+    case option
+    case control
+    case shift
+
+    var id: String { rawValue }
+}
+
+/// Một tổ hợp phím. Tên phím được lưu dưới dạng chuỗi đọc được chứ không phải mã số (DM-21).
+struct KeyStroke: Equatable, Codable, Sendable {
+    var key: String
+    var modifiers: [KeyModifier]
+
+    init(key: String, modifiers: [KeyModifier] = []) {
+        self.key = key
+        // Chuẩn hoá để hai tổ hợp giống nhau luôn so sánh bằng nhau và luôn ghi ra cùng một JSON.
+        self.modifiers = Array(Set(modifiers)).sorted { $0.rawValue < $1.rawValue }
+    }
 }
 
 /// Số lần chạy của một Kịch bản (DM-2). Bước luôn dùng số nguyên thuần.
@@ -45,12 +87,31 @@ enum StepAction: Equatable, Sendable {
     case click(button: MouseButton, count: Int, holdMilliseconds: Int)
     case scroll(deltaX: Int, deltaY: Int)
     case move
+    /// Nhấn giữ tại Vị trí của Bước, kéo qua các điểm trung gian, nhả tại `destination` (DM-9).
+    case drag(button: MouseButton, destination: StepTarget)
+    case typeText(String)
+    case pressKey(KeyStroke)
+
+    /// Sự kiện bàn phím không mang toạ độ nên `EX-10` không bảo vệ được nó; xem `SF-4`.
+    var isKeyboard: Bool {
+        switch self {
+        case .typeText, .pressKey: return true
+        case .click, .scroll, .move, .drag: return false
+        }
+    }
 }
 
 /// Nơi một Hành động diễn ra, chỉ giải ra toạ độ lúc chạy (DM-11, DM-12).
-enum StepTarget: Equatable, Sendable {
+indirect enum StepTarget: Equatable, Sendable {
     case cursor
     case screenPoint(x: Double, y: Double)
+    /// Lệch so với một góc của Cửa sổ neo (DM-13). Chỉ giải được khi có Ứng dụng khoá (DM-18).
+    case windowRelative(corner: WindowCorner, dx: Double, dy: Double)
+
+    var needsAnchorWindow: Bool {
+        if case .windowRelative = self { return true }
+        return false
+    }
 }
 
 struct Step: Identifiable, Equatable, Sendable {
@@ -81,6 +142,14 @@ struct LockedApplication: Equatable, Codable, Sendable {
     var name: String
 }
 
+extension Step {
+    /// Mọi Vị trí mà Bước này chạm tới, kể cả đích của thao tác kéo thả.
+    var targets: [StepTarget] {
+        if case let .drag(_, destination) = action { return [target, destination] }
+        return [target]
+    }
+}
+
 struct Scenario: Identifiable, Equatable, Sendable {
     var id: UUID
     var name: String
@@ -100,6 +169,11 @@ struct Scenario: Identifiable, Equatable, Sendable {
         self.steps = steps
         self.runCount = runCount
         self.lockedApplication = lockedApplication
+    }
+
+    /// DM-18: Vị trí tương đối cửa sổ không giải được nếu thiếu Ứng dụng khoá.
+    var requiresLockedApplication: Bool {
+        steps.contains { $0.targets.contains(where: \.needsAnchorWindow) }
     }
 }
 

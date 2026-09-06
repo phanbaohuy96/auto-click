@@ -3,62 +3,12 @@ import Foundation
 import Testing
 @testable import AutoClick
 
-@MainActor
-private final class EventRecorder {
-    struct Record: Equatable {
-        var type: CGEventType
-        var clickState: Int64
-        var location: CGPoint
-    }
-
-    private(set) var records: [Record] = []
-
-    var sink: MouseEventEmitter.EventSink {
-        { [self] event in
-            records.append(
-                Record(
-                    type: event.type,
-                    clickState: event.getIntegerValueField(.mouseEventClickState),
-                    location: event.location
-                )
-            )
-        }
-    }
-
-    var types: [CGEventType] { records.map(\.type) }
-}
-
-@MainActor
-private func makeRunner(_ recorder: EventRecorder) -> ScenarioRunner {
-    ScenarioRunner(
-        resolver: TargetResolver(currentCursorPoint: { CGPoint(x: 7, y: 8) }),
-        emitter: MouseEventEmitter(sink: recorder.sink),
-        countdownSeconds: 0,
-        isAccessibilityTrusted: { true }
-    )
-}
-
-/// Chờ tới khi `condition` đúng, tối đa `timeout` giây. Bộ chạy làm việc trên MainActor nên
-/// test phải nhường lượt chứ không thể chặn.
-@MainActor
-private func waitUntil(
-    timeout: Duration = .seconds(2),
-    _ condition: () -> Bool
-) async throws {
-    let deadline = ContinuousClock.now + timeout
-    while ContinuousClock.now < deadline {
-        if condition() { return }
-        try await Task.sleep(for: .milliseconds(5))
-    }
-    Issue.record("Hết thời gian chờ điều kiện")
-}
-
 /// SF-1 / EX-14: đây là hành vi duy nhất trong Auto Click có thể khoá máy người dùng — dừng
 /// giữa lúc đang giữ nút mà không nhả thì hệ điều hành tin rằng nút chuột vẫn đang bị giữ.
 @MainActor
 @Test func stoppingDuringAHoldStillReleasesTheMouseButton() async throws {
     let recorder = EventRecorder()
-    let runner = makeRunner(recorder)
+    let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
         name: "Giữ lâu",
         steps: [
@@ -71,7 +21,7 @@ private func waitUntil(
     )
 
     #expect(runner.start(scenario))
-    try await waitUntil { recorder.types.contains(.leftMouseDown) }
+    #expect(await waitUntil { recorder.types.contains(.leftMouseDown) })
     #expect(!recorder.types.contains(.leftMouseUp))
 
     runner.stop()
@@ -85,7 +35,7 @@ private func waitUntil(
 @MainActor
 @Test func doubleClickNumbersItsClickState() async throws {
     let recorder = EventRecorder()
-    let runner = makeRunner(recorder)
+    let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
         name: "Double",
         steps: [
@@ -98,7 +48,7 @@ private func waitUntil(
     )
 
     #expect(runner.start(scenario))
-    try await waitUntil { recorder.records.count >= 4 }
+    #expect(await waitUntil { recorder.records.count >= 4 })
 
     #expect(recorder.types == [.leftMouseDown, .leftMouseUp, .leftMouseDown, .leftMouseUp])
     #expect(recorder.records.map(\.clickState) == [1, 1, 2, 2])
@@ -108,7 +58,7 @@ private func waitUntil(
 @MainActor
 @Test func stepsRunInOrderInsideEachScenarioIteration() async throws {
     let recorder = EventRecorder()
-    let runner = makeRunner(recorder)
+    let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
         name: "Lồng nhau",
         steps: [
@@ -124,7 +74,7 @@ private func waitUntil(
     )
 
     #expect(runner.start(scenario))
-    try await waitUntil { !runner.isRunning }
+    #expect(await waitUntil { !runner.isRunning })
 
     #expect(recorder.records.map(\.location.x) == [1, 2, 2, 1, 2, 2])
 }
@@ -133,7 +83,7 @@ private func waitUntil(
 @MainActor
 @Test func cursorTargetIsResolvedForEveryRepeat() async throws {
     let recorder = EventRecorder()
-    let runner = makeRunner(recorder)
+    let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
         name: "Con trỏ",
         steps: [
@@ -142,7 +92,7 @@ private func waitUntil(
     )
 
     #expect(runner.start(scenario))
-    try await waitUntil { !runner.isRunning }
+    #expect(await waitUntil { !runner.isRunning })
 
     #expect(recorder.records.count == 3)
     #expect(recorder.records.allSatisfy { $0.location == CGPoint(x: 7, y: 8) })
@@ -151,7 +101,7 @@ private func waitUntil(
 @MainActor
 @Test func anEmptyScenarioIsRefusedBeforeAnyEventIsPosted() {
     let recorder = EventRecorder()
-    let runner = makeRunner(recorder)
+    let runner = makeRunner(recorder: recorder)
 
     #expect(runner.validate(Scenario(name: "Rỗng")) == .emptyScenario)
     #expect(!runner.start(Scenario(name: "Rỗng")))
@@ -163,19 +113,14 @@ private func waitUntil(
 @MainActor
 @Test func stoppingDuringTheCountdownPostsNothing() async throws {
     let recorder = EventRecorder()
-    let runner = ScenarioRunner(
-        resolver: TargetResolver(currentCursorPoint: { .zero }),
-        emitter: MouseEventEmitter(sink: recorder.sink),
-        countdownSeconds: 3,
-        isAccessibilityTrusted: { true }
-    )
+    let runner = makeRunner(recorder: recorder, countdownSeconds: 3)
     let scenario = Scenario(
         name: "Đếm ngược",
         steps: [Step(action: .move, target: .cursor, delayMillisecondsAfter: 0)]
     )
 
     #expect(runner.start(scenario))
-    try await waitUntil { runner.countdown != nil }
+    #expect(await waitUntil { runner.countdown != nil })
     runner.stop()
     try await Task.sleep(for: .milliseconds(50))
 
@@ -186,7 +131,7 @@ private func waitUntil(
 @MainActor
 @Test func anUnlimitedScenarioStopsWithinOneStep() async throws {
     let recorder = EventRecorder()
-    let runner = makeRunner(recorder)
+    let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
         name: "Không giới hạn",
         steps: [Step(action: .move, target: .cursor, delayMillisecondsAfter: 0)],
@@ -194,7 +139,7 @@ private func waitUntil(
     )
 
     #expect(runner.start(scenario))
-    try await waitUntil { recorder.records.count > 3 }
+    #expect(await waitUntil { recorder.records.count > 3 })
     #expect(runner.isRunning)
 
     runner.stop()

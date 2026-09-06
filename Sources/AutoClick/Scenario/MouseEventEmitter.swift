@@ -42,6 +42,12 @@ final class MouseEventEmitter {
         post(type: .mouseMoved, button: .left, at: point, clickState: 0)
     }
 
+    /// Một chặng của thao tác kéo. Nút phải đang được giữ (EX-20).
+    func dragMove(_ button: MouseButton, to point: CGPoint) {
+        heldButtons[button] = point
+        post(type: button.draggedEventType, button: button, at: point, clickState: 0)
+    }
+
     /// Cuộn tại `point`. Đơn vị là dòng, `deltaY` dương là cuộn lên.
     func scroll(deltaX: Int, deltaY: Int, at point: CGPoint) {
         guard let event = CGEvent(
@@ -112,6 +118,14 @@ private extension MouseButton {
         case .left: return .leftMouseUp
         case .right: return .rightMouseUp
         case .center: return .otherMouseUp
+        }
+    }
+
+    var draggedEventType: CGEventType {
+        switch self {
+        case .left: return .leftMouseDragged
+        case .right: return .rightMouseDragged
+        case .center: return .otherMouseDragged
         }
     }
 }

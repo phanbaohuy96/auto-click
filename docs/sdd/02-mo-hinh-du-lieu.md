@@ -24,29 +24,36 @@ Hình dạng cốt lõi và lý do chọn nó: [ADR-0002](../adr/0002-buoc-la-ha
   `giữMs` `0…60_000`. `sốLần = 2` là double click; `giữMs > 0` là giữ nhấn.
 - **DM-7** `[Lát 1]` `[đã làm]` `cuộn(dx, dy)` — đơn vị dòng, mỗi trục `-10_000…10_000`.
 - **DM-8** `[Lát 1]` `[đã làm]` `diChuột` — chỉ đưa con trỏ tới **Vị trí**, không bấm gì.
-- **DM-9** `[Lát 2]` `kéoThả(đến: Vị trí)` — nhấn giữ tại **Vị trí** của **Bước**, di chuyển
+- **DM-9** `[Lát 2]` `[đã làm]` `kéoThả(đến: Vị trí)` — nhấn giữ tại **Vị trí** của **Bước**, di chuyển
   qua các điểm trung gian, nhả tại **Vị trí** đích.
-- **DM-10** `[Lát 2]` `gõPhím(chuỗi | tổHợp)` — gõ một chuỗi ký tự, hoặc một tổ hợp phím với
-  các phím bổ trợ.
+- **DM-10** `[Lát 2]` `[đã làm]` `gõChuỗi(văn bản)` và `nhấnPhím(tổ hợp)` là hai **Hành động**
+  riêng, không phải một **Hành động** hai dạng: một cái nhập nội dung, một cái ra lệnh.
+- **DM-21** `[Lát 2]` `[đã làm]` Tổ hợp phím lưu **tên phím** đọc được (`"c"`), không lưu mã số
+  (`8`). Mã số là vị trí vật lý trên bàn phím — đúng, nhưng không ai đọc được khi mở
+  `scenario.json` ra xem.
+- **DM-22** `[Lát 2]` `[đã làm]` Danh sách phím bổ trợ được chuẩn hoá (bỏ trùng, sắp thứ tự) khi
+  dựng, để hai tổ hợp giống nhau luôn so sánh bằng nhau và luôn ghi ra cùng một JSON.
 
 ## Vị trí
 
 - **DM-11** `[Lát 1]` `[đã làm]` `theoConTrỏ` — vị trí con trỏ tại đúng thời điểm chạy **Bước**.
 - **DM-12** `[Lát 1]` `[đã làm]` `điểmMànHình(x, y)` — toạ độ tuyệt đối trong không gian `CGEvent`
   (gốc ở góc **trên-trái** màn hình chính, đơn vị **point**).
-- **DM-13** `[Lát 2]` `lệchCửaSổ(góc, dx, dy)` — `góc` ∈ {trênTrái, trênPhải, dướiTrái, dướiPhải}
+- **DM-13** `[Lát 2]` `[đã làm]` `lệchCửaSổ(góc, dx, dy)` — `góc` ∈ {trênTrái, trênPhải, dướiTrái, dướiPhải}
   của **Cửa sổ neo**. Góc được chọn **tự động lúc ghi điểm**: góc gần điểm nhất.
 - **DM-14** `[Lát 4]` `theoẢnh(tênẢnhMẫu, ngưỡng, vùngTìm?, chờTốiĐaMs, khiHếtGiờ)`.
 - **DM-15** `[Lát 4]` `theoChữ(chuỗi, vùngTìm?, chờTốiĐaMs, khiHếtGiờ)`.
 - **DM-16** `[Lát 4]` `khiHếtGiờ` ∈ {dừngKịchBản, bỏQuaBước}.
-- **DM-17** `[Lát 4]` `vùngTìm` là tuỳ chọn và **luôn** được biểu diễn dưới dạng lệch so với một
-  góc của **Cửa sổ neo**, cùng quy tắc với `DM-13`. Không có vùng tìm tuyệt đối — xem
-  ghi chú ở `RG-6`.
+- **DM-17** `[Lát 4]` `vùngTìm` là tuỳ chọn và **không bao giờ** đòi hỏi **Ứng dụng khoá**.
+  Nó được lưu ở dạng bền nhất còn khả dụng tại thời điểm khoanh: lệch so với một góc của
+  **Cửa sổ neo** nếu **Kịch bản** có **Ứng dụng khoá** và lấy được cửa sổ, ngược lại là toạ độ
+  tuyệt đối trên màn hình. Xem `RG-6`.
 
 ## Bất biến
 
-- **DM-18** `[Lát 2]` **Kịch bản** chứa **Bước** có **Vị trí** `lệchCửaSổ` hoặc có `vùngTìm`
-  thì **bắt buộc** phải có **Ứng dụng khoá**; nếu không, **Kịch bản** không hợp lệ để chạy.
+- **DM-18** `[Lát 2]` `[đã làm]` **Kịch bản** chứa **Bước** có **Vị trí** `lệchCửaSổ` thì
+  **bắt buộc** phải có **Ứng dụng khoá**; nếu không, **Kịch bản** không hợp lệ để chạy.
+  Ràng buộc này **không** áp cho `vùngTìm` và **không** áp cho `theoẢnh` (`DM-17`, `RG-4`).
 - **DM-19** `[Lát 1]` `[đã làm]` `theoConTrỏ` kết hợp với số lần lặp `> 1` là hợp lệ: mỗi lần lặp đọc lại
   vị trí con trỏ, nên chuỗi click sẽ đi theo tay người dùng.
 - **DM-20** `[Lát 1]` `[đã làm]` Mọi trường số đều được kẹp vào khoảng hợp lệ khi **đọc từ đĩa**, không

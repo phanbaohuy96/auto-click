@@ -12,6 +12,8 @@ struct ScenarioEditorView: View {
 
     @State private var selectedStepID: UUID?
     @State private var pointSelector: ClickPointSelector?
+    @State private var pickError: String?
+    @State private var runningApplications: [RunningApplicationOption] = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -29,7 +31,8 @@ struct ScenarioEditorView: View {
                 emptyState
             }
         }
-        .frame(minWidth: 720, minHeight: 420)
+        .frame(minWidth: 760, minHeight: 460)
+        .onAppear { runningApplications = RunningApplicationOption.current() }
         .disabled(runner.isRunning)
         .overlay(alignment: .top) {
             if runner.isRunning {
@@ -133,31 +136,92 @@ struct ScenarioEditorView: View {
     }
 
     private func scenarioSettings(_ scenario: Binding<Scenario>) -> some View {
-        HStack(spacing: 16) {
-            TextField("Tên kịch bản", text: scenario.name)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 240)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 16) {
+                TextField("Tên kịch bản", text: scenario.name)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 240)
 
-            Toggle("Lặp đến khi dừng", isOn: Binding(
-                get: { scenario.wrappedValue.runCount == .untilStopped },
-                set: { scenario.wrappedValue.runCount = $0 ? .untilStopped : .times(1) }
-            ))
+                Toggle("Lặp đến khi dừng", isOn: Binding(
+                    get: { scenario.wrappedValue.runCount == .untilStopped },
+                    set: { scenario.wrappedValue.runCount = $0 ? .untilStopped : .times(1) }
+                ))
 
-            if case let .times(count) = scenario.wrappedValue.runCount {
-                HStack(spacing: 6) {
-                    Text("Số vòng")
-                    integerField(
-                        value: Binding(
-                            get: { count },
-                            set: { scenario.wrappedValue.runCount = .times($0) }
-                        ),
-                        range: ScenarioLimits.runCount
-                    )
+                if case let .times(count) = scenario.wrappedValue.runCount {
+                    HStack(spacing: 6) {
+                        Text("Số vòng")
+                        integerField(
+                            value: Binding(
+                                get: { count },
+                                set: { scenario.wrappedValue.runCount = .times($0) }
+                            ),
+                            range: ScenarioLimits.runCount
+                        )
+                    }
                 }
+
+                Spacer()
             }
 
-            Spacer()
+            HStack(spacing: 10) {
+                Toggle("Khoá vào ứng dụng", isOn: lockToggle(scenario))
+
+                if scenario.wrappedValue.lockedApplication != nil {
+                    Picker("Ứng dụng", selection: lockedBundleIdentifier(scenario)) {
+                        Text("Chọn ứng dụng…").tag("")
+                        ForEach(runningApplications) { Text($0.name).tag($0.bundleIdentifier) }
+                    }
+                    .labelsHidden()
+                    .frame(width: 220)
+
+                    Button {
+                        runningApplications = RunningApplicationOption.current()
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .help("Làm mới danh sách ứng dụng")
+                }
+
+                if let error = runner.validate(scenario.wrappedValue)?.errorDescription {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+
+                Spacer()
+            }
+
+            if let pickError {
+                Label(pickError, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
         }
+    }
+
+    private func lockToggle(_ scenario: Binding<Scenario>) -> Binding<Bool> {
+        Binding(
+            get: { scenario.wrappedValue.lockedApplication != nil },
+            set: { isOn in
+                scenario.wrappedValue.lockedApplication = isOn
+                    ? LockedApplication(bundleIdentifier: "", name: "Chưa chọn")
+                    : nil
+            }
+        )
+    }
+
+    private func lockedBundleIdentifier(_ scenario: Binding<Scenario>) -> Binding<String> {
+        Binding(
+            get: { scenario.wrappedValue.lockedApplication?.bundleIdentifier ?? "" },
+            set: { bundleIdentifier in
+                let name = runningApplications
+                    .first { $0.bundleIdentifier == bundleIdentifier }?.name ?? "Chưa chọn"
+                scenario.wrappedValue.lockedApplication = LockedApplication(
+                    bundleIdentifier: bundleIdentifier,
+                    name: name
+                )
+            }
+        )
     }
 
     private func stepList(_ scenario: Binding<Scenario>) -> some View {
@@ -236,7 +300,11 @@ struct ScenarioEditorView: View {
         if let index = selectedStepIndex(in: scenario.wrappedValue) {
             StepDetailView(
                 step: scenario.steps[index],
-                onPickPoint: { pickPoint(for: scenario.steps[index]) }
+                lockedApplicationName: lockedApplicationName(of: scenario.wrappedValue),
+                onPickScreenPoint: { apply in pickPoint { point, _ in apply(point) } },
+                onPickWindowOffset: { apply in
+                    pickWindowOffset(in: scenario.wrappedValue, apply: apply)
+                }
             )
         } else {
             VStack {
@@ -283,10 +351,18 @@ struct ScenarioEditorView: View {
             : scenario.wrappedValue.steps.last?.id
     }
 
+    private func lockedApplicationName(of scenario: Scenario) -> String? {
+        guard let locked = scenario.lockedApplication, !locked.bundleIdentifier.isEmpty else {
+            return nil
+        }
+        return locked.name
+    }
+
     /// Lớp phủ chọn điểm phải chạy từ cửa sổ này, không phải từ popover (UI-4).
-    private func pickPoint(for step: Binding<Step>) {
+    private func pickPoint(_ completion: @escaping (CGPoint, NSWindow?) -> Void) {
         let window = NSApp.keyWindow
         window?.orderOut(nil)
+        pickError = nil
 
         let selector = ClickPointSelector()
         pointSelector = selector
@@ -295,7 +371,32 @@ struct ScenarioEditorView: View {
             NSApp.activate(ignoringOtherApps: true)
             window?.makeKeyAndOrderFront(nil)
             guard let point else { return }
-            step.wrappedValue.target = .screenPoint(x: point.x, y: point.y)
+            completion(point, window)
+        }
+    }
+
+    /// Quy điểm vừa chọn về độ lệch so với góc gần nhất của Cửa sổ neo (DM-13).
+    private func pickWindowOffset(
+        in scenario: Scenario,
+        apply: @escaping (WindowAnchor.Offset) -> Void
+    ) {
+        guard let locked = scenario.lockedApplication, !locked.bundleIdentifier.isEmpty else {
+            pickError = "Hãy chọn ứng dụng khoá trước khi neo theo cửa sổ."
+            return
+        }
+
+        pickPoint { point, _ in
+            guard let processIdentifier = RunningApplicationOption.processIdentifier(
+                forBundleIdentifier: locked.bundleIdentifier
+            ) else {
+                pickError = "\(locked.name) hiện không chạy."
+                return
+            }
+            guard let frame = WindowAnchor.focusedWindowFrame(ofProcess: processIdentifier) else {
+                pickError = "Không lấy được cửa sổ nào của \(locked.name)."
+                return
+            }
+            apply(WindowAnchor.offset(for: point, in: frame))
         }
     }
 
@@ -327,6 +428,12 @@ enum StepSummary {
             return "Cuộn (\(deltaX), \(deltaY))"
         case .move:
             return "Di chuột"
+        case let .drag(button, destination):
+            return "Kéo \(name(of: button)) tới \(target(destination))"
+        case let .typeText(text):
+            return text.isEmpty ? "Gõ chuỗi (trống)" : "Gõ “\(text)”"
+        case let .pressKey(stroke):
+            return "Phím \(KeyCatalog.describe(stroke))"
         }
     }
 
@@ -336,6 +443,8 @@ enum StepSummary {
             return "Theo con trỏ"
         case let .screenPoint(x, y):
             return "Điểm màn hình X: \(Int(x.rounded()))  Y: \(Int(y.rounded()))"
+        case let .windowRelative(corner, dx, dy):
+            return "Lệch góc \(corner.title): \(Int(dx.rounded())), \(Int(dy.rounded()))"
         }
     }
 

@@ -29,6 +29,10 @@ _Avoid_: đích, toạ độ, point, anchor
 Mảnh ảnh người dùng cắt từ màn hình, dùng để tìm lại mục tiêu lúc chạy khi toạ độ không đáng tin.
 _Avoid_: hình mẫu, snapshot, pattern
 
+**Vùng tìm (Search region)**:
+Phần màn hình được thu hẹp để tìm **Ảnh mẫu**; tuỳ chọn, và không ràng buộc **Kịch bản** phải có **Ứng dụng khoá**.
+_Avoid_: khung tìm, scope, bounds
+
 **Cửa sổ neo (Anchor window)**:
 Cửa sổ trước nhất của **Ứng dụng khoá** tại thời điểm chạy một **Bước**, dùng làm gốc cho **Vị trí** tương đối.
 _Avoid_: cửa sổ chính, main window
@@ -51,6 +55,7 @@ _Avoid_: ứng dụng đích, target app
 - **Ứng dụng khoá** ràng buộc toàn bộ **Kịch bản**, không ràng buộc từng **Bước**.
 - **Vị trí** có bốn dạng: theo con trỏ, điểm tuyệt đối trên màn hình, lệch so với một góc của **Cửa sổ neo**, và tâm của **Ảnh mẫu** tìm thấy.
 - **Vị trí** tương đối cửa sổ chỉ giải được khi **Ứng dụng khoá** đang bật; thiếu nó thì **Kịch bản** không hợp lệ.
+- **Vị trí** theo **Ảnh mẫu** thì ngược lại: không cần **Ứng dụng khoá**, và **Ảnh mẫu** cắt được từ bất cứ đâu trên màn hình, kể cả từ một ảnh chụp màn hình đang mở trong ứng dụng khác.
 - Một **Phiên ghi** sinh ra đúng một **Kịch bản**; nó chỉ quan sát chuột, không quan sát bàn phím.
 - **Vị trí** theo **Ảnh mẫu** hoặc theo chữ có thể **không giải được**; khi đó **Bước** thử lại đến hết thời gian chờ rồi hoặc dừng **Kịch bản** hoặc bị bỏ qua, do chính **Bước** đó quy định.
 
@@ -70,6 +75,7 @@ _Avoid_: ứng dụng đích, target app
 - "hai chế độ song song" ban đầu hàm ý hai bộ chạy độc lập — đã chốt: hai mặt **giao diện**, một bộ chạy duy nhất.
 - "target" trong code hiện tại mang hai nghĩa: `targetMode` (nơi click) và `targetProcessIdentifier` (ứng dụng được phép nhận click) — đã tách thành **Vị trí** và **Ứng dụng khoá**.
 - "record" từng hàm ý ghi mọi thứ người dùng làm — đã thu hẹp: **Phiên ghi** chỉ ghi chuột; bước gõ phím do người dùng thêm tay.
+- "vùng tìm luôn neo theo cửa sổ" là quyết định đã bị đảo: neo cửa sổ nay chỉ là lựa chọn ưu tiên khi có sẵn, vì bắt buộc nó sẽ chặn việc cắt **Ảnh mẫu** từ ảnh chụp màn hình.
 - "chờ" từng được liệt kê như một **Hành động** — đã sửa: nó là thuộc tính của **Bước**.
 - "long press" đã chốt là giữ nhấn tại chỗ; **kéo thả** là **Hành động** riêng.
 - "chờ đến khi nút xuất hiện" không phải luồng điều khiển — nó là thời gian chờ khi giải **Vị trí** theo **Ảnh mẫu**.

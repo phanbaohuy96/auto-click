@@ -11,7 +11,7 @@ cho phép tạo Kịch bản bằng cách **ghi lại** thao tác thật của n
 Mỗi lát để lại một ứng dụng chạy được và cài được. Thứ tự đã chốt, xem [ADR-0001](../adr/0001-screencapturekit-va-min-macos-14.md)
 về lý do đẩy nhận dạng xuống cuối.
 
-### Lát 1 — Khung Kịch bản
+### Lát 1 — Khung Kịch bản  ✅
 
 Thay bộ chạy nằm dưới nút Bắt đầu, không thay đổi thứ người dùng làm được.
 
@@ -24,7 +24,7 @@ Thay bộ chạy nằm dưới nút Bắt đầu, không thay đổi thứ ngư�
 
 Điều kiện hoàn thành: mọi thao tác làm được ở phiên bản 1.2.0 vẫn làm được, và chạy qua bộ chạy mới.
 
-### Lát 2 — Neo cửa sổ, kéo thả, gõ phím
+### Lát 2 — Neo cửa sổ, kéo thả, gõ phím  ✅
 
 - **Vị trí** tương đối **Cửa sổ neo** theo góc gần nhất
 - **Hành động** kéo thả và gõ phím

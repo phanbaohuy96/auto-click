@@ -51,21 +51,21 @@ import CoreGraphics
     #expect(error == nil)
 }
 
-@Test func cursorTargetReadsThePositionAtResolutionTime() {
+@Test func cursorTargetReadsThePositionAtResolutionTime() throws {
     nonisolated(unsafe) var cursor = CGPoint(x: 30, y: 40)
     let resolver = TargetResolver(currentCursorPoint: { cursor })
 
-    #expect(resolver.resolve(.cursor) == CGPoint(x: 30, y: 40))
+    #expect(try resolver.resolve(.cursor, anchorWindowFrame: nil) == CGPoint(x: 30, y: 40))
 
     // DM-19: giải lại ở mỗi lần lặp, nên chuỗi thao tác đi theo tay người dùng.
     cursor = CGPoint(x: 11, y: 12)
-    #expect(resolver.resolve(.cursor) == CGPoint(x: 11, y: 12))
+    #expect(try resolver.resolve(.cursor, anchorWindowFrame: nil) == CGPoint(x: 11, y: 12))
 }
 
-@Test func screenPointTargetIgnoresTheCursor() {
+@Test func screenPointTargetIgnoresTheCursor() throws {
     let resolver = TargetResolver(currentCursorPoint: { CGPoint(x: 30, y: 40) })
 
-    #expect(resolver.resolve(.screenPoint(x: 50, y: 60)) == CGPoint(x: 50, y: 60))
+    #expect(try resolver.resolve(.screenPoint(x: 50, y: 60), anchorWindowFrame: nil) == CGPoint(x: 50, y: 60))
 }
 
 @Test func lockedApplicationUsesSystemRoutingOnlyWhenItOwnsThePoint() {

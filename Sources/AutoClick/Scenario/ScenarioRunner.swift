@@ -1,5 +1,5 @@
 import AppKit
-import ApplicationServices
+import CoreGraphics
 import Foundation
 
 struct RunProgress: Equatable, Sendable {
@@ -15,9 +15,13 @@ struct RunProgress: Equatable, Sendable {
 enum ScenarioRunError: LocalizedError, Equatable {
     case emptyScenario
     case accessibilityDenied
+    case missingLockedApplication
     case lockedApplicationNotRunning(String)
     case lockedApplicationTerminated
     case pointOutsideLockedApplication
+    case anchorWindowUnavailable(String)
+    case activationFailed(String)
+    case unknownKey(String)
 
     var errorDescription: String? {
         switch self {
@@ -25,12 +29,20 @@ enum ScenarioRunError: LocalizedError, Equatable {
             return "Kịch bản chưa có bước nào."
         case .accessibilityDenied:
             return "Hãy cấp quyền Accessibility rồi thử lại."
+        case .missingLockedApplication:
+            return "Kịch bản có bước neo theo cửa sổ nên phải chọn ứng dụng khoá."
         case let .lockedApplicationNotRunning(name):
             return "\(name) hiện không chạy."
         case .lockedApplicationTerminated:
             return "Ứng dụng đích đã đóng; Auto Click đã dừng."
         case .pointOutsideLockedApplication:
             return "Điểm thao tác không nằm trong ứng dụng đã khoá; Auto Click đã dừng."
+        case let .anchorWindowUnavailable(name):
+            return "Không lấy được cửa sổ nào của \(name) để làm gốc toạ độ."
+        case let .activationFailed(name):
+            return "Không đưa được \(name) lên trước để gõ phím; Auto Click đã dừng."
+        case let .unknownKey(key):
+            return "Không nhận ra phím \"\(key)\"."
         }
     }
 }
@@ -55,24 +67,26 @@ final class ScenarioRunner: ObservableObject {
     var onRunningStateChanged: ((Bool) -> Void)?
 
     private var task: Task<Void, Never>?
-    private let emitter: MouseEventEmitter
+    private let mouse: MouseEventEmitter
+    private let keyboard: KeyboardEventEmitter
     private let resolver: TargetResolver
-    private let isAccessibilityTrusted: @MainActor () -> Bool
+    private let system: ScenarioSystemBridge
 
     /// Số giây đếm ngược trước khi phát sự kiện đầu tiên (EX-1). Test đặt về 0.
     let countdownSeconds: Int
 
     init(
         resolver: TargetResolver = .live,
-        emitter: MouseEventEmitter = MouseEventEmitter(),
-        countdownSeconds: Int = ScenarioRunner.defaultCountdownSeconds,
-        isAccessibilityTrusted: @escaping @MainActor () -> Bool
-            = ScenarioRunner.requestSystemAccessibilityAccess
+        mouse: MouseEventEmitter = MouseEventEmitter(),
+        keyboard: KeyboardEventEmitter = KeyboardEventEmitter(),
+        system: ScenarioSystemBridge = .live,
+        countdownSeconds: Int = ScenarioRunner.defaultCountdownSeconds
     ) {
         self.resolver = resolver
-        self.emitter = emitter
+        self.mouse = mouse
+        self.keyboard = keyboard
+        self.system = system
         self.countdownSeconds = countdownSeconds
-        self.isAccessibilityTrusted = isAccessibilityTrusted
     }
 
     var statusText: String {
@@ -92,10 +106,13 @@ final class ScenarioRunner: ObservableObject {
     /// Kiểm tra những gì phải đúng *trước khi* phát sự kiện đầu tiên (EX-2).
     func validate(_ scenario: Scenario) -> ScenarioRunError? {
         guard !scenario.steps.isEmpty else { return .emptyScenario }
-        if let locked = scenario.lockedApplication {
-            guard runningApplication(for: locked.bundleIdentifier) != nil else {
-                return .lockedApplicationNotRunning(locked.name)
-            }
+
+        guard let locked = scenario.lockedApplication else {
+            // DM-18: Vị trí tương đối cửa sổ không giải được nếu thiếu Ứng dụng khoá.
+            return scenario.requiresLockedApplication ? .missingLockedApplication : nil
+        }
+        guard system.processIdentifier(locked.bundleIdentifier) != nil else {
+            return .lockedApplicationNotRunning(locked.name)
         }
         return nil
     }
@@ -109,16 +126,16 @@ final class ScenarioRunner: ObservableObject {
             return false
         }
 
-        guard isAccessibilityTrusted() else {
+        guard system.isAccessibilityTrusted() else {
             message = ScenarioRunError.accessibilityDenied.errorDescription
             return false
         }
 
         var lockedProcessIdentifier: pid_t?
         if let locked = scenario.lockedApplication,
-           let application = runningApplication(for: locked.bundleIdentifier) {
-            application.activate(options: [.activateAllWindows])
-            lockedProcessIdentifier = application.processIdentifier
+           let processIdentifier = system.processIdentifier(locked.bundleIdentifier) {
+            system.activate(processIdentifier)
+            lockedProcessIdentifier = processIdentifier
         }
 
         message = nil
@@ -141,7 +158,7 @@ final class ScenarioRunner: ObservableObject {
 
     private func finish(with message: String?) {
         // Chạy vô điều kiện, kể cả khi tác vụ đã bị huỷ (SF-1, SF-2).
-        emitter.releaseAllHeld()
+        mouse.releaseAllHeld()
         countdown = nil
         progress = nil
         runningScenarioName = nil
@@ -155,6 +172,11 @@ final class ScenarioRunner: ObservableObject {
             task = nil
             finish(with: outcome)
         }
+
+        let context = RunContext(
+            lockedProcessIdentifier: lockedProcessIdentifier,
+            lockedApplicationName: scenario.lockedApplication?.name ?? "ứng dụng đã khoá"
+        )
 
         do {
             for second in stride(from: countdownSeconds, through: 1, by: -1) {
@@ -177,7 +199,7 @@ final class ScenarioRunner: ObservableObject {
                         stepIndex: index + 1,
                         stepCount: scenario.steps.count
                     )
-                    try await perform(step, lockedProcessIdentifier: lockedProcessIdentifier)
+                    try await perform(step, in: context)
                 }
             }
 
@@ -187,6 +209,11 @@ final class ScenarioRunner: ObservableObject {
         } catch {
             outcome = "Có lỗi: \(error.localizedDescription)"
         }
+    }
+
+    private struct RunContext {
+        let lockedProcessIdentifier: pid_t?
+        let lockedApplicationName: String
     }
 
     private func completionMessage(for scenario: Scenario) -> String {
@@ -200,44 +227,148 @@ final class ScenarioRunner: ObservableObject {
         }
     }
 
-    private func perform(_ step: Step, lockedProcessIdentifier: pid_t?) async throws {
+    private func perform(_ step: Step, in context: RunContext) async throws {
         for _ in 0..<step.repeatCount {
             try Task.checkCancellation()
 
-            if let lockedProcessIdentifier,
-               NSRunningApplication(processIdentifier: lockedProcessIdentifier) == nil {
+            if let processIdentifier = context.lockedProcessIdentifier,
+               !system.isRunning(processIdentifier) {
                 throw ScenarioRunError.lockedApplicationTerminated
             }
 
-            let point = resolver.resolve(step.target)
-            try authorize(point, lockedProcessIdentifier: lockedProcessIdentifier)
-            try await apply(step.action, at: point)
+            if step.action.isKeyboard {
+                try await bringLockedApplicationToFront(in: context)
+                try applyKeyboard(step.action)
+            } else {
+                try await applyPointer(step.action, target: step.target, in: context)
+            }
+
             try await sleepBetweenEvents(step.delayMillisecondsAfter)
         }
     }
 
-    private func apply(_ action: StepAction, at point: CGPoint) async throws {
+    // MARK: - Sự kiện có toạ độ
+
+    private func applyPointer(
+        _ action: StepAction,
+        target: StepTarget,
+        in context: RunContext
+    ) async throws {
+        let anchorFrame = context.lockedProcessIdentifier.flatMap(system.anchorWindowFrame)
+        let point = try resolve(target, anchorFrame: anchorFrame, in: context)
+        try authorize(point, in: context)
+
         switch action {
         case .move:
-            emitter.move(to: point)
+            mouse.move(to: point)
 
         case let .scroll(deltaX, deltaY):
-            emitter.scroll(deltaX: deltaX, deltaY: deltaY, at: point)
+            mouse.scroll(deltaX: deltaX, deltaY: deltaY, at: point)
 
         case let .click(button, count, holdMilliseconds):
             for clickState in 1...count {
-                emitter.press(button, at: point, clickState: clickState)
+                mouse.press(button, at: point, clickState: clickState)
                 if holdMilliseconds > 0 {
                     try await Task.sleep(for: .milliseconds(holdMilliseconds))
                 }
-                emitter.release(button, at: point, clickState: clickState)
+                mouse.release(button, at: point, clickState: clickState)
                 if clickState < count {
                     try await Task.sleep(
                         for: .milliseconds(ScenarioLimits.interClickGapMilliseconds)
                     )
                 }
             }
+
+        case let .drag(button, destination):
+            let end = try resolve(destination, anchorFrame: anchorFrame, in: context)
+            try authorize(end, in: context)
+            try await drag(button, from: point, to: end)
+
+        case .typeText, .pressKey:
+            // Đã tách ra nhánh bàn phím ở `perform`.
+            break
         }
+    }
+
+    /// EX-20: nhiều ứng dụng bỏ qua thao tác kéo nếu con trỏ nhảy thẳng từ đầu tới cuối.
+    ///
+    /// EX-23: chỉ điểm đầu và điểm cuối được kiểm tra theo `EX-10`. Hỏi Accessibility ở từng
+    /// chặng sẽ làm thao tác kéo giật và có thể dừng giữa chừng.
+    private func drag(_ button: MouseButton, from start: CGPoint, to end: CGPoint) async throws {
+        mouse.press(button, at: start, clickState: 1)
+        defer { mouse.releaseAllHeld() }
+
+        let steps = ScenarioLimits.dragIntermediateSteps
+        for index in 1...steps {
+            try Task.checkCancellation()
+            let progress = Double(index) / Double(steps)
+            mouse.dragMove(
+                button,
+                to: CGPoint(
+                    x: start.x + (end.x - start.x) * progress,
+                    y: start.y + (end.y - start.y) * progress
+                )
+            )
+            try await Task.sleep(for: .milliseconds(ScenarioLimits.dragStepGapMilliseconds))
+        }
+
+        mouse.release(button, at: end, clickState: 1)
+    }
+
+    private func resolve(
+        _ target: StepTarget,
+        anchorFrame: CGRect?,
+        in context: RunContext
+    ) throws -> CGPoint {
+        do {
+            return try resolver.resolve(target, anchorWindowFrame: anchorFrame)
+        } catch TargetResolutionError.anchorWindowUnavailable {
+            throw ScenarioRunError.anchorWindowUnavailable(context.lockedApplicationName)
+        }
+    }
+
+    private func authorize(_ point: CGPoint, in context: RunContext) throws {
+        let route = ClickRoutingPolicy.route(
+            targetProcessIdentifier: context.lockedProcessIdentifier,
+            processIdentifierAtPoint: context.lockedProcessIdentifier == nil
+                ? nil
+                : system.processIdentifierAtPoint(point)
+        )
+        guard route != nil else { throw ScenarioRunError.pointOutsideLockedApplication }
+    }
+
+    // MARK: - Sự kiện bàn phím
+
+    private func applyKeyboard(_ action: StepAction) throws {
+        switch action {
+        case let .typeText(text):
+            keyboard.type(text)
+        case let .pressKey(stroke):
+            guard keyboard.press(stroke) else {
+                throw ScenarioRunError.unknownKey(stroke.key)
+            }
+        default:
+            break
+        }
+    }
+
+    /// SF-4: sự kiện bàn phím không mang toạ độ nên `EX-10` không bảo vệ được nó. Nếu một thông
+    /// báo cướp focus giữa chừng, kịch bản sẽ gõ vào nhầm ứng dụng — nên đưa Ứng dụng khoá lên
+    /// trước rồi mới gõ, và dừng hẳn nếu không đưa lên được.
+    private func bringLockedApplicationToFront(in context: RunContext) async throws {
+        guard let processIdentifier = context.lockedProcessIdentifier else { return }
+        if system.frontmostProcessIdentifier() == processIdentifier { return }
+
+        system.activate(processIdentifier)
+
+        let deadline = ContinuousClock.now
+            + .milliseconds(ScenarioLimits.activationTimeoutMilliseconds)
+        while ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+            if system.frontmostProcessIdentifier() == processIdentifier { return }
+        }
+
+        throw ScenarioRunError.activationFailed(context.lockedApplicationName)
     }
 
     /// Nhường ít nhất `minimumEventGapMilliseconds` kể cả khi Bước không có khoảng chờ (SF-8).
@@ -245,47 +376,5 @@ final class ScenarioRunner: ObservableObject {
         try await Task.sleep(
             for: .milliseconds(max(milliseconds, ScenarioLimits.minimumEventGapMilliseconds))
         )
-    }
-
-    private func authorize(_ point: CGPoint, lockedProcessIdentifier: pid_t?) throws {
-        let route = ClickRoutingPolicy.route(
-            targetProcessIdentifier: lockedProcessIdentifier,
-            processIdentifierAtPoint: lockedProcessIdentifier == nil
-                ? nil
-                : processIdentifierAtPoint(point)
-        )
-        guard route != nil else { throw ScenarioRunError.pointOutsideLockedApplication }
-    }
-
-    private func processIdentifierAtPoint(_ point: CGPoint) -> pid_t? {
-        let systemWideElement = AXUIElementCreateSystemWide()
-        var element: AXUIElement?
-        let copyResult = AXUIElementCopyElementAtPosition(
-            systemWideElement,
-            Float(point.x),
-            Float(point.y),
-            &element
-        )
-        guard copyResult == .success, let element else { return nil }
-
-        var processIdentifier: pid_t = 0
-        guard AXUIElementGetPid(element, &processIdentifier) == .success else { return nil }
-        return processIdentifier
-    }
-
-    private func runningApplication(for bundleIdentifier: String) -> NSRunningApplication? {
-        guard !bundleIdentifier.isEmpty else { return nil }
-        return NSWorkspace.shared.runningApplications.first {
-            $0.bundleIdentifier == bundleIdentifier && !$0.isTerminated
-        }
-    }
-
-    static func requestSystemAccessibilityAccess() -> Bool {
-        if AXIsProcessTrusted() { return true }
-
-        // The SDK exposes kAXTrustedCheckOptionPrompt as mutable global state, which Swift 6
-        // rejects under strict concurrency checking. This is its documented CFString value.
-        let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-        return AXIsProcessTrustedWithOptions(options)
     }
 }

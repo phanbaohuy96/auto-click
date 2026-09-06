@@ -96,25 +96,7 @@ final class AutoClicker: ObservableObject {
     }
 
     func refreshRunningApplications() {
-        var seenBundleIdentifiers = Set<String>()
-        runningApplications = NSWorkspace.shared.runningApplications
-            .filter { application in
-                application.activationPolicy == .regular
-                    && !application.isTerminated
-                    && application.processIdentifier != ProcessInfo.processInfo.processIdentifier
-                    && application.bundleIdentifier != nil
-            }
-            .compactMap { application -> RunningApplicationOption? in
-                guard let bundleIdentifier = application.bundleIdentifier,
-                      seenBundleIdentifiers.insert(bundleIdentifier).inserted else {
-                    return nil
-                }
-                return RunningApplicationOption(
-                    bundleIdentifier: bundleIdentifier,
-                    name: application.localizedName ?? bundleIdentifier
-                )
-            }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        runningApplications = RunningApplicationOption.current()
     }
 
     /// Dựng Kịch bản một bước tương đương với biểu mẫu hiện tại (UI-6).

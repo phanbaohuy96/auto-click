@@ -68,10 +68,11 @@ extension RunCount: Codable {
 extension StepAction: Codable {
     private enum CodingKeys: String, CodingKey {
         case kind, button, count, holdMilliseconds, deltaX, deltaY
+        case destination, text, key, modifiers
     }
 
     private enum Kind: String {
-        case click, scroll, move
+        case click, scroll, move, drag, typeText, pressKey
     }
 
     init(from decoder: Decoder) throws {
@@ -99,12 +100,37 @@ extension StepAction: Codable {
             )
         case .move:
             self = .move
+        case .drag:
+            self = .drag(
+                button: try container.decodeIfPresent(MouseButton.self, forKey: .button) ?? .left,
+                destination: try container.decode(StepTarget.self, forKey: .destination)
+            )
+        case .typeText:
+            self = .typeText(try container.decodeIfPresent(String.self, forKey: .text) ?? "")
+        case .pressKey:
+            self = .pressKey(
+                KeyStroke(
+                    key: try container.decodeIfPresent(String.self, forKey: .key) ?? "return",
+                    modifiers: try container.decodeIfPresent([KeyModifier].self, forKey: .modifiers) ?? []
+                )
+            )
         }
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
+        case let .drag(button, destination):
+            try container.encode(Kind.drag.rawValue, forKey: .kind)
+            try container.encode(button, forKey: .button)
+            try container.encode(destination, forKey: .destination)
+        case let .typeText(text):
+            try container.encode(Kind.typeText.rawValue, forKey: .kind)
+            try container.encode(text, forKey: .text)
+        case let .pressKey(stroke):
+            try container.encode(Kind.pressKey.rawValue, forKey: .kind)
+            try container.encode(stroke.key, forKey: .key)
+            try container.encode(stroke.modifiers, forKey: .modifiers)
         case let .click(button, count, holdMilliseconds):
             try container.encode(Kind.click.rawValue, forKey: .kind)
             try container.encode(button, forKey: .button)
@@ -124,12 +150,13 @@ extension StepAction: Codable {
 
 extension StepTarget: Codable {
     private enum CodingKeys: String, CodingKey {
-        case kind, x, y
+        case kind, x, y, corner, dx, dy
     }
 
     private enum Kind: String {
         case cursor
         case screenPoint
+        case windowRelative
     }
 
     init(from decoder: Decoder) throws {
@@ -147,6 +174,12 @@ extension StepTarget: Codable {
                 x: try container.decodeIfPresent(Double.self, forKey: .x) ?? 0,
                 y: try container.decodeIfPresent(Double.self, forKey: .y) ?? 0
             )
+        case .windowRelative:
+            self = .windowRelative(
+                corner: try container.decodeIfPresent(WindowCorner.self, forKey: .corner) ?? .topLeft,
+                dx: try container.decodeIfPresent(Double.self, forKey: .dx) ?? 0,
+                dy: try container.decodeIfPresent(Double.self, forKey: .dy) ?? 0
+            )
         }
     }
 
@@ -159,6 +192,11 @@ extension StepTarget: Codable {
             try container.encode(Kind.screenPoint.rawValue, forKey: .kind)
             try container.encode(x, forKey: .x)
             try container.encode(y, forKey: .y)
+        case let .windowRelative(corner, dx, dy):
+            try container.encode(Kind.windowRelative.rawValue, forKey: .kind)
+            try container.encode(corner, forKey: .corner)
+            try container.encode(dx, forKey: .dx)
+            try container.encode(dy, forKey: .dy)
         }
     }
 }

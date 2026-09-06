@@ -27,7 +27,7 @@
 
 ## Gõ phím và focus
 
-- **SF-4** `[Lát 2]` Trước mỗi **Bước** gõ phím, nếu có **Ứng dụng khoá** và nó không phải ứng
+- **SF-4** `[Lát 2]` `[đã làm]` Trước mỗi **Bước** gõ phím, nếu có **Ứng dụng khoá** và nó không phải ứng
   dụng đang ở trước, thì gọi `activate` và chờ tối đa 500 ms để nó lên trước. Vẫn không lên được
   thì **dừng Kịch bản**.
 

@@ -20,7 +20,7 @@ chính bộ chạy đó ([ADR-0002](../adr/0002-buoc-la-hanh-dong-nhan-vi-tri.md
 
 - **EX-6** `[Lát 1]` `[đã làm]` **Vị trí** được giải **ngay trước mỗi lần lặp của Bước**, không phải một
   lần cho cả **Bước**. `DM-19` phụ thuộc vào điều này.
-- **EX-7** `[Lát 2]` Giải `lệchCửaSổ` cần **Cửa sổ neo**; không lấy được cửa sổ nào thì dừng
+- **EX-7** `[Lát 2]` `[đã làm]` Giải `lệchCửaSổ` cần **Cửa sổ neo**; không lấy được cửa sổ nào thì dừng
   **Kịch bản** với thông báo nêu rõ tên ứng dụng.
 - **EX-8** `[Lát 4]` Giải `theoẢnh`/`theoChữ` thử lại theo nhịp bằng khoảng chờ của **Bước**,
   tối thiểu 150 ms, cho đến khi hết `chờTốiĐaMs`. Hết giờ thì làm theo `khiHếtGiờ` (`DM-16`).
@@ -33,7 +33,7 @@ chính bộ chạy đó ([ADR-0002](../adr/0002-buoc-la-hanh-dong-nhan-vi-tri.md
   Accessibility xem điểm đó thuộc tiến trình nào; khác PID đã khoá thì dừng **Kịch bản**.
   Đây là hành vi đã có, giữ nguyên (`ClickRoutingPolicy`).
 - **EX-11** `[Lát 1]` `[đã làm]` **Ứng dụng khoá** bị đóng giữa chừng thì dừng **Kịch bản**.
-- **EX-12** `[Lát 2]` Sự kiện bàn phím không có toạ độ nên `EX-10` không áp dụng được; thay vào
+- **EX-12** `[Lát 2]` `[đã làm]` Sự kiện bàn phím không có toạ độ nên `EX-10` không áp dụng được; thay vào
   đó xem `SF-4`.
 
 ## Dừng
@@ -56,3 +56,14 @@ chính bộ chạy đó ([ADR-0002](../adr/0002-buoc-la-hanh-dong-nhan-vi-tri.md
   di chuyển giữa hai sự kiện.
 - **EX-19** `[Lát 1]` `[đã làm]` Mọi sự kiện đều phát vào `.cghidEventTap` để ứng dụng đích xử lý như thao
   tác thật.
+- **EX-20** `[Lát 2]` `[đã làm]` Kéo thả phát `mouseDown` tại điểm đầu, 24 sự kiện `mouseDragged`
+  nội suy đều nhau cách nhau 8 ms, rồi `mouseUp` tại điểm cuối. Nhiều ứng dụng **bỏ qua** thao tác
+  kéo nếu con trỏ nhảy thẳng từ đầu tới cuối mà không có điểm nào ở giữa.
+- **EX-21** `[Lát 2]` `[đã làm]` `gõChuỗi` dùng `keyboardSetUnicodeString` chứ không tra mã phím,
+  nên không phụ thuộc bố cục bàn phím và gõ được cả tiếng Việt lẫn emoji.
+- **EX-22** `[Lát 2]` `[đã làm]` `nhấnPhím` phát mã phím vật lý kèm cờ phím bổ trợ gắn thẳng vào
+  sự kiện. Phím bổ trợ **không** được phát thành sự kiện riêng, nên huỷ giữa chừng không để lại
+  phím nào bị kẹt — khác hẳn với nút chuột ở `SF-1`.
+- **EX-23** `[Lát 2]` `[đã làm]` Với kéo thả, chỉ **điểm đầu và điểm cuối** được kiểm tra theo
+  `EX-10`. Hỏi Accessibility ở từng chặng sẽ làm thao tác kéo giật và có thể dừng giữa chừng, để
+  lại nút chuột đang giữ cho `SF-1` dọn.
