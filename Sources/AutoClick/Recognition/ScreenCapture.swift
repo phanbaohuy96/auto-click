@@ -28,7 +28,11 @@ enum ScreenCaptureError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .permissionDenied:
-            return "Hãy cấp quyền Screen Recording cho Auto Click rồi thử lại."
+            // SF-7: nếu người dùng vừa bật quyền mà vẫn hỏng thì gần như chắc chắn là bản build
+            // ký ad-hoc bị macOS coi là ứng dụng khác sau khi cập nhật. Cách sửa là khởi động
+            // lại app, và câu này phải nói ra — hệ thống không phân biệt được hai trường hợp.
+            return "Hãy cấp quyền Screen Recording cho Auto Click rồi thử lại. "
+                + "Nếu đã cấp rồi, hãy thoát và mở lại Auto Click."
         case .noDisplays:
             return "Không tìm thấy màn hình nào để chụp."
         }

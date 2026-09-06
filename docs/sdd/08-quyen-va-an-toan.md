@@ -20,10 +20,16 @@
   Xin lúc bấm Bắt đầu lần đầu.
 - **SF-5** `[Lát 4]` `[đã làm]` **Screen Recording** — cần cho **Ảnh mẫu** và tìm theo chữ. Chỉ xin khi
   người dùng dùng tới, không xin lúc khởi động.
-- **SF-6** Auto Click **không bao giờ** xin **Input Monitoring**.
-  Xem [ADR-0003](../adr/0003-khong-ghi-ban-phim-khi-record.md).
-- **SF-7** `[Lát 4]` `[một phần]` Màn hình trạng thái quyền phải phân biệt được "chưa cấp" với "đã cấp nhưng
-  cần khởi động lại app" — bản build ký ad-hoc hay rơi vào trường hợp thứ hai sau mỗi lần cập nhật.
+- **SF-6** `[đã làm]` Auto Click **không bao giờ** xin **Input Monitoring**.
+  Xem [ADR-0003](../adr/0003-khong-ghi-ban-phim-khi-record.md). Kiểm chứng bằng cách không có
+  lời gọi `IOHIDRequestAccess`/`IOHIDCheckAccess` nào trong mã nguồn.
+- **SF-7** `[Lát 4]` `[đã làm]` Thông báo lỗi khi chụp màn hình thất bại phải nêu **cả hai** khả
+  năng: chưa cấp quyền, và đã cấp nhưng cần thoát rồi mở lại app.
+
+  Đặc tả ban đầu đòi *phân biệt* hai trường hợp. Không làm được: `CGPreflightScreenCaptureAccess()`
+  trả `false` ở cả hai, và không có API nào đọc được trạng thái TCC thật. Bản build ký ad-hoc bị
+  macOS coi là ứng dụng khác sau mỗi lần cập nhật nên rơi vào trường hợp thứ hai rất thường xuyên,
+  vì vậy nêu ra cả hai vẫn hữu ích hơn là im lặng.
 
 ## Gõ phím và focus
 
