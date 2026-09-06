@@ -14,14 +14,37 @@ Một **Bước** là một cặp **Hành động** × **Vị trí**, hai trục
 |---|---|
 | Click (trái/phải/giữa, n lần, giữ N ms) | Theo con trỏ |
 | Cuộn (ngang, dọc) | Điểm cố định trên màn hình |
-| Di chuột | |
+| Di chuột | Lệch theo góc gần nhất của cửa sổ ứng dụng |
+| Kéo thả | |
+| Gõ chuỗi ký tự | |
+| Nhấn tổ hợp phím | |
 
-Nhờ tách hai trục, "double-click tại một điểm" hay "cuộn tại vị trí con trỏ" không phải là loại
-bước mới nào cả. Các dạng Vị trí còn lại — lệch theo cửa sổ, theo ảnh mẫu, theo chữ — và các
-Hành động kéo thả, gõ phím nằm ở các lát tiếp theo, xem [`docs/sdd/01-pham-vi.md`](docs/sdd/01-pham-vi.md).
+Nhờ tách hai trục, "double-click tại một điểm" hay "kéo từ cửa sổ này sang chỗ kia" không phải là
+loại bước mới nào cả. Vị trí theo ảnh mẫu và theo chữ nằm ở lát tiếp theo, xem
+[`docs/sdd/01-pham-vi.md`](docs/sdd/01-pham-vi.md).
+
+Neo theo cửa sổ bám vào **góc gần điểm nhất**, không phải luôn góc trên-trái: nút ở góc phải-dưới
+nhờ vậy vẫn đúng khi bạn phóng to cửa sổ.
 
 Kịch bản lưu ở `~/Library/Application Support/AutoClick/Scenarios/<id>/scenario.json`,
 mỗi kịch bản một thư mục. Xoá kịch bản là xoá cả thư mục.
+
+## Ghi thao tác
+
+Nhấn `⌥⌘R` để bắt đầu và kết thúc một phiên ghi. Auto Click quan sát chuột của bạn rồi dựng
+thành Kịch bản: nhận ra double click, giữ nhấn, kéo thả, và gộp cả tràng cuộn trackpad thành
+một bước.
+
+Hai điều cố ý:
+
+- **Không ghi bàn phím.** Ghi phím buộc phải xin quyền Input Monitoring và biến app thành
+  keylogger toàn hệ thống. Bước gõ phím thêm tay sau khi ghi.
+- **Không cắt trần thời gian chết.** Bạn chờ 8 giây thì bản ghi chờ 8 giây. Recorder không phân
+  biệt được "đợi trang tải" với "đi pha cà phê", nên cắt trần sẽ hỏng đúng lúc quan trọng nhất.
+
+Nếu cả phiên ghi nằm trong một ứng dụng, Auto Click tự khoá vào ứng dụng đó và neo mọi bước theo
+cửa sổ — bản ghi dùng lại được cả khi cửa sổ đã dịch chuyển. Trải trên nhiều ứng dụng thì giữ
+toạ độ tuyệt đối và nói rõ điều đó.
 
 ## Các tính năng khác
 
@@ -37,7 +60,8 @@ mỗi kịch bản một thư mục. Xoá kịch bản là xoá cả thư mục.
 - Hiện live activity nổi khi chạy, với nút **Dừng** luôn nhìn thấy.
 - Phím tắt toàn cục `⌥⌘S` để dừng ngay cả khi đang dùng ứng dụng khác.
 - Ghi nhớ cấu hình và tự khởi động khi đăng nhập macOS.
-- Luôn nhả nút chuột khi dừng, kể cả đang giữa một thao tác giữ nhấn.
+- Luôn nhả nút chuột khi dừng, kể cả đang giữa một thao tác giữ nhấn hay kéo thả.
+- Trước mỗi bước gõ phím, đưa ứng dụng đã khoá lên trước; không đưa lên được thì dừng.
 
 ## Build và cài đặt
 

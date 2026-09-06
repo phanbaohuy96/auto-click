@@ -1,10 +1,6 @@
 import AppKit
 import SwiftUI
 
-enum ScenarioEditorScene {
-    static let windowID = "scenario-editor"
-}
-
 /// Bề mặt **cấu hình** (UI-2). Popover trên menu bar không chứa trình sửa Bước.
 struct ScenarioEditorView: View {
     @ObservedObject var store: ScenarioStore

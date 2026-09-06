@@ -5,27 +5,48 @@ import SwiftUI
 @MainActor
 final class AutoClickRuntimeController: ObservableObject {
     private let runner: ScenarioRunner
+    private let recorder: ScenarioRecorder
     private let activityPanel: RunningActivityPanelController
-    private var hotKey: EventHotKeyRef?
+    private var hotKeys: [EventHotKeyRef?] = []
     private var hotKeyHandler: EventHandlerRef?
 
-    init(runner: ScenarioRunner) {
+    private enum Shortcut: UInt32 {
+        case stop = 1
+        case toggleRecording = 2
+    }
+
+    init(runner: ScenarioRunner, recorder: ScenarioRecorder) {
         self.runner = runner
-        activityPanel = RunningActivityPanelController(runner: runner)
+        self.recorder = recorder
+        activityPanel = RunningActivityPanelController(runner: runner, recorder: recorder)
 
         runner.onRunningStateChanged = { [weak self] isRunning in
-            self?.activityPanel.setVisible(isRunning)
+            self?.activityPanel.setVisible(isRunning || (self?.recorder.isRecording ?? false))
+        }
+        recorder.onRecordingStateChanged = { [weak self] isRecording in
+            self?.activityPanel.setVisible(isRecording || (self?.runner.isRunning ?? false))
         }
 
-        registerStopHotKey()
+        registerHotKeys()
     }
 
-    private func stopFromShortcut() {
-        guard runner.isRunning else { return }
-        runner.stop()
+    private func handle(_ shortcut: Shortcut) {
+        switch shortcut {
+        case .stop:
+            guard runner.isRunning else { return }
+            runner.stop()
+        case .toggleRecording:
+            // RC-1: kết thúc bằng phím tắt, vì click vào một nút sẽ tự lọt vào bản ghi.
+            guard !runner.isRunning else { return }
+            if recorder.isRecording {
+                recorder.stop()
+            } else {
+                recorder.start()
+            }
+        }
     }
 
-    private func registerStopHotKey() {
+    private func registerHotKeys() {
         var eventType = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
             eventKind: UInt32(kEventHotKeyPressed)
@@ -34,13 +55,26 @@ final class AutoClickRuntimeController: ObservableObject {
 
         InstallEventHandler(
             GetApplicationEventTarget(),
-            { _, _, context in
+            { _, event, context in
                 guard let context else { return OSStatus(eventNotHandledErr) }
+                var identifier = EventHotKeyID()
+                GetEventParameter(
+                    event,
+                    EventParamName(kEventParamDirectObject),
+                    EventParamType(typeEventHotKeyID),
+                    nil,
+                    MemoryLayout<EventHotKeyID>.size,
+                    nil,
+                    &identifier
+                )
+                guard let shortcut = Shortcut(rawValue: identifier.id) else {
+                    return OSStatus(eventNotHandledErr)
+                }
                 let controller = Unmanaged<AutoClickRuntimeController>
                     .fromOpaque(context)
                     .takeUnretainedValue()
                 Task { @MainActor in
-                    controller.stopFromShortcut()
+                    controller.handle(shortcut)
                 }
                 return noErr
             },
@@ -50,18 +84,21 @@ final class AutoClickRuntimeController: ObservableObject {
             &hotKeyHandler
         )
 
-        let identifier = EventHotKeyID(
-            signature: OSType(0x4154_434B), // "ATCK"
-            id: 1
-        )
+        register(.stop, keyCode: UInt32(kVK_ANSI_S))
+        register(.toggleRecording, keyCode: UInt32(kVK_ANSI_R))
+    }
+
+    private func register(_ shortcut: Shortcut, keyCode: UInt32) {
+        var hotKey: EventHotKeyRef?
         RegisterEventHotKey(
-            UInt32(kVK_ANSI_S),
+            keyCode,
             UInt32(cmdKey | optionKey),
-            identifier,
+            EventHotKeyID(signature: OSType(0x4154_434B), id: shortcut.rawValue), // "ATCK"
             GetApplicationEventTarget(),
             0,
             &hotKey
         )
+        hotKeys.append(hotKey)
     }
 }
 
@@ -69,7 +106,7 @@ final class AutoClickRuntimeController: ObservableObject {
 private final class RunningActivityPanelController {
     private let panel: NSPanel
 
-    init(runner: ScenarioRunner) {
+    init(runner: ScenarioRunner, recorder: ScenarioRecorder) {
         let panelSize = NSSize(width: 390, height: 86)
         panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: panelSize),
@@ -85,7 +122,7 @@ private final class RunningActivityPanelController {
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.isMovableByWindowBackground = true
-        panel.contentView = NSHostingView(rootView: RunningActivityView(runner: runner))
+        panel.contentView = NSHostingView(rootView: RunningActivityView(runner: runner, recorder: recorder))
     }
 
     func setVisible(_ isVisible: Bool) {
@@ -110,38 +147,49 @@ private final class RunningActivityPanelController {
 
 private struct RunningActivityView: View {
     @ObservedObject var runner: ScenarioRunner
+    @ObservedObject var recorder: ScenarioRecorder
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: runner.countdown == nil ? "cursorarrow.rays" : "timer")
+            Image(systemName: icon)
                 .font(.title2)
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(recorder.isRecording ? Color.red : Color.accentColor)
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(runner.runningScenarioName ?? "Auto Click")
+                Text(recorder.isRecording ? "Đang ghi thao tác" : (runner.runningScenarioName ?? "Auto Click"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                Text(runner.statusText)
+                Text(title)
                     .font(.headline)
                     .lineLimit(1)
                 // Lối thoát duy nhất khi chuỗi click đang cướp con trỏ (UI-15).
-                Text("Dừng nhanh bằng ⌥⌘S")
+                Text(recorder.isRecording ? "Kết thúc bằng ⌥⌘R" : "Dừng nhanh bằng ⌥⌘S")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 8)
 
-            Button {
-                runner.stop()
-            } label: {
-                Label("Dừng", systemImage: "stop.fill")
+            if recorder.isRecording {
+                Button {
+                    recorder.stop()
+                } label: {
+                    Label("Kết thúc", systemImage: "stop.circle")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+            } else {
+                Button {
+                    runner.stop()
+                } label: {
+                    Label("Dừng", systemImage: "stop.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+                .keyboardShortcut("s", modifiers: [.command, .option])
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.red)
-            .keyboardShortcut("s", modifiers: [.command, .option])
         }
         .padding(.horizontal, 16)
         .frame(width: 390, height: 86)
@@ -150,5 +198,17 @@ private struct RunningActivityView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(.white.opacity(0.16))
         }
+    }
+
+    private var icon: String {
+        if recorder.isRecording { return "record.circle" }
+        return runner.countdown == nil ? "cursorarrow.rays" : "timer"
+    }
+
+    private var title: String {
+        if recorder.isRecording {
+            return "\(recorder.recordedGestureCount) thao tác"
+        }
+        return runner.statusText
     }
 }

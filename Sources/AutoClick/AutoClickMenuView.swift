@@ -20,10 +20,11 @@ struct AutoClickMenuView: View {
     @ObservedObject var clicker: AutoClicker
     @ObservedObject var runner: ScenarioRunner
     @ObservedObject var store: ScenarioStore
+    @ObservedObject var recorder: ScenarioRecorder
     @ObservedObject var launchAtLogin: LaunchAtLoginManager
+    let onOpenEditor: () -> Void
 
     @AppStorage("popoverMode") private var rawMode = PopoverMode.simple.rawValue
-    @Environment(\.openWindow) private var openWindow
 
     private var mode: Binding<PopoverMode> {
         Binding(
@@ -63,6 +64,7 @@ struct AutoClickMenuView: View {
                 .foregroundStyle(runner.isRunning ? Color.accentColor : .secondary)
 
             runButton
+            recordButton
 
             Divider()
 
@@ -114,7 +116,7 @@ struct AutoClickMenuView: View {
         case .scenario:
             guard let scenario = store.selectedScenario else { return "Chưa có kịch bản nào." }
             if store.isReadOnly(scenario) { return "Kịch bản này chỉ xem được." }
-            return runner.validate(scenario)?.errorDescription
+            return runner.validate(scenario)?.errorDescription ?? recorder.message
         }
     }
 
@@ -156,6 +158,29 @@ struct AutoClickMenuView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .disabled(!canRun)
+        }
+    }
+
+    /// RC-1: bắt đầu và kết thúc Phiên ghi bằng phím tắt toàn cục, không bằng nút — click vào
+    /// nút sẽ tự lọt vào bản ghi. Nút ở đây chỉ để bắt đầu; kết thúc thì phải dùng ⌥⌘R.
+    @ViewBuilder
+    private var recordButton: some View {
+        if recorder.isRecording {
+            Label("Đang ghi \(recorder.recordedGestureCount) thao tác — ⌥⌘R để kết thúc", systemImage: "record.circle")
+                .font(.caption)
+                .foregroundStyle(.red)
+        } else if !runner.isRunning {
+            HStack(spacing: 8) {
+                Button {
+                    NSApp.keyWindow?.orderOut(nil)
+                    recorder.start()
+                } label: {
+                    Label("Ghi thao tác", systemImage: "record.circle")
+                }
+                Text("kết thúc bằng ⌥⌘R")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -207,11 +232,7 @@ struct AutoClickMenuView: View {
         }
     }
 
-    private func openEditor() {
-        // App là agent (LSUIElement) nên cửa sổ mở ra sẽ không nhận bàn phím nếu thiếu dòng này (UI-3).
-        NSApp.activate(ignoringOtherApps: true)
-        openWindow(id: ScenarioEditorScene.windowID)
-    }
+    private func openEditor() { onOpenEditor() }
 
     // MARK: - Chế độ đơn giản
 

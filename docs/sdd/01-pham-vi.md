@@ -30,7 +30,7 @@ Thay bộ chạy nằm dưới nút Bắt đầu, không thay đổi thứ ngư�
 - **Hành động** kéo thả và gõ phím
 - Đưa **Ứng dụng khoá** lên trước khi gõ phím (`SF-4`)
 
-### Lát 3 — Ghi thao tác
+### Lát 3 — Ghi thao tác  ✅
 
 - Bắt sự kiện chuột toàn hệ thống, suy luận thành **Hành động**
 - Tự nâng **Vị trí** lên tương đối **Cửa sổ neo** khi cả phiên nằm trong một ứng dụng
