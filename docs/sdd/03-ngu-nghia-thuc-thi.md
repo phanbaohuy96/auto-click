@@ -72,17 +72,23 @@ chính bộ chạy đó ([ADR-0002](../adr/0002-buoc-la-hanh-dong-nhan-vi-tri.md
   khối một cặp nhấn/nhả, cách nhau `SF-8`. Không cắt giữa một cặp thay thế, nếu không emoji vỡ
   thành hai ký tự rác.
 
-  Vì sao không gửi từng ký tự: payload Unicode **thỉnh thoảng bị mất** trên đường qua hệ thống
-  sự kiện, và khi đó macOS rơi về `virtualKey` của sự kiện — số 0, tức phím `a` — nên chèn ra
-  chữ `a` thay cho chữ thật, **không báo lỗi gì**. Đo trên máy thật với chuỗi 92 ký tự: gửi từng
-  ký tự đúng ~1/5 lần; chia khối 20 đúng ~109/116. Nhịp không cứu được (60 ms vẫn hỏng), đích
-  gửi không cứu được (`hid`/`session`/`annotated` như nhau), và `virtualKey` khác 0 thì **không
-  gõ ra gì cả**. Xem [ADR-0007].
+  **Điều đã quan sát được, chạy qua chính app:** bản gửi từng ký tự gõ `"Xin chào 123 — ăn"` vào
+  TextEdit ra `"Aa chào 123 — ăn"` — lặp lại được, kể cả khi TextEdit đã ở trước sẵn. Ký tự thay
+  thế luôn là `a`, đúng ký tự của `virtualKey: 0` mà sự kiện mang theo, tức payload Unicode bị
+  mất và hệ thống rơi về mã phím. Sau khi đổi sang gửi theo khối: **8/8 lần đúng**, đo cùng một
+  cách. Đó là toàn bộ căn cứ cho thay đổi này.
 
-  **Giới hạn còn lại, đã biết và chấp nhận:** khoảng 6% lượt gõ chuỗi dài vẫn mất nguyên một
-  khối. Chia khối đổi "hỏng vặt khắp chuỗi" lấy "hỏng hiếm nhưng mất cả khối". Cách duy nhất
-  chắc chắn 100% là dán qua clipboard, đã cân và **không** chọn: nó cướp clipboard của người
-  dùng và ứng dụng nào chặn dán thì chịu.
+  **Điều chưa biết, và không được suy đoán thêm:** nguyên nhân gốc. Đã loại bằng thực nghiệm —
+  không phải do bộ gõ tiếng Việt (tắt hẳn EVKey vẫn hỏng), không phải do nhịp gửi (60 ms vẫn
+  hỏng), không phải do đích gửi (`hid`/`session`/`annotated` như nhau), không phải do `virtualKey`
+  (đổi sang phím không sinh chữ thì **không gõ ra gì cả**), không phải do đua với `activate` (mô
+  phỏng đúng đường code với 0 ms chờ vẫn đúng 6/6). **Cũng không có tỉ lệ hỏng đáng tin:** máy này
+  có bộ gõ tiếng Việt giữ chữ trong bộ đệm soạn thảo, nên đọc tài liệu bằng AppleScript không
+  phân biệt được "chưa chốt" với "mất chữ", và kết quả đo đổi hẳn theo cách dọn tài liệu giữa hai
+  lượt. Mọi con số tỉ lệ đều đã bị rút lại. Xem [ADR-0007].
+
+  `B10` của kiểm thử tay vẫn **hỏng** sau thay đổi này: một Kịch bản có hai Bước `gõChuỗi` ra
+  `"â"` thay vì `"[B10b]"`. Chưa tìm ra nguyên nhân, chưa sửa.
 - **EX-25** `[Lát 2]` `[đã làm]` Cửa sổ **đang thu nhỏ dưới Dock** không được dùng làm **Cửa sổ
   neo**. Accessibility vẫn trả về vị trí và kích thước cũ của nó như thể nó còn trên màn hình;
   tin vào đó thì `lệchCửaSổ` giải ra một toạ độ trỏ vào chỗ trống, hoặc vào cửa sổ ứng dụng khác.

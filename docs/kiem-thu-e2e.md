@@ -78,18 +78,19 @@ Chỉ lộ ra khi cài đè lên một bản đã có quyền. Viết đặc t�
 | B5 | Thu nhỏ TextEdit xuống Dock rồi chạy Bước `lệchCửaSổ` | Dừng có báo, **không** bắn ra toạ độ rác | `EX-7` | **Đạt có điều kiện** — 0 click, có dừng và có báo. Nhưng **báo sai nguyên nhân**: nói *"điểm nằm ngoài ứng dụng khoá"* trong khi thật ra cửa sổ đang thu nhỏ. Xem `EX-25` |
 | B6 | Bước `kéoThả` từ điểm A tới điểm B trong TextEdit (bôi đen chữ) | Chữ được bôi đen liên tục, không nhảy cóc | `EX-20` | **Đạt** — 1 `leftDown`, **24** `leftDrag`, 1 `leftUp`; TextEdit bôi đen liên tục 40 ký tự `"AAA BBBB … HHHH I"` |
 | B7 | **Trong lúc B6 đang kéo**, bấm `⌥⌘S` | Chuột được nhả, không kẹt ở trạng thái đang kéo | `SF-1` `EX-23` | **Đạt** — 7 `leftDown` / **165** `leftDrag` / 7 `leftUp`. Trọn vẹn phải là 168, nên lần kéo thứ 7 bị cắt ở bước 21/24 và nhả tại `x=464` chứ không phải đích `x=500`. Rê chuột sau đó: 0 `leftDrag` |
-| B8 | Bước `gõChuỗi` với `Xin chào 123 — ăn` | Ra đúng chữ, đúng dấu tiếng Việt và dấu gạch dài | `EX-21` | **Hỏng** — gõ `"Xin chào 123 — ăn"` ra `"Aa chào 123 — ăn"`, không báo lỗi. Đã sửa (`EX-24`, [ADR-0007]); **chờ chạy lại** |
-| B9 | Bước `nhấnPhím` `⌘A` rồi Bước `nhấnPhím` `⌫` | Chọn hết rồi xoá hết | `EX-22` | |
-| B10 | Đưa **Finder** lên trước rồi chạy Kịch bản có Bước gõ phím, khoá TextEdit | TextEdit **được đưa lên trước** rồi mới gõ; chữ không lọt sang Finder | `SF-4` `EX-12` | |
+| B8 | Bước `gõChuỗi` với `Xin chào 123 — ăn` | Ra đúng chữ, đúng dấu tiếng Việt và dấu gạch dài | `EX-21` | **Đạt sau khi sửa** — bản cũ ra `"Aa chào 123 — ăn"`, không báo lỗi. Sau khi gửi theo khối (`EX-24`, [ADR-0007]): **8/8 lần đúng** qua chính app |
+| B9 | Bước `nhấnPhím` `⌘A` rồi Bước `nhấnPhím` `⌫` | Chọn hết rồi xoá hết | `EX-22` | **Đạt** — tài liệu từ `"Xin chào 123 — ăn"` về rỗng |
+| B10 | Chạy Kịch bản hai Bước gõ, **cướp focus sang Finder giữa hai Bước** | TextEdit **được đưa lên trước** rồi mới gõ; chữ không lọt sang Finder | `SF-4` `EX-12` | **Hỏng** — `SF-4` có chạy (Finder bị cướp focus lúc t+4 s, TextEdit trở lại lúc t+7,3 s), nhưng chữ ra `"â"` thay vì `"[B10b]"`. Cùng kiểu hỏng với `EX-24` nhưng **chưa lần ra nguyên nhân** |
 
 ### Phát hiện ngoài checklist — phiên B
 
 Ba lỗi thật, không mục nào trong checklist nhắm vào chúng. Cả ba chỉ lộ khi chạy trên máy thật.
 
-**`EX-24` — gõ chuỗi ra sai chữ, im lặng.** Nặng nhất. Gửi từng ký tự một thì payload Unicode
-thỉnh thoảng bị mất và macOS rơi về `virtualKey` (số 0 = phím `a`), chèn chữ `a` thay cho chữ
-thật mà không báo gì. Đo được: đúng ~1/5 lần với chuỗi 92 ký tự. Đã sửa bằng cách gửi theo khối
-20 đơn vị UTF-16 → ~109/116. Còn ~6% chưa đóng được, ghi rõ ở `EX-24` và [ADR-0007].
+**`EX-24` — gõ chuỗi ra sai chữ, im lặng.** Nặng nhất. Gửi từng ký tự một thì payload Unicode bị
+mất và macOS rơi về `virtualKey` (số 0 = phím `a`), chèn chữ `a` thay cho chữ thật mà không báo
+gì: `"Xin chào 123 — ăn"` ra `"Aa chào 123 — ăn"`. Đã sửa bằng cách gửi theo khối 20 đơn vị
+UTF-16 → **8/8 lần đúng** qua chính app. **Nguyên nhân gốc vẫn chưa biết**, và không có tỉ lệ
+hỏng nào đáng tin — xem [ADR-0007] để biết những gì đã loại được và vì sao bộ đo không đủ tin.
 
 **`UI-16` — lỗi hiện kèm dấu tích.** `statusIcon` trả `checkmark.circle` cho mọi trạng thái
 không-đang-chạy, nên dòng *"Có lỗi: …"* mang đúng biểu tượng của thành công, lại bị cắt ở một
@@ -99,6 +100,16 @@ dòng nên không đọc hết được nguyên nhân. Đã sửa: tam giác c�
 sổ đã thu nhỏ như thể nó còn trên màn hình. `EX-10` chặn được cú click nên không có thiệt hại,
 nhưng đó là may: nếu ứng dụng khoá có cửa sổ thứ hai đè lên đúng điểm đó thì click sẽ bắn ra theo
 toạ độ của một cửa sổ không còn hiện. Đã sửa: bỏ qua cửa sổ thu nhỏ.
+
+### Bẫy đo lường: bộ gõ tiếng Việt giữ chữ trong bộ đệm soạn thảo
+
+Máy này chạy EVKey. Chữ do Auto Click gõ ra có thể **đã đúng nhưng chưa được chốt** vào tài liệu,
+và khi đó `get text of document 1` trả về **rỗng** — không phân biệt được với mất chữ. Chứng
+minh: gõ `"abc"` đọc ra `""`; bấm mũi tên phải để chốt rồi đọc lại ra `"abc"`.
+
+Hệ quả: mọi phép đo bàn phím phải **chốt trước khi đọc**, và mọi tỉ lệ đo trước khi biết điều này
+đều đã bị rút lại. Kết quả còn đổi theo cách dọn tài liệu giữa hai lượt — đặt lại bằng AppleScript
+cho kết quả khác hẳn dọn bằng `⌘A` + `xoá`.
 
 ### Ghi chú cách chạy phiên B
 
