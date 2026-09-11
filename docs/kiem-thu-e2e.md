@@ -228,7 +228,7 @@ không có cơ hội vớ phải mảnh giống hệt ở góc màn hình khác.
 | D11 | Ghi một phiên chạm vào **hai** ứng dụng (TextEdit rồi Finder) | Có cảnh báo nói bản ghi trải trên 2 ứng dụng; Vị trí là toạ độ tuyệt đối | `RC-14` | |
 | D12 | Ghi xong, di chuyển cửa sổ TextEdit, chạy lại bản ghi một-ứng-dụng | Thao tác **đi theo cửa sổ** | `RC-13` | |
 | D13 | Gõ bàn phím trong lúc đang ghi | Phím **không** lọt vào Kịch bản | `RC-4` `SF-6` (ADR-0003) | |
-| D14 | Mở System Settings → Privacy → **Input Monitoring** | Auto Click **không** có trong danh sách | `SF-6` | |
+| D14 | Mở System Settings → Privacy → **Input Monitoring** | Auto Click **không** có trong danh sách | `SF-6` | **Đạt phần tĩnh, còn chờ mắt người** — `CGEvent.tapCreate` duy nhất của app đăng ký mặt nạ **chỉ có chuột và cuộn**; hai chỗ còn lại dùng `keyDown` là `addLocalMonitorForEvents` (chỉ thấy phím gửi tới cửa sổ của chính app, không cần quyền, để bắt Esc). `Info.plist` **không có** khoá xin Input Monitoring; binary đã cài **không tham chiếu** `IOHIDRequestAccess`/`IOHIDCheckAccess`. Còn lại: nhìn tận mắt danh sách trong System Settings |
 
 ## Phiên E — Lưu trữ và hỏng dữ liệu
 

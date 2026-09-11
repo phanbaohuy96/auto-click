@@ -20,9 +20,22 @@
   Xin lúc bấm Bắt đầu lần đầu.
 - **SF-5** `[Lát 4]` `[đã làm]` **Screen Recording** — cần cho **Ảnh mẫu** và tìm theo chữ. Chỉ xin khi
   người dùng dùng tới, không xin lúc khởi động.
-- **SF-6** `[đã làm]` Auto Click **không bao giờ** xin **Input Monitoring**.
-  Xem [ADR-0003](../adr/0003-khong-ghi-ban-phim-khi-record.md). Kiểm chứng bằng cách không có
-  lời gọi `IOHIDRequestAccess`/`IOHIDCheckAccess` nào trong mã nguồn.
+- **SF-6** `[đã làm]` Auto Click **không bao giờ** xin **Input Monitoring**, và bộ ghi **không bao
+  giờ** nghe bàn phím. Xem [ADR-0003](../adr/0003-khong-ghi-ban-phim-khi-record.md).
+
+  Ba tầng kiểm chứng, tầng đầu là tầng duy nhất **tự động chặn được người sửa code sau này**:
+
+  1. `ScenarioRecorder.recordedEventTypes` chỉ có chuột và cuộn, và có test canh — thêm `.keyDown`
+     vào là test đỏ ngay. Trước đây mặt nạ nằm trong thân `startSession`, chỉ `CGEventTap` thật mới
+     chạm tới, nên ràng buộc an toàn mạnh nhất của dự án **không có test nào giữ**.
+  2. Bơm thẳng một `keyDown` mang chuỗi vào `ScenarioRecorder.handle` thì không ra Bước nào — kể cả
+     khi mặt nạ bị nới ra, phần giải mã cũng không biến phím thành dữ liệu.
+  3. Không có lời gọi `IOHIDRequestAccess`/`IOHIDCheckAccess` nào trong mã nguồn, và `Info.plist`
+     không có khoá xin quyền này.
+
+  Hai chỗ dùng `keyDown` còn lại là `NSEvent.addLocalMonitorForEvents` trong hai lớp phủ khoanh
+  vùng: **local** monitor chỉ thấy phím gửi tới cửa sổ của chính app, không cần quyền gì, và chỉ để
+  bắt phím Esc.
 - **SF-10** `[đã làm]` Thông báo khi thiếu **Accessibility** phải nêu **cả hai** khả năng: chưa
   cấp bao giờ, và đã cấp nhưng quyền hết hiệu lực sau khi cập nhật app. Cài đè một bản mới làm
   đổi chữ ký, macOS vô hiệu hoá quyền cũ **nhưng vẫn hiển thị toggle đang bật**; người dùng mở

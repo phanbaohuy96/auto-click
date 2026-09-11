@@ -42,18 +42,11 @@ final class ScenarioRecorder: ObservableObject {
             return false
         }
 
-        let mask: CGEventMask = [
-            CGEventType.leftMouseDown, .leftMouseUp, .leftMouseDragged,
-            .rightMouseDown, .rightMouseUp, .rightMouseDragged,
-            .otherMouseDown, .otherMouseUp, .otherMouseDragged,
-            .scrollWheel
-        ].reduce(into: CGEventMask(0)) { $0 |= 1 << $1.rawValue }
-
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
             options: .listenOnly,
-            eventsOfInterest: mask,
+            eventsOfInterest: Self.eventMask,
             callback: { _, type, event, context in
                 guard let context else { return Unmanaged.passUnretained(event) }
                 let recorder = Unmanaged<ScenarioRecorder>.fromOpaque(context).takeUnretainedValue()
@@ -120,6 +113,27 @@ final class ScenarioRecorder: ObservableObject {
         eventTap = nil
         runLoopSource = nil
     }
+
+    // MARK: - Những gì được nghe
+
+    /// Loại sự kiện bộ ghi lắng nghe. **Chỉ chuột và cuộn.**
+    ///
+    /// `SF-6` / [ADR-0003]: thêm `keyDown`, `keyUp` hay `flagsChanged` vào đây là biến Auto Click
+    /// thành keylogger toàn hệ thống — nó sẽ thấy mọi phím gõ ở **mọi** ứng dụng, kéo theo quyền
+    /// Input Monitoring, và mật khẩu người dùng gõ lúc đang ghi sẽ nằm nguyên văn trong
+    /// `scenario.json`. Phát ra phím thì được (chỉ cần Accessibility); **bắt** phím thì không.
+    ///
+    /// Tách thành hằng số để `theEventMaskContainsNoKeyboardEvent` canh được — trước đây nó nằm
+    /// trong thân `startSession`, chỉ `CGEventTap` thật mới chạm tới, tức là không test nào giữ.
+    static let recordedEventTypes: [CGEventType] = [
+        .leftMouseDown, .leftMouseUp, .leftMouseDragged,
+        .rightMouseDown, .rightMouseUp, .rightMouseDragged,
+        .otherMouseDown, .otherMouseUp, .otherMouseDragged,
+        .scrollWheel
+    ]
+
+    static let eventMask: CGEventMask = recordedEventTypes
+        .reduce(into: CGEventMask(0)) { $0 |= 1 << $1.rawValue }
 
     // MARK: - Bắt sự kiện
 

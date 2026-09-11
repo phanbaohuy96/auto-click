@@ -170,3 +170,43 @@ struct RecorderCaptureTests {
         #expect(steps[1].delayMillisecondsAfter == 0)
     }
 }
+
+/// `SF-6` / ADR-0003: bộ ghi **không bao giờ** được nghe bàn phím.
+///
+/// Đây là ràng buộc an toàn mạnh nhất của dự án và trước đây không có test nào canh nó: mặt nạ sự
+/// kiện nằm trong thân `startSession`, chỉ `CGEventTap` thật mới chạm tới. Ai đó thêm `.keyDown`
+/// vào để "ghi cả phím cho tiện" sẽ biến Auto Click thành keylogger toàn hệ thống, kéo theo quyền
+/// Input Monitoring, và mật khẩu gõ lúc đang ghi sẽ nằm nguyên văn trong `scenario.json`.
+@MainActor
+struct RecorderNeverListensToTheKeyboardTests {
+    private func listens(to type: CGEventType) -> Bool {
+        ScenarioRecorder.eventMask & (1 << type.rawValue) != 0
+    }
+
+    @Test func theEventMaskContainsNoKeyboardEvent() {
+        #expect(!listens(to: .keyDown))
+        #expect(!listens(to: .keyUp))
+        #expect(!listens(to: .flagsChanged))
+
+        // Và phải thật sự nghe chuột, nếu không khẳng định trên đúng một cách vô nghĩa.
+        #expect(listens(to: .leftMouseDown))
+        #expect(listens(to: .scrollWheel))
+    }
+
+    /// Vế thứ hai: kể cả khi mặt nạ bị nới ra, phần giải mã cũng không biến phím thành Bước.
+    @Test func aKeyboardEventFedStraightIntoTheRecorderProducesNothing() {
+        let fake = FakeRecordingEnvironment()
+        let recorder = ScenarioRecorder(environment: fake.environment)
+        var captured: RecordingAssembler.Result?
+        recorder.onFinished = { captured = $0 }
+
+        let key = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true)!
+        key.keyboardSetUnicodeString(stringLength: 6, unicodeString: Array("matkhau".utf16))
+        recorder.handle(type: .keyDown, event: key)
+        recorder.handle(type: .keyUp, event: CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)!)
+        recorder.finishSession()
+
+        #expect(recorder.recordedGestureCount == 0)
+        #expect(captured == nil)
+    }
+}
