@@ -144,7 +144,9 @@ import Testing
     #expect(await waitUntil { !runner.isRunning })
 
     #expect(system.frontmostProcessIdentifier == FakeSystem.applicationProcessIdentifier)
-    #expect(recorder.records.count == 4)  // hai ký tự × (down + up)
+    // EX-24: cả chuỗi đi trong một khối, nên là một cặp down/up chứ không phải mỗi ký tự một cặp.
+    #expect(recorder.records.count == 2)
+    #expect(recorder.typedText == "hi")
 }
 
 @MainActor
@@ -214,4 +216,100 @@ import Testing
 
     #expect(a == b)
     #expect(KeyCatalog.describe(a) == "⌘⇧C")
+}
+
+
+// MARK: - EX-24: gõ chuỗi theo khối
+
+/// Chứng minh chuỗi được cắt đúng chỗ và ghép lại không sai một ký tự.
+///
+/// Gửi từng ký tự một đo được chỉ đúng ~1/5 lần trên máy thật: payload Unicode thỉnh thoảng bị
+/// mất và hệ thống rơi về `virtualKey` (số 0 = phím `a`). Test này khoá lại cách chia khối.
+@MainActor
+@Test func aLongStringIsSentInChunksThatReassembleExactly() async {
+    let recorder = EventRecorder()
+    let runner = makeRunner(recorder: recorder)
+
+    let text = String(repeating: "abcde", count: 13)  // 65 đơn vị UTF-16 → 4 khối
+    let scenario = Scenario(
+        name: "Gõ dài",
+        steps: [Step(action: .typeText(text), target: .cursor, delayMillisecondsAfter: 0)]
+    )
+
+    #expect(runner.start(scenario))
+    #expect(await waitUntil { !runner.isRunning })
+
+    #expect(recorder.typedText == text)
+    #expect(recorder.records.count == 8)  // 4 khối × (down + up)
+
+    // Chuỗi chỉ đi trên phím nhấn; phím nhả không mang chữ, đúng như gõ thật.
+    let downs = recorder.records.filter { $0.type == .keyDown }
+    #expect(downs.count == 4)
+    #expect(downs.allSatisfy { $0.unicodeString.utf16.count <= ScenarioLimits.typingChunkUTF16Units })
+
+    // Phím nhả đọc ra "a" — ký tự của `virtualKey: 0` — vì không gỡ được thuộc tính đó khỏi sự
+    // kiện. Vô hại: ứng dụng chỉ chèn chữ ở phím nhấn. Nhưng đây đúng là con chữ xuất hiện khi
+    // payload Unicode bị mất, nên `typedText` chỉ được đọc từ phím nhấn.
+    #expect(recorder.records.filter { $0.type == .keyUp }.allSatisfy { $0.unicodeString == "a" })
+}
+
+/// Cắt theo đơn vị UTF-16 mà không để ý thì một emoji nằm vắt qua ranh giới khối sẽ vỡ đôi
+/// thành hai ký tự rác — lỗi chỉ lộ ra đúng ở vị trí thứ 20.
+@MainActor
+@Test func aSurrogatePairIsNeverSplitAcrossChunks() async {
+    let recorder = EventRecorder()
+    let runner = makeRunner(recorder: recorder)
+
+    // 19 đơn vị chữ thường rồi tới emoji: ranh giới khối rơi vào giữa cặp thay thế.
+    let text = String(repeating: "x", count: 19) + "😀" + "yz"
+    let scenario = Scenario(
+        name: "Gõ emoji",
+        steps: [Step(action: .typeText(text), target: .cursor, delayMillisecondsAfter: 0)]
+    )
+
+    #expect(runner.start(scenario))
+    #expect(await waitUntil { !runner.isRunning })
+
+    #expect(recorder.typedText == text)
+    // Không khối nào được kết thúc bằng nửa đầu của một cặp thay thế.
+    #expect(recorder.records.allSatisfy { record in
+        guard let last = record.unicodeString.utf16.last else { return true }
+        return !UTF16.isLeadSurrogate(last)
+    })
+}
+
+// MARK: - UI-16: trạng thái lỗi phải nhìn ra là lỗi
+
+@MainActor
+@Test func aFailedRunMarksItsMessageAsAnError() async {
+    let recorder = EventRecorder()
+    let system = FakeSystem()
+    system.frontmostProcessIdentifier = 9999
+    system.activationSucceeds = false
+    let runner = makeRunner(recorder: recorder, system: system)
+
+    let scenario = Scenario(
+        name: "Gõ hỏng",
+        steps: [Step(action: .typeText("hi"), target: .cursor, delayMillisecondsAfter: 0)],
+        lockedApplication: FakeSystem.lockedApplication
+    )
+
+    #expect(runner.start(scenario))
+    #expect(await waitUntil { !runner.isRunning })
+    #expect(runner.messageIsError)
+}
+
+@MainActor
+@Test func aRunThatFinishesCleanlyIsNotMarkedAsAnError() async {
+    let recorder = EventRecorder()
+    let runner = makeRunner(recorder: recorder)
+
+    let scenario = Scenario(
+        name: "Gõ xong",
+        steps: [Step(action: .typeText("hi"), target: .cursor, delayMillisecondsAfter: 0)]
+    )
+
+    #expect(runner.start(scenario))
+    #expect(await waitUntil { !runner.isRunning })
+    #expect(!runner.messageIsError)
 }

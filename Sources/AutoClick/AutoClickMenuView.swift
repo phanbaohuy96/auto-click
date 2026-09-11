@@ -61,7 +61,9 @@ struct AutoClickMenuView: View {
 
             Label(runner.statusText, systemImage: statusIcon)
                 .font(.callout)
-                .foregroundStyle(runner.isRunning ? Color.accentColor : .secondary)
+                .foregroundStyle(statusColour)
+                // UI-16: thông báo lỗi bị cắt cụt thì không lần ra được nguyên nhân.
+                .fixedSize(horizontal: false, vertical: true)
 
             runButton
             recordButton
@@ -326,7 +328,15 @@ struct AutoClickMenuView: View {
     private var statusIcon: String {
         if runner.countdown != nil { return "timer" }
         if runner.isRunning { return "cursorarrow.rays" }
+        // UI-16: trạng thái lỗi phải nhìn ra là lỗi. Trước đây mọi trạng thái không-đang-chạy
+        // đều mang dấu tích, nên dòng "Có lỗi: …" hiện kèm đúng biểu tượng của thành công.
+        if runner.messageIsError { return "exclamationmark.triangle.fill" }
         return "checkmark.circle"
+    }
+
+    private var statusColour: Color {
+        if runner.isRunning { return .accentColor }
+        return runner.messageIsError ? .orange : .secondary
     }
 
     private var applicationLockPicker: some View {

@@ -39,3 +39,7 @@
 - **UI-14** `[Lát 1]` `[đã làm]` **Kịch bản** không giới hạn hiển thị số vòng đã chạy, không hiển thị tổng.
 - **UI-15** `[Lát 1]` `[đã làm]` Nhắc phím tắt `⌥⌘S` luôn hiện trên bảng nổi — đó là lối thoát khi chuỗi
   click đang cướp con trỏ.
+- **UI-16** `[Lát 2]` `[đã làm]` Dòng trạng thái phải **phân biệt được lỗi với thành công**, và
+  thông báo lỗi **không được cắt cụt**. Trước đây mọi trạng thái không-đang-chạy đều vẽ bằng
+  `checkmark.circle`, nên dòng *"Có lỗi: …"* hiện kèm đúng biểu tượng của thành công, lại còn bị
+  cắt ở một dòng nên không đọc hết được nguyên nhân. Phát hiện khi chạy `B3` của kiểm thử tay.

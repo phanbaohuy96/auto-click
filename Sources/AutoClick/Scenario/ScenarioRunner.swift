@@ -43,7 +43,9 @@ enum ScenarioRunError: LocalizedError, Equatable {
         case .pointOutsideLockedApplication:
             return "Điểm thao tác không nằm trong ứng dụng đã khoá; Auto Click đã dừng."
         case let .anchorWindowUnavailable(name):
-            return "Không lấy được cửa sổ nào của \(name) để làm gốc toạ độ."
+            // EX-25: nguyên nhân hay gặp nhất là cửa sổ đang thu nhỏ dưới Dock. Không nói ra
+            // thì người dùng đi tìm nhầm chỗ.
+            return "Không lấy được cửa sổ nào của \(name) để làm gốc toạ độ — cửa sổ có thể đang thu nhỏ dưới Dock."
         case let .activationFailed(name):
             return "Không đưa được \(name) lên trước để gõ phím; Auto Click đã dừng."
         case let .unknownKey(key):
@@ -71,6 +73,9 @@ final class ScenarioRunner: ObservableObject {
     @Published private(set) var countdown: Int?
     @Published private(set) var progress: RunProgress?
     @Published private(set) var message: String?
+    /// UI-16: `message` có phải là một lỗi không. Trước đây chỉ có chuỗi, nên giao diện không
+    /// phân biệt được "hoàn tất" với "hỏng" và vẽ cả hai bằng dấu tích.
+    @Published private(set) var messageIsError = false
     @Published private(set) var runningScenarioName: String?
 
     var onRunningStateChanged: ((Bool) -> Void)?
@@ -142,11 +147,13 @@ final class ScenarioRunner: ObservableObject {
 
         if let error = validate(scenario) {
             message = error.errorDescription
+            messageIsError = true
             return false
         }
 
         guard system.isAccessibilityTrusted() else {
             message = ScenarioRunError.accessibilityDenied.errorDescription
+            messageIsError = true
             return false
         }
 
@@ -158,6 +165,7 @@ final class ScenarioRunner: ObservableObject {
         }
 
         message = nil
+        messageIsError = false
         progress = nil
         runningScenarioName = scenario.name
         isRunning = true
@@ -175,21 +183,25 @@ final class ScenarioRunner: ObservableObject {
         finish(with: "Đã dừng")
     }
 
-    private func finish(with message: String?) {
+    private func finish(with message: String?, isError: Bool = false) {
         // Chạy vô điều kiện, kể cả khi tác vụ đã bị huỷ (SF-1, SF-2).
         mouse.releaseAllHeld()
         countdown = nil
         progress = nil
         runningScenarioName = nil
         isRunning = false
-        if let message { self.message = message }
+        if let message {
+            self.message = message
+            messageIsError = isError
+        }
     }
 
     private func run(_ scenario: Scenario, lockedProcessIdentifier: pid_t?) async {
         var outcome: String?
+        var outcomeIsError = false
         defer {
             task = nil
-            finish(with: outcome)
+            finish(with: outcome, isError: outcomeIsError)
         }
 
         let context = RunContext(
@@ -227,6 +239,7 @@ final class ScenarioRunner: ObservableObject {
             outcome = "Đã dừng"
         } catch {
             outcome = "Có lỗi: \(error.localizedDescription)"
+            outcomeIsError = true
         }
     }
 
@@ -258,7 +271,7 @@ final class ScenarioRunner: ObservableObject {
             do {
                 if step.action.isKeyboard {
                     try await bringLockedApplicationToFront(in: context)
-                    try applyKeyboard(step.action)
+                    try await applyKeyboard(step.action)
                 } else {
                     try await applyPointer(step.action, step: step, in: context)
                 }
@@ -405,10 +418,10 @@ final class ScenarioRunner: ObservableObject {
 
     // MARK: - Sự kiện bàn phím
 
-    private func applyKeyboard(_ action: StepAction) throws {
+    private func applyKeyboard(_ action: StepAction) async throws {
         switch action {
         case let .typeText(text):
-            keyboard.type(text)
+            try await keyboard.type(text)
         case let .pressKey(stroke):
             guard keyboard.press(stroke) else {
                 throw ScenarioRunError.unknownKey(stroke.key)

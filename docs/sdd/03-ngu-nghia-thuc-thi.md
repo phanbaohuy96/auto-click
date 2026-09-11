@@ -60,10 +60,31 @@ chính bộ chạy đó ([ADR-0002](../adr/0002-buoc-la-hanh-dong-nhan-vi-tri.md
   nội suy đều nhau cách nhau 8 ms, rồi `mouseUp` tại điểm cuối. Nhiều ứng dụng **bỏ qua** thao tác
   kéo nếu con trỏ nhảy thẳng từ đầu tới cuối mà không có điểm nào ở giữa.
 - **EX-21** `[Lát 2]` `[đã làm]` `gõChuỗi` dùng `keyboardSetUnicodeString` chứ không tra mã phím,
-  nên không phụ thuộc bố cục bàn phím và gõ được cả tiếng Việt lẫn emoji.
+  nên không phụ thuộc bố cục bàn phím và gõ được cả tiếng Việt lẫn emoji. Chuỗi được gửi theo
+  **khối**, không phải từng ký tự — xem `EX-24`.
 - **EX-22** `[Lát 2]` `[đã làm]` `nhấnPhím` phát mã phím vật lý kèm cờ phím bổ trợ gắn thẳng vào
   sự kiện. Phím bổ trợ **không** được phát thành sự kiện riêng, nên huỷ giữa chừng không để lại
   phím nào bị kẹt — khác hẳn với nút chuột ở `SF-1`.
 - **EX-23** `[Lát 2]` `[đã làm]` Với kéo thả, chỉ **điểm đầu và điểm cuối** được kiểm tra theo
   `EX-10`. Hỏi Accessibility ở từng chặng sẽ làm thao tác kéo giật và có thể dừng giữa chừng, để
   lại nút chuột đang giữ cho `SF-1` dọn.
+- **EX-24** `[Lát 2]` `[đã làm]` `gõChuỗi` cắt chuỗi thành khối **tối đa 20 đơn vị UTF-16**, mỗi
+  khối một cặp nhấn/nhả, cách nhau `SF-8`. Không cắt giữa một cặp thay thế, nếu không emoji vỡ
+  thành hai ký tự rác.
+
+  Vì sao không gửi từng ký tự: payload Unicode **thỉnh thoảng bị mất** trên đường qua hệ thống
+  sự kiện, và khi đó macOS rơi về `virtualKey` của sự kiện — số 0, tức phím `a` — nên chèn ra
+  chữ `a` thay cho chữ thật, **không báo lỗi gì**. Đo trên máy thật với chuỗi 92 ký tự: gửi từng
+  ký tự đúng ~1/5 lần; chia khối 20 đúng ~109/116. Nhịp không cứu được (60 ms vẫn hỏng), đích
+  gửi không cứu được (`hid`/`session`/`annotated` như nhau), và `virtualKey` khác 0 thì **không
+  gõ ra gì cả**. Xem [ADR-0007].
+
+  **Giới hạn còn lại, đã biết và chấp nhận:** khoảng 6% lượt gõ chuỗi dài vẫn mất nguyên một
+  khối. Chia khối đổi "hỏng vặt khắp chuỗi" lấy "hỏng hiếm nhưng mất cả khối". Cách duy nhất
+  chắc chắn 100% là dán qua clipboard, đã cân và **không** chọn: nó cướp clipboard của người
+  dùng và ứng dụng nào chặn dán thì chịu.
+- **EX-25** `[Lát 2]` `[đã làm]` Cửa sổ **đang thu nhỏ dưới Dock** không được dùng làm **Cửa sổ
+  neo**. Accessibility vẫn trả về vị trí và kích thước cũ của nó như thể nó còn trên màn hình;
+  tin vào đó thì `lệchCửaSổ` giải ra một toạ độ trỏ vào chỗ trống, hoặc vào cửa sổ ứng dụng khác.
+  Phát hiện khi chạy `B5` của kiểm thử tay: `EX-10` chặn được cú click, nhưng thông báo lỗi đổ
+  cho "điểm nằm ngoài ứng dụng khoá" nên chỉ sai chỗ.

@@ -63,18 +63,58 @@ Chỉ lộ ra khi cài đè lên một bản đã có quyền. Viết đặc t�
 
 ## Phiên B — Ứng dụng khoá, neo cửa sổ, kéo thả, bàn phím
 
+> **B2 đã được đổi.** Bản đầu — *di chuyển cửa sổ rồi chạy lại* — **không thể trượt**: `EX-6` bắt giải Vị trí
+> trước **mỗi lần lặp**, và `ScenarioRunner` đọc lại khung cửa sổ trong `applyPointer`, nên bất kỳ lần chạy mới
+> nào cũng đọc khung mới. Chỉ **di chuyển giữa lúc đang chạy** mới phân biệt được "đọc lại mỗi vòng" với
+> "chụp một lần rồi cache". Một test xanh mà không thể đỏ thì không phải bằng chứng.
+
 | # | Làm | Chờ thấy | Chứng minh | Kết quả |
 |---|---|---|---|---|
-| B1 | Đặt **Ứng dụng khoá** = TextEdit, Bước `click`/`lệchCửaSổ`, chạy | Click đúng vị trí tương đối trong cửa sổ TextEdit | `EX-7` | |
-| B2 | **Di chuyển cửa sổ TextEdit sang chỗ khác**, chạy lại | Click **đi theo cửa sổ**, vẫn trúng cùng một điểm trên giao diện | `EX-6` `DM-9` | |
-| B3 | Kéo một cửa sổ khác (Finder) đè lên đúng điểm đó rồi chạy | Kịch bản **không** click vào Finder | `EX-10` | |
-| B4 | Đóng TextEdit giữa lúc Kịch bản đang chạy | Dừng, trạng thái nêu ứng dụng khoá đã đóng | `EX-11` | |
-| B5 | Thu nhỏ TextEdit xuống Dock rồi chạy Bước `lệchCửaSổ` | Dừng có báo, **không** bắn ra toạ độ rác | `EX-7` | |
-| B6 | Bước `kéoThả` từ điểm A tới điểm B trong TextEdit (bôi đen chữ) | Chữ được bôi đen liên tục, không nhảy cóc | `EX-20` | |
-| B7 | **Trong lúc B6 đang kéo**, bấm `⌥⌘S` | Chuột được nhả, không kẹt ở trạng thái đang kéo | `SF-1` `EX-23` | |
-| B8 | Bước `gõChuỗi` với `Xin chào 123 — ăn` | Ra đúng chữ, đúng dấu tiếng Việt và dấu gạch dài | `EX-21` | |
+| B1 | Đặt **Ứng dụng khoá** = TextEdit, Bước `click`/`lệchCửaSổ`, chạy | Click đúng vị trí tương đối trong cửa sổ TextEdit | `EX-7` | **Đạt** — 3 click tại đúng `(500,450)` = góc `(200,200)` + lệch `(300,250)`, pid=Auto Click |
+| B2 | Lặp 10 vòng cách 800 ms; **sang vòng 3–4 thì kéo cửa sổ TextEdit sang chỗ khác trong lúc đang chạy** | Click **đi theo cửa sổ ngay từ vòng kế tiếp** — hai cụm toạ độ, cụm sau khớp vị trí mới | `EX-6` `DM-9` | **Đạt** — 4 click tại `(500,450)`; kéo cửa sổ sang `(400,350)` lúc t+6,2 s; **click ngay kế tiếp đã ở `(700,600)`**, 6 click còn lại đều vậy |
+| B2b | Dừng hẳn, di chuyển cửa sổ, **chạy lại** | Vẫn trúng cùng một điểm trên giao diện | test khói, **không** tính là bằng chứng `EX-6` | **Đạt** — cửa sổ ở `(400,350)`, chạy lại ra `(700,600)` |
+| B3 | Kéo một cửa sổ khác (Finder) đè lên đúng điểm đó rồi chạy | Kịch bản **không** click vào Finder | `EX-10` | **Đạt** — 4 click rồi đưa Finder lên trước: **im hẳn**, 0 click vào Finder; trạng thái *"Điểm thao tác không nằm trong ứng dụng…"* |
+| B4 | Đóng TextEdit giữa lúc Kịch bản đang chạy | Dừng, trạng thái nêu ứng dụng khoá đã đóng | `EX-11` | **Đạt** — 6 click rồi `quit` TextEdit: dừng ngay; trạng thái *"TextEdit hiện không chạy"* + *"Ứng dụng đích đã đóng"*, nút Bắt đầu bị vô hiệu |
+| B5 | Thu nhỏ TextEdit xuống Dock rồi chạy Bước `lệchCửaSổ` | Dừng có báo, **không** bắn ra toạ độ rác | `EX-7` | **Đạt có điều kiện** — 0 click, có dừng và có báo. Nhưng **báo sai nguyên nhân**: nói *"điểm nằm ngoài ứng dụng khoá"* trong khi thật ra cửa sổ đang thu nhỏ. Xem `EX-25` |
+| B6 | Bước `kéoThả` từ điểm A tới điểm B trong TextEdit (bôi đen chữ) | Chữ được bôi đen liên tục, không nhảy cóc | `EX-20` | **Đạt** — 1 `leftDown`, **24** `leftDrag`, 1 `leftUp`; TextEdit bôi đen liên tục 40 ký tự `"AAA BBBB … HHHH I"` |
+| B7 | **Trong lúc B6 đang kéo**, bấm `⌥⌘S` | Chuột được nhả, không kẹt ở trạng thái đang kéo | `SF-1` `EX-23` | **Đạt** — 7 `leftDown` / **165** `leftDrag` / 7 `leftUp`. Trọn vẹn phải là 168, nên lần kéo thứ 7 bị cắt ở bước 21/24 và nhả tại `x=464` chứ không phải đích `x=500`. Rê chuột sau đó: 0 `leftDrag` |
+| B8 | Bước `gõChuỗi` với `Xin chào 123 — ăn` | Ra đúng chữ, đúng dấu tiếng Việt và dấu gạch dài | `EX-21` | **Hỏng** — gõ `"Xin chào 123 — ăn"` ra `"Aa chào 123 — ăn"`, không báo lỗi. Đã sửa (`EX-24`, [ADR-0007]); **chờ chạy lại** |
 | B9 | Bước `nhấnPhím` `⌘A` rồi Bước `nhấnPhím` `⌫` | Chọn hết rồi xoá hết | `EX-22` | |
 | B10 | Đưa **Finder** lên trước rồi chạy Kịch bản có Bước gõ phím, khoá TextEdit | TextEdit **được đưa lên trước** rồi mới gõ; chữ không lọt sang Finder | `SF-4` `EX-12` | |
+
+### Phát hiện ngoài checklist — phiên B
+
+Ba lỗi thật, không mục nào trong checklist nhắm vào chúng. Cả ba chỉ lộ khi chạy trên máy thật.
+
+**`EX-24` — gõ chuỗi ra sai chữ, im lặng.** Nặng nhất. Gửi từng ký tự một thì payload Unicode
+thỉnh thoảng bị mất và macOS rơi về `virtualKey` (số 0 = phím `a`), chèn chữ `a` thay cho chữ
+thật mà không báo gì. Đo được: đúng ~1/5 lần với chuỗi 92 ký tự. Đã sửa bằng cách gửi theo khối
+20 đơn vị UTF-16 → ~109/116. Còn ~6% chưa đóng được, ghi rõ ở `EX-24` và [ADR-0007].
+
+**`UI-16` — lỗi hiện kèm dấu tích.** `statusIcon` trả `checkmark.circle` cho mọi trạng thái
+không-đang-chạy, nên dòng *"Có lỗi: …"* mang đúng biểu tượng của thành công, lại bị cắt ở một
+dòng nên không đọc hết được nguyên nhân. Đã sửa: tam giác cảnh báo màu cam, và cho xuống dòng.
+
+**`EX-25` — cửa sổ thu nhỏ vẫn được dùng làm gốc toạ độ.** Accessibility trả về vị trí cũ của cửa
+sổ đã thu nhỏ như thể nó còn trên màn hình. `EX-10` chặn được cú click nên không có thiệt hại,
+nhưng đó là may: nếu ứng dụng khoá có cửa sổ thứ hai đè lên đúng điểm đó thì click sẽ bắn ra theo
+toạ độ của một cửa sổ không còn hiện. Đã sửa: bỏ qua cửa sổ thu nhỏ.
+
+### Ghi chú cách chạy phiên B
+
+Dùng lại bộ đo và bộ bấm của phiên A, thêm ba thứ:
+
+- **Chốt chặn cửa sổ** — popover **đóng lại mỗi khi Kịch bản chạy**, vì `ScenarioRunner` gọi
+  `activate` ứng dụng khoá. Lần đầu tôi không biết, cú bấm tiếp theo rơi vào cửa sổ terminal và
+  chuỗi phím điều hướng menu **gửi nhầm một lệnh cũ vào phiên làm việc**. Từ đó mọi thao tác gõ
+  phím đều phải qua kiểm tra popover có đang mở không.
+- **Neo giao diện theo màu, không theo toạ độ** — popover đổi chiều cao theo nội dung nên offset
+  cứng bị trượt, và tôi đã chạy nhầm Kịch bản một lần vì thế. Giờ tìm mảng màu nhấn để định vị.
+- **Tự kiểm sau khi chọn** — đọc `selectedScenarioID` trong UserDefaults để xác nhận đúng Kịch
+  bản, sau khi ghi một giá trị canh `PENDING` để một lần chọn trượt không thể ăn nhờ giá trị cũ.
+
+Bàn phím được kiểm bằng cách đọc lại nội dung tài liệu TextEdit qua AppleScript, chứ không nhìn
+màn hình.
 
 ## Phiên C — Nhận dạng ảnh và chữ (cần Screen Recording)
 

@@ -48,6 +48,8 @@ final class EventRecorder {
         var location: CGPoint
         var keyCode: Int64
         var flags: CGEventFlags
+        /// Chuỗi Unicode gắn trên sự kiện bàn phím — thứ `EX-24` cắt thành khối.
+        var unicodeString: String = ""
     }
 
     private(set) var records: [Record] = []
@@ -67,12 +69,30 @@ final class EventRecorder {
                 clickState: event.getIntegerValueField(.mouseEventClickState),
                 location: event.location,
                 keyCode: event.getIntegerValueField(.keyboardEventKeycode),
-                flags: event.flags
+                flags: event.flags,
+                unicodeString: EventRecorder.unicodeString(of: event)
             )
         )
     }
 
     var types: [CGEventType] { records.map(\.type) }
+
+    /// Chuỗi mà một Bước `gõChuỗi` thực sự gửi đi, ghép lại từ mọi khối.
+    var typedText: String {
+        records.filter { $0.type == .keyDown }.map(\.unicodeString).joined()
+    }
+
+    private static func unicodeString(of event: CGEvent) -> String {
+        var length = 0
+        var buffer = [UniChar](repeating: 0, count: 256)
+        event.keyboardGetUnicodeString(
+            maxStringLength: buffer.count,
+            actualStringLength: &length,
+            unicodeString: &buffer
+        )
+        guard length > 0 else { return "" }
+        return String(utf16CodeUnits: buffer, count: length)
+    }
 }
 
 /// Bộ nhận dạng giả: kiểm chứng ngữ nghĩa thử lại của `EX-8`/`EX-9` mà không chụp màn hình thật.

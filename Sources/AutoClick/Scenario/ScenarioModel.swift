@@ -18,6 +18,9 @@ enum ScenarioLimits {
     /// Khoảng cách giữa hai cặp nhấn/nhả trong cùng một Hành động click (EX-17).
     static let interClickGapMilliseconds = 30
 
+    /// Số đơn vị UTF-16 tối đa gửi trong một cặp phím khi gõ chuỗi (EX-24).
+    static let typingChunkUTF16Units = 20
+
     /// Số điểm trung gian khi kéo thả (EX-20). Nhiều ứng dụng bỏ qua thao tác kéo nếu con trỏ
     /// nhảy thẳng từ đầu tới cuối mà không có điểm nào ở giữa.
     static let dragIntermediateSteps = 24

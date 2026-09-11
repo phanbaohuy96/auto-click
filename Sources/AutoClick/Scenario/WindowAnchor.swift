@@ -54,24 +54,39 @@ enum WindowAnchor {
     ///
     /// Ưu tiên `AXFocusedWindow`; nếu ứng dụng không khai báo cửa sổ nào đang focus thì lấy cửa
     /// sổ đầu trong danh sách, vốn là cửa sổ trên cùng.
+    ///
+    /// EX-25: **cửa sổ đang thu nhỏ dưới Dock bị bỏ qua**. Accessibility vẫn trả về vị trí và
+    /// kích thước cũ của nó như thể nó còn trên màn hình, nên nếu tin vào đó thì Kịch bản sẽ
+    /// giải Vị trí ra một toạ độ trỏ vào chỗ trống — hoặc tệ hơn, vào cửa sổ của ứng dụng khác.
     static func focusedWindowFrame(ofProcess processIdentifier: pid_t) -> CGRect? {
         let application = AXUIElementCreateApplication(processIdentifier)
-        guard let window = copyElement(application, attribute: kAXFocusedWindowAttribute)
-            ?? firstWindow(of: application) else { return nil }
+        let focused = copyElement(application, attribute: kAXFocusedWindowAttribute)
+        guard let window = (focused.flatMap { isMinimised($0) ? nil : $0 })
+            ?? firstVisibleWindow(of: application) else { return nil }
 
         guard let position = copyPoint(window, attribute: kAXPositionAttribute),
               let size = copySize(window, attribute: kAXSizeAttribute) else { return nil }
         return CGRect(origin: position, size: size)
     }
 
-    private static func firstWindow(of application: AXUIElement) -> AXUIElement? {
+    private static func firstVisibleWindow(of application: AXUIElement) -> AXUIElement? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(
             application,
             kAXWindowsAttribute as CFString,
             &value
         ) == .success else { return nil }
-        return (value as? [AXUIElement])?.first
+        return (value as? [AXUIElement])?.first { !isMinimised($0) }
+    }
+
+    private static func isMinimised(_ window: AXUIElement) -> Bool {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            window,
+            kAXMinimizedAttribute as CFString,
+            &value
+        ) == .success else { return false }
+        return (value as? Bool) ?? false
     }
 
     private static func copyElement(_ element: AXUIElement, attribute: String) -> AXUIElement? {

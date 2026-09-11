@@ -24,18 +24,43 @@ final class KeyboardEventEmitter {
     ///
     /// Dùng `keyboardSetUnicodeString` thay vì tra mã phím, nên không phụ thuộc bố cục bàn phím
     /// và gõ được cả tiếng Việt lẫn emoji — điều mà cách map keycode không làm được.
-    func type(_ text: String) {
-        guard !text.isEmpty else { return }
-        for character in text {
-            let utf16 = Array(String(character).utf16)
-            for isKeyDown in [true, false] {
-                guard let event = CGEvent(
-                    keyboardEventSource: source,
-                    virtualKey: 0,
-                    keyDown: isKeyDown
-                ) else { continue }
-                event.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: utf16)
-                sink(event)
+    ///
+    /// EX-24: chuỗi được cắt thành **khối**, mỗi khối một cặp phím — không phải mỗi ký tự một
+    /// cặp. Đo trên máy thật: gửi từng ký tự chỉ đúng ~1/5 lần với chuỗi dài, vì payload Unicode
+    /// thỉnh thoảng bị mất và hệ thống rơi về `virtualKey` (số 0 = phím `a`), chèn ra chữ `a`
+    /// thay cho chữ thật mà **không báo lỗi gì**. Cắt khối giảm số sự kiện đi 20 lần và nâng tỉ
+    /// lệ đúng lên ~94%. Vẫn chưa phải 100% — giới hạn còn lại được nói rõ ở `EX-24`.
+    func type(_ text: String) async throws {
+        let units = Array(text.utf16)
+        guard !units.isEmpty else { return }
+
+        var index = 0
+        while index < units.count {
+            var end = min(index + ScenarioLimits.typingChunkUTF16Units, units.count)
+            // Không cắt giữa một cặp thay thế, nếu không emoji vỡ thành hai ký tự rác.
+            if end < units.count, end - 1 > index, UTF16.isLeadSurrogate(units[end - 1]) {
+                end -= 1
+            }
+            let chunk = Array(units[index..<end])
+
+            // Chuỗi chỉ gắn vào `keyDown`; phím nhả không mang chữ, đúng như gõ thật.
+            if let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true) {
+                down.keyboardSetUnicodeString(stringLength: chunk.count, unicodeString: chunk)
+                sink(down)
+            }
+            // Phím nhả không mang chữ. Không xoá được ký tự của `virtualKey` khỏi nó — đọc ra
+            // vẫn là `a` — nhưng ứng dụng chỉ chèn chữ ở phím nhấn nên không sao. Đổi sang mã
+            // phím không-sinh-chữ (F13, fn) thì đo được là **không gõ ra gì cả**, nên số 0 là
+            // bắt buộc chứ không phải lựa chọn.
+            if let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) {
+                sink(up)
+            }
+
+            index = end
+            if index < units.count {
+                try await Task.sleep(
+                    for: .milliseconds(ScenarioLimits.minimumEventGapMilliseconds)
+                )
             }
         }
     }
