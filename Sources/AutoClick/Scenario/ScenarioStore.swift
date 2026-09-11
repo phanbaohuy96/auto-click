@@ -157,8 +157,13 @@ final class ScenarioStore: ObservableObject {
         }
     }
 
+    /// Trả `nil` khi Kịch bản chỉ đọc: bản nạp của nó **không có Bước nào** — các Bước nằm trong
+    /// phần JSON mà bản app này không giải mã được. Nhân bản sẽ ghi ra một Kịch bản rỗng mang tên
+    /// bản gốc và `schemaVersion` hiện tại, tức đúng thứ `ST-12` sinh ra để tránh: đọc sai thành
+    /// một Kịch bản trông như thật. Phát hiện ở `E2` của kiểm thử tay.
     @discardableResult
-    func duplicate(_ scenario: Scenario) -> Scenario {
+    func duplicate(_ scenario: Scenario) -> Scenario? {
+        guard !readOnlyScenarioIDs.contains(scenario.id) else { return nil }
         var copy = scenario
         copy.id = UUID()
         copy.name = uniqueName(from: "\(scenario.name) (bản sao)")

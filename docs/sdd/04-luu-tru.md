@@ -57,4 +57,7 @@ Bố cục thư mục và lý do nhân bản **Ảnh mẫu**: [ADR-0005](../adr/
 - **ST-11** `[Lát 1]` `[đã làm]` Ghi bằng cách ghi ra tệp tạm rồi thay thế nguyên tử, để tắt máy giữa
   chừng không để lại `scenario.json` cụt.
 - **ST-12** `[Lát 1]` `[đã làm]` `schemaVersion` lớn hơn phiên bản app hiểu được thì **Kịch bản** đó được
-  nạp ở chế độ chỉ đọc và không cho chạy, thay vì đọc sai.
+  nạp ở chế độ chỉ đọc và không cho chạy, thay vì đọc sai. Bản nạp chỉ có tên và mã, **không có
+  Bước nào** — các Bước nằm trong phần app này không giải mã được. Vì vậy **nhân bản cũng bị chặn**:
+  bản sao sẽ mang tên bản gốc, `schemaVersion` hiện tại và không Bước nào, tức là đúng thứ yêu cầu
+  này sinh ra để tránh. Xoá thì vẫn cho, vì đó là việc người dùng cố ý làm.

@@ -80,7 +80,7 @@ private struct Fixture {
     ]
     store.save(original)
 
-    let copy = store.duplicate(original)
+    let copy = try #require(store.duplicate(original))
 
     #expect(copy.id != original.id)
     #expect(copy.name == "Gốc (bản sao)")
@@ -133,4 +133,33 @@ private struct Fixture {
     store.save(edited)
 
     #expect(fixture.makeStore().scenarios.first?.name == "Từ tương lai")
+}
+
+/// ST-12: nhân bản một Kịch bản chỉ đọc phải **không làm gì**, chứ không đẻ ra một bản rỗng.
+///
+/// Bản nạp của Kịch bản chỉ đọc chỉ có `id` và `name` — các Bước nằm trong phần JSON app này
+/// không giải mã được. Nhân bản nó từng ghi ra đĩa một Kịch bản mang tên bản gốc, `schemaVersion`
+/// hiện tại và **không Bước nào**, trông y như thật. Người dùng tưởng đã cứu được dữ liệu rồi xoá
+/// bản gốc là mất sạch. Tìm ra ở `E2` của kiểm thử tay.
+@MainActor
+@Test func aReadOnlyScenarioCannotBeDuplicatedIntoAnEmptyOne() throws {
+    let fixture = Fixture()
+    defer { fixture.cleanUp() }
+
+    let id = UUID()
+    try fixture.write(
+        """
+        { "schemaVersion": 99, "id": "\(id.uuidString)", "name": "Từ tương lai", "steps": [] }
+        """,
+        into: id.uuidString
+    )
+
+    let store = fixture.makeStore()
+    let scenario = try #require(store.scenarios.first)
+
+    #expect(store.duplicate(scenario) == nil)
+    #expect(store.scenarios.count == 1)
+    // Và không có thư mục thứ hai nào xuất hiện trên đĩa.
+    let folders = try FileManager.default.contentsOfDirectory(atPath: fixture.root.path)
+    #expect(folders == [id.uuidString])
 }

@@ -64,7 +64,7 @@ struct ScenarioEditorView: View {
             Button {
                 if let scenario = store.selectedScenario { store.duplicate(scenario) }
             } label: { Image(systemName: "doc.on.doc") }
-                .disabled(store.selectedScenario == nil)
+                .disabled(store.selectedScenario.map(store.isReadOnly) ?? true)
                 .help("Nhân bản")
 
             Button {
