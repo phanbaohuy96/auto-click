@@ -163,3 +163,38 @@ private struct Fixture {
     let folders = try FileManager.default.contentsOfDirectory(atPath: fixture.root.path)
     #expect(folders == [id.uuidString])
 }
+
+/// ST-3 / ADR-0005: nhân bản Kịch bản phải copy cả `templates/`, không chỉ `scenario.json`.
+///
+/// ADR-0005 chọn "mỗi Kịch bản một thư mục, Ảnh mẫu được nhân bản" đúng để nhân bản = copy thư
+/// mục. Nếu chỉ copy `scenario.json` thì bản sao trỏ vào những tệp không tồn tại: các Bước nhận
+/// dạng của nó hỏng ngay, mà trên giao diện vẫn hiện ra như một Kịch bản bình thường.
+@MainActor
+@Test func duplicatingAScenarioAlsoCopiesItsTemplateFiles() throws {
+    let fixture = Fixture()
+    defer { fixture.cleanUp() }
+
+    let store = fixture.makeStore()
+    var original = store.create(name: "Có ảnh mẫu")
+
+    let library = store.templateLibrary(for: original.id)
+    try FileManager.default.createDirectory(at: library.url(for: "x").deletingLastPathComponent(), withIntermediateDirectories: true)
+    try Data("gia-lam-anh".utf8).write(to: library.url(for: "nut.png"))
+
+    original.steps = [
+        Step(
+            action: .click(button: .left, count: 1, holdMilliseconds: 0),
+            target: .template(name: "nut.png", settings: RecognitionSettings())
+        )
+    ]
+    store.save(original)
+    #expect(FileManager.default.fileExists(atPath: library.url(for: "nut.png").path))
+
+    let copy = try #require(store.duplicate(original))
+
+    let copiedFile = store.templateLibrary(for: copy.id).url(for: "nut.png")
+    #expect(FileManager.default.fileExists(atPath: copiedFile.path))
+    #expect(try Data(contentsOf: copiedFile) == Data("gia-lam-anh".utf8))
+    // Và bản gốc không bị đụng vào.
+    #expect(FileManager.default.fileExists(atPath: library.url(for: "nut.png").path))
+}

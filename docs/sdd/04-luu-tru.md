@@ -8,6 +8,9 @@ Bố cục thư mục và lý do nhân bản **Ảnh mẫu**: [ADR-0005](../adr/
 - **ST-2** `[Lát 1]` `[đã làm]` Mỗi **Kịch bản** là một thư mục `Scenarios/<uuid>/` chứa `scenario.json`,
   và (từ Lát 4) một thư mục con `templates/`.
 - **ST-3** `[Lát 1]` `[đã làm]` Xoá **Kịch bản** là xoá cả thư mục. Không có bộ đếm tham chiếu ở đâu cả.
+  Mặt kia của cùng lựa chọn ([ADR-0005]): **nhân bản là copy cả thư mục**, kể cả `templates/`. Chỉ
+  copy `scenario.json` thì bản sao trỏ vào những tệp không tồn tại — mọi Bước nhận dạng của nó hỏng
+  ngay, dù trên giao diện trông vẫn như một Kịch bản bình thường.
 - **ST-4** `[Lát 1]` `[đã làm]` `UserDefaults` chỉ còn giữ: cấu hình **Chế độ đơn giản** (các khoá đã có
   từ 1.2.0, giữ nguyên tên) và định danh **Kịch bản** đang chọn.
 

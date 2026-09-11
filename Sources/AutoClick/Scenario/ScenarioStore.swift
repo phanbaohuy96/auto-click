@@ -172,9 +172,30 @@ final class ScenarioStore: ObservableObject {
             duplicated.id = UUID()
             return duplicated
         }
+        // ADR-0005 chọn "mỗi Kịch bản một thư mục, Ảnh mẫu được nhân bản" đúng để nhân bản là
+        // copy thư mục. Chỉ copy `scenario.json` thì bản sao trỏ vào những tệp không tồn tại và
+        // mọi Bước nhận dạng của nó hỏng ngay, dù trên giao diện trông vẫn bình thường.
+        copyTemplates(from: scenario.id, to: copy.id, names: copy.templateNames)
         save(copy)
         selectedScenarioID = copy.id
         return copy
+    }
+
+    private func copyTemplates(from source: UUID, to destination: UUID, names: Set<String>) {
+        guard !names.isEmpty else { return }
+        let sourceDirectory = templatesDirectory(for: source)
+        let destinationDirectory = templatesDirectory(for: destination)
+        do {
+            try fileManager.createDirectory(at: destinationDirectory, withIntermediateDirectories: true)
+            for name in names {
+                try fileManager.copyItem(
+                    at: sourceDirectory.appendingPathComponent(name),
+                    to: destinationDirectory.appendingPathComponent(name)
+                )
+            }
+        } catch {
+            Self.logger.error("Không copy được ảnh mẫu khi nhân bản: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     func delete(_ scenario: Scenario) {
