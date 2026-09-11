@@ -33,3 +33,7 @@ Mỗi yêu cầu mang một nhãn trạng thái:
 
 - **`[Lát 1]`…`[Lát 4]`** — thuộc lát cắt nào, xem [01](./01-pham-vi.md)
 - **`[đã làm]`** — đã có code và test tương ứng
+
+`[đã làm]` nghĩa là có code, **không** đồng nghĩa với đã chạy thử trên máy thật. Yêu cầu nào chỉ
+kiểm chứng được bằng tay — vì cần quyền TCC hoặc màn hình thật — được liệt kê trong
+[`../kiem-thu-e2e.md`](../kiem-thu-e2e.md) kèm cách chứng minh từng cái.

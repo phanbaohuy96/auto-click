@@ -21,10 +21,14 @@ final class ScenarioRecorder: ObservableObject {
 
     private static let logger = Logger(subsystem: "com.local.AutoClick", category: "Recorder")
 
+    private let environment: RecordingEnvironment
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var events: [RecordedEvent] = []
-    private let ownProcessIdentifier = ProcessInfo.processInfo.processIdentifier
+
+    init(environment: RecordingEnvironment = .live) {
+        self.environment = environment
+    }
 
     // MARK: - Vòng đời
 
@@ -78,10 +82,14 @@ final class ScenarioRecorder: ObservableObject {
         guard isRecording else { return }
         teardown()
         isRecording = false
+        finishSession()
+    }
 
+    /// Tách khỏi `stop()` để test chạy được cả đường ghi mà không cần `CGEventTap` thật.
+    func finishSession() {
         let recorded = RecordingInterpreter.steps(
             from: events,
-            doubleClickInterval: NSEvent.doubleClickInterval
+            doubleClickInterval: environment.doubleClickInterval()
         )
         events.removeAll()
 
@@ -113,7 +121,7 @@ final class ScenarioRecorder: ObservableObject {
 
     // MARK: - Bắt sự kiện
 
-    private func handle(type: CGEventType, event: CGEvent) {
+    func handle(type: CGEventType, event: CGEvent) {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             // Hệ thống tắt tap khi callback chạy quá lâu; bật lại thay vì im lặng ngừng ghi.
             if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
@@ -133,10 +141,10 @@ final class ScenarioRecorder: ObservableObject {
         var processIdentifier: pid_t?
         var windowFrame: CGRect?
         if isGestureStart {
-            processIdentifier = NSWorkspace.shared.frontmostApplication?.processIdentifier
-            if processIdentifier == ownProcessIdentifier { return }
+            processIdentifier = environment.frontmostProcessIdentifier()
+            if processIdentifier == environment.ownProcessIdentifier() { return }
             if let processIdentifier {
-                windowFrame = WindowAnchor.focusedWindowFrame(ofProcess: processIdentifier)
+                windowFrame = environment.anchorWindowFrame(processIdentifier)
             }
             recordedGestureCount += 1
         }
@@ -145,7 +153,7 @@ final class ScenarioRecorder: ObservableObject {
             RecordedEvent(
                 kind: kind,
                 location: event.location,
-                timestamp: Date().timeIntervalSinceReferenceDate,
+                timestamp: environment.now(),
                 processIdentifier: processIdentifier ?? events.last?.processIdentifier,
                 windowFrame: windowFrame ?? events.last?.windowFrame
             )
@@ -176,27 +184,22 @@ final class ScenarioRecorder: ObservableObject {
     // MARK: - Đặt tên và khoá ứng dụng
 
     private func lockedApplication(for recorded: [RecordedStep]) -> LockedApplication? {
-        guard let processIdentifier = RecordingAssembler.singleProcessIdentifier(in: recorded),
-              let application = NSRunningApplication(processIdentifier: processIdentifier),
-              let bundleIdentifier = application.bundleIdentifier else { return nil }
-
-        return LockedApplication(
-            bundleIdentifier: bundleIdentifier,
-            name: application.localizedName ?? bundleIdentifier
-        )
+        guard let processIdentifier = RecordingAssembler.singleProcessIdentifier(in: recorded)
+        else { return nil }
+        return environment.application(processIdentifier)
     }
 
     /// RC-16: tên mặc định theo ứng dụng và thời điểm ghi.
     private func defaultName(for recorded: [RecordedStep]) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd/MM HH:mm"
-        let timestamp = formatter.string(from: Date())
+        let timestamp = formatter.string(from: Date(timeIntervalSinceReferenceDate: environment.now()))
 
         guard let processIdentifier = RecordingAssembler.singleProcessIdentifier(in: recorded),
-              let name = NSRunningApplication(processIdentifier: processIdentifier)?.localizedName
+              let application = environment.application(processIdentifier)
         else {
             return "Bản ghi \(timestamp)"
         }
-        return "\(name) \(timestamp)"
+        return "\(application.name) \(timestamp)"
     }
 }

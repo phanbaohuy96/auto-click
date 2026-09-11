@@ -132,3 +132,61 @@ func waitUntil(
     }
     return false
 }
+
+/// Môi trường ghi giả: cho phép bơm `CGEvent` dựng sẵn vào `ScenarioRecorder` mà không cần
+/// `CGEventTap` thật, tức không cần quyền Accessibility lẫn thao tác tay.
+@MainActor
+final class FakeRecordingEnvironment {
+    static let ownProcessIdentifier: pid_t = 99
+    static let otherProcessIdentifier: pid_t = 42
+
+    var frontmostProcessIdentifier: pid_t? = FakeRecordingEnvironment.otherProcessIdentifier
+    var anchorWindowFrame: CGRect? = CGRect(x: 100, y: 100, width: 400, height: 300)
+    var applications: [pid_t: LockedApplication] = [
+        FakeRecordingEnvironment.otherProcessIdentifier:
+            LockedApplication(bundleIdentifier: "com.test.Ghi", name: "App Ghi")
+    ]
+    var doubleClickInterval: TimeInterval = 0.5
+    /// Đồng hồ do test lái: mỗi sự kiện tự chọn thời điểm của mình.
+    var now: TimeInterval = 1_000
+
+    var environment: RecordingEnvironment {
+        RecordingEnvironment(
+            ownProcessIdentifier: { FakeRecordingEnvironment.ownProcessIdentifier },
+            frontmostProcessIdentifier: { [self] in frontmostProcessIdentifier },
+            anchorWindowFrame: { [self] _ in anchorWindowFrame },
+            application: { [self] in applications[$0] },
+            doubleClickInterval: { [self] in doubleClickInterval },
+            now: { [self] in now }
+        )
+    }
+}
+
+/// Dựng `CGEvent` thật (tạo sự kiện không cần quyền, chỉ phát mới cần) để test đi qua đúng
+/// đường giải mã mà `ScenarioRecorder` dùng với sự kiện từ tap.
+enum TestEvent {
+    static func mouse(_ type: CGEventType, at point: CGPoint, button: CGMouseButton = .left) -> CGEvent {
+        CGEvent(
+            mouseEventSource: nil,
+            mouseType: type,
+            mouseCursorPosition: point,
+            mouseButton: button
+        )!
+    }
+
+    /// `kCGScrollWheelEventDeltaAxis1` là trục dọc, `Axis2` là trục ngang — theo `CGEventTypes.h`.
+    static func scroll(deltaX: Int, deltaY: Int, at point: CGPoint) -> CGEvent {
+        let event = CGEvent(
+            scrollWheelEvent2Source: nil,
+            units: .line,
+            wheelCount: 2,
+            wheel1: Int32(deltaY),
+            wheel2: Int32(deltaX),
+            wheel3: 0
+        )!
+        event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: Int64(deltaY))
+        event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: Int64(deltaX))
+        event.location = point
+        return event
+    }
+}

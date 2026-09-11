@@ -133,6 +133,7 @@ AUTO_CLICK_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)" ./scr
 | [`CONTEXT.md`](CONTEXT.md) | Các khái niệm tên là gì và nghĩa là gì |
 | [`docs/adr/`](docs/adr/) | Vì sao chọn phương án này thay vì phương án kia |
 | [`docs/sdd/`](docs/sdd/) | Hệ thống phải làm gì, chính xác đến mức kiểm chứng được |
+| [`docs/kiem-thu-e2e.md`](docs/kiem-thu-e2e.md) | Phần nào chỉ kiểm chứng được bằng tay, và làm thế nào |
 
 Mọi hành vi quan sát được đều có một mã yêu cầu trong `docs/sdd/` (`DM-`, `EX-`, `ST-`, `UI-`,
 `SF-`, `RC-`, `RG-`). Code trích dẫn mã đó ở những chỗ hành vi không hiển nhiên. Sửa hành vi thì
@@ -146,3 +147,8 @@ swift run AutoClick
 ```
 
 Khi chạy bằng `swift run`, tính năng click có thể cần cấp quyền cho Terminal. Bản `.app` trong `/Applications` là cách chạy khuyến nghị.
+
+`swift test` chứng minh logic, **không** chứng minh ứng dụng click đúng chỗ trên màn hình thật:
+quyền Accessibility và Screen Recording chỉ cấp được cho bundle đã ký, không cấp cho binary test
+của SwiftPM. Mọi seam chạm hệ điều hành đều bị thay bằng giả trong `TestSupport.swift`. Phần còn
+lại nằm ở [`docs/kiem-thu-e2e.md`](docs/kiem-thu-e2e.md) và phải chạy bằng tay.

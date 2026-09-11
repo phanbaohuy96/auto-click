@@ -1,0 +1,147 @@
+import CoreGraphics
+import Foundation
+import Testing
+@testable import AutoClick
+
+/// Phần bắt sự kiện của `ScenarioRecorder`: giải mã `CGEvent`, loại sự kiện của chính mình,
+/// và lấy mẫu Cửa sổ neo đúng thời điểm.
+///
+/// Đây là đường mà trước đây chỉ `CGEventTap` thật mới chạy tới. Test bơm `CGEvent` dựng sẵn
+/// thẳng vào `handle` nên chứng minh được `RC-2`, `RC-12`, `RC-13` trên máy không có quyền.
+@MainActor
+struct RecorderCaptureTests {
+    private func makeRecorder(
+        _ fake: FakeRecordingEnvironment
+    ) -> (ScenarioRecorder, () -> RecordingAssembler.Result?) {
+        let recorder = ScenarioRecorder(environment: fake.environment)
+        var captured: RecordingAssembler.Result?
+        recorder.onFinished = { captured = $0 }
+        return (recorder, { captured })
+    }
+
+    private func click(
+        _ recorder: ScenarioRecorder,
+        _ fake: FakeRecordingEnvironment,
+        at point: CGPoint,
+        downAt downTime: TimeInterval,
+        upAt upTime: TimeInterval
+    ) {
+        fake.now = downTime
+        recorder.handle(type: .leftMouseDown, event: TestEvent.mouse(.leftMouseDown, at: point))
+        fake.now = upTime
+        recorder.handle(type: .leftMouseUp, event: TestEvent.mouse(.leftMouseUp, at: point))
+    }
+
+    @Test func aPlainClickBecomesOneStepAnchoredToTheWindow() {
+        let fake = FakeRecordingEnvironment()
+        let (recorder, result) = makeRecorder(fake)
+
+        click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)
+        recorder.finishSession()
+
+        let scenario = try! #require(result()?.scenario)
+        #expect(scenario.steps.count == 1)
+        #expect(scenario.steps[0].action == .click(button: .left, count: 1, holdMilliseconds: 0))
+        // RC-13: có Ứng dụng khoá và có khung cửa sổ nên Vị trí được nâng lên tương đối.
+        #expect(scenario.steps[0].target == .windowRelative(corner: .topLeft, dx: 50, dy: 40))
+        #expect(scenario.lockedApplication?.bundleIdentifier == "com.test.Ghi")
+        #expect(result()?.warning == nil)
+    }
+
+    @Test func eventsBelongingToAutoClickItselfAreNeverRecorded() {
+        let fake = FakeRecordingEnvironment()
+        fake.frontmostProcessIdentifier = FakeRecordingEnvironment.ownProcessIdentifier
+        let (recorder, result) = makeRecorder(fake)
+
+        click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)
+        recorder.finishSession()
+
+        // RC-2: bấm vào chính cửa sổ Auto Click không được lọt vào bản ghi.
+        #expect(recorder.recordedGestureCount == 0)
+        #expect(result() == nil)
+        #expect(recorder.message == "Không ghi được thao tác nào.")
+    }
+
+    @Test func theScrollAxesAreNotSwapped() {
+        let fake = FakeRecordingEnvironment()
+        let (recorder, result) = makeRecorder(fake)
+
+        recorder.handle(
+            type: .scrollWheel,
+            event: TestEvent.scroll(deltaX: 3, deltaY: -7, at: CGPoint(x: 200, y: 200))
+        )
+        recorder.finishSession()
+
+        // Đảo hai trục là lỗi âm thầm: kịch bản vẫn chạy, chỉ cuộn sai chiều.
+        let scenario = try! #require(result()?.scenario)
+        #expect(scenario.steps[0].action == .scroll(deltaX: 3, deltaY: -7))
+    }
+
+    @Test func theAnchorWindowIsSampledAtGestureStartNotAtRelease() {
+        let fake = FakeRecordingEnvironment()
+        let (recorder, result) = makeRecorder(fake)
+
+        fake.now = 1_000
+        recorder.handle(
+            type: .leftMouseDown,
+            event: TestEvent.mouse(.leftMouseDown, at: CGPoint(x: 150, y: 140))
+        )
+        // Cửa sổ dịch chuyển giữa lúc giữ chuột; Vị trí phải tính theo khung lúc bắt đầu.
+        fake.anchorWindowFrame = CGRect(x: 700, y: 700, width: 400, height: 300)
+        fake.now = 1_000.05
+        recorder.handle(
+            type: .leftMouseUp,
+            event: TestEvent.mouse(.leftMouseUp, at: CGPoint(x: 150, y: 140))
+        )
+        recorder.finishSession()
+
+        let scenario = try! #require(result()?.scenario)
+        #expect(scenario.steps[0].target == .windowRelative(corner: .topLeft, dx: 50, dy: 40))
+    }
+
+    @Test func aSessionSpanningTwoApplicationsFallsBackToAbsolutePointsAndSaysSo() {
+        let fake = FakeRecordingEnvironment()
+        fake.applications[7] = LockedApplication(bundleIdentifier: "com.test.Khac", name: "App Khác")
+        let (recorder, result) = makeRecorder(fake)
+
+        click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)
+        fake.frontmostProcessIdentifier = 7
+        click(recorder, fake, at: CGPoint(x: 160, y: 150), downAt: 1_002, upAt: 1_002.05)
+        recorder.finishSession()
+
+        // RC-14: không có Ứng dụng khoá nào đúng cho cả phiên nên phải nói ra, không im lặng.
+        let unwrapped = try! #require(result())
+        #expect(unwrapped.scenario.lockedApplication == nil)
+        #expect(unwrapped.scenario.steps.allSatisfy { !$0.target.needsAnchorWindow })
+        #expect(unwrapped.warning?.contains("2 ứng dụng") == true)
+    }
+
+    @Test func aDisabledTapIsReEnabledWithoutPollutingTheRecording() {
+        let fake = FakeRecordingEnvironment()
+        let (recorder, result) = makeRecorder(fake)
+
+        recorder.handle(
+            type: .tapDisabledByTimeout,
+            event: TestEvent.mouse(.leftMouseDown, at: .zero)
+        )
+        click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)
+        recorder.finishSession()
+
+        // Sự kiện báo tap bị tắt không phải thao tác của người dùng.
+        #expect(result()?.scenario.steps.count == 1)
+    }
+
+    @Test func theRealGapBetweenGesturesSurvivesIntoTheScenario() {
+        let fake = FakeRecordingEnvironment()
+        let (recorder, result) = makeRecorder(fake)
+
+        click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)
+        click(recorder, fake, at: CGPoint(x: 300, y: 250), downAt: 1_002.55, upAt: 1_002.6)
+        recorder.finishSession()
+
+        // ADR-0004: giữ nguyên 2,5 giây người dùng thật sự chờ, không cắt bớt.
+        let steps = try! #require(result()?.scenario.steps)
+        #expect(steps[0].delayMillisecondsAfter == 2_500)
+        #expect(steps[1].delayMillisecondsAfter == 0)
+    }
+}

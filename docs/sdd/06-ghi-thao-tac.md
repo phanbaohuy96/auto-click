@@ -63,3 +63,13 @@ Lát 3. Xem [ADR-0003](../adr/0003-khong-ghi-ban-phim-khi-record.md) (không ghi
 - **RC-16** `[đã làm]` Kết thúc **Phiên ghi** tạo một **Kịch bản** mới đã lưu, tên mặc định theo ứng dụng
   và thời điểm ghi, rồi mở cửa sổ soạn thảo với **Kịch bản** đó.
 - **RC-17** `[đã làm]` **Phiên ghi** không ghi được **Bước** nào thì không tạo **Kịch bản**.
+
+## Kiểm chứng
+
+- **RC-21** `[đã làm]` Mọi thứ `ScenarioRecorder` hỏi hệ điều hành — tiến trình của chính mình,
+  ứng dụng đang ở trước, khung **Cửa sổ neo**, tên ứng dụng, khoảng double-click, đồng hồ — đi qua
+  `RecordingEnvironment`, cùng lối với `ScenarioSystemBridge`. Không có seam này thì `RC-2`,
+  `RC-13`, `RC-14`, `RC-20` chỉ kiểm chứng được bằng tay với `CGEventTap` thật, tức là không
+  kiểm chứng được trong `swift test`: tap đòi quyền Accessibility mà TCC không cấp cho binary
+  test của SwiftPM. Test bơm `CGEvent` dựng sẵn thẳng vào `ScenarioRecorder.handle`.
+  Việc **tạo** `CGEvent` không cần quyền; chỉ **phát** mới cần.
