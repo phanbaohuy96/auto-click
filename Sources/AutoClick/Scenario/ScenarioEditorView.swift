@@ -13,22 +13,34 @@ struct ScenarioEditorView: View {
     @State private var captureCoordinator = TemplateCaptureCoordinator()
 
     var body: some View {
-        VStack(spacing: 0) {
-            scenarioBar
-                .padding(12)
-            Divider()
-
-            if let scenario = store.selectedScenario {
-                if store.isReadOnly(scenario) {
-                    readOnlyNotice(scenario)
+        NavigationSplitView {
+            scenarioSidebar
+                .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 340)
+        } content: {
+            Group {
+                if let scenario = store.selectedScenario {
+                    if store.isReadOnly(scenario) {
+                        readOnlyNotice(scenario)
+                    } else {
+                        scenarioPane(for: store.binding(for: scenario.id))
+                    }
                 } else {
-                    editor(for: store.binding(for: scenario.id))
+                    emptyState
                 }
-            } else {
-                emptyState
             }
+            .navigationSplitViewColumnWidth(min: 320, ideal: 380)
+        } detail: {
+            Group {
+                if let scenario = store.selectedScenario, !store.isReadOnly(scenario) {
+                    stepDetail(store.binding(for: scenario.id))
+                } else {
+                    placeholder("Chọn một bước để sửa")
+                }
+            }
+            .navigationSplitViewColumnWidth(min: 340, ideal: 400)
         }
-        .frame(minWidth: 760, minHeight: 460)
+        .navigationTitle("Soạn kịch bản")
+        .frame(minWidth: 940, minHeight: 520)
         .onAppear { runningApplications = RunningApplicationOption.current() }
         .disabled(runner.isRunning)
         .overlay(alignment: .top) {
@@ -43,45 +55,95 @@ struct ScenarioEditorView: View {
         }
     }
 
-    // MARK: - Thanh kịch bản
+    // MARK: - Panel trái: toàn bộ Kịch bản
 
-    private var scenarioBar: some View {
-        HStack(spacing: 10) {
-            Picker("Kịch bản", selection: $store.selectedScenarioID) {
-                if store.scenarios.isEmpty {
-                    Text("Chưa có kịch bản").tag(UUID?.none)
-                }
+    private var scenarioSidebar: some View {
+        VStack(spacing: 0) {
+            List(selection: $store.selectedScenarioID) {
                 ForEach(store.scenarios) { scenario in
-                    Text(scenario.name).tag(UUID?.some(scenario.id))
+                    scenarioRow(scenario).tag(UUID?.some(scenario.id))
                 }
             }
-            .labelsHidden()
-            .frame(width: 220)
+            .listStyle(.sidebar)
 
-            Button { store.create() } label: { Image(systemName: "plus") }
-                .help("Kịch bản mới")
+            Divider()
 
-            Button {
-                if let scenario = store.selectedScenario { store.duplicate(scenario) }
-            } label: { Image(systemName: "doc.on.doc") }
-                .disabled(store.selectedScenario.map(store.isReadOnly) ?? true)
-                .help("Nhân bản")
+            HStack(spacing: 6) {
+                iconButton("plus", help: "Kịch bản mới") { store.create() }
+                iconButton(
+                    "doc.on.doc",
+                    help: "Nhân bản",
+                    isDisabled: store.selectedScenario.map(store.isReadOnly) ?? true
+                ) {
+                    if let scenario = store.selectedScenario { store.duplicate(scenario) }
+                }
+                iconButton(
+                    "trash",
+                    help: "Xoá kịch bản và toàn bộ thư mục của nó",
+                    isDisabled: store.selectedScenario == nil
+                ) {
+                    if let scenario = store.selectedScenario { store.delete(scenario) }
+                }
 
-            Button {
-                if let scenario = store.selectedScenario { store.delete(scenario) }
-            } label: { Image(systemName: "trash") }
-                .disabled(store.selectedScenario == nil)
-                .help("Xoá kịch bản và toàn bộ thư mục của nó")
+                Spacer()
 
-            Spacer()
+                if !store.loadIssues.isEmpty {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .help(store.loadIssues.joined(separator: "\n"))
+                        .accessibilityLabel("\(store.loadIssues.count) kịch bản có vấn đề")
+                }
+            }
+            .padding(8)
+        }
+    }
 
-            if !store.loadIssues.isEmpty {
-                Label("\(store.loadIssues.count) kịch bản có vấn đề", systemImage: "exclamationmark.triangle")
+    private func scenarioRow(_ scenario: Scenario) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(scenario.name.isEmpty ? "Chưa đặt tên" : scenario.name)
+                    .lineLimit(1)
+                Text(scenario.steps.count == 1 ? "1 bước" : "\(scenario.steps.count) bước")
                     .font(.caption)
-                    .foregroundStyle(.orange)
-                    .help(store.loadIssues.joined(separator: "\n"))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if store.isReadOnly(scenario) {
+                Image(systemName: "lock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .help("Chỉ xem được")
             }
         }
+        .padding(.vertical, 2)
+    }
+
+    /// UI-17: các nút icon trên cùng một hàng phải bằng nhau.
+    ///
+    /// Mỗi ký hiệu SF có bề rộng tự nhiên riêng, nên để mặc định thì `plus`, `doc.on.doc` và
+    /// `trash` ra ba cỡ khác nhau đứng cạnh nhau — đo được trên cây AX: 37×20, 40×26, 38×24.
+    private func iconButton(
+        _ symbol: String,
+        help: String,
+        isDisabled: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .frame(width: 20, height: 20)
+        }
+        .buttonStyle(.bordered)
+        .disabled(isDisabled)
+        .help(help)
+    }
+
+    private func placeholder(_ text: String) -> some View {
+        VStack {
+            Spacer()
+            Text(text).foregroundStyle(.secondary)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var emptyState: some View {
@@ -117,83 +179,75 @@ struct ScenarioEditorView: View {
 
     // MARK: - Trình soạn thảo
 
-    private func editor(for scenario: Binding<Scenario>) -> some View {
+    private func scenarioPane(for scenario: Binding<Scenario>) -> some View {
         VStack(spacing: 0) {
             scenarioSettings(scenario)
                 .padding(12)
             Divider()
-
-            HSplitView {
-                stepList(scenario)
-                    .frame(minWidth: 280, idealWidth: 320)
-                stepDetail(scenario)
-                    .frame(minWidth: 320)
-            }
+            stepList(scenario)
         }
     }
 
+    /// Cấu hình cấp Kịch bản. Xếp dọc chứ không phải một hàng ngang dài: cột giữa chỉ rộng
+    /// khoảng 380 point, nhồi ngang thì nhãn bị bóp còn 0 point và ô tick kéo cao thành sọc.
     private func scenarioSettings(_ scenario: Binding<Scenario>) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 16) {
-                TextField("Tên kịch bản", text: scenario.name)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 240)
+            TextField("Tên kịch bản", text: scenario.name)
+                .textFieldStyle(.roundedBorder)
 
+            HStack(spacing: 10) {
                 Toggle("Lặp đến khi dừng", isOn: Binding(
                     get: { scenario.wrappedValue.runCount == .untilStopped },
                     set: { scenario.wrappedValue.runCount = $0 ? .untilStopped : .times(1) }
                 ))
+                .fixedSize()
 
                 if case let .times(count) = scenario.wrappedValue.runCount {
-                    HStack(spacing: 6) {
-                        Text("Số vòng")
-                        integerField(
-                            value: Binding(
-                                get: { count },
-                                set: { scenario.wrappedValue.runCount = .times($0) }
-                            ),
-                            range: ScenarioLimits.runCount
-                        )
-                    }
+                    Text("Số vòng").fixedSize()
+                    integerField(
+                        value: Binding(
+                            get: { count },
+                            set: { scenario.wrappedValue.runCount = .times($0) }
+                        ),
+                        range: ScenarioLimits.runCount
+                    )
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
             }
 
-            HStack(spacing: 10) {
-                Toggle("Khoá vào ứng dụng", isOn: lockToggle(scenario))
+            Toggle("Khoá vào ứng dụng", isOn: lockToggle(scenario))
+                .fixedSize()
 
-                if scenario.wrappedValue.lockedApplication != nil {
+            if scenario.wrappedValue.lockedApplication != nil {
+                HStack(spacing: 8) {
                     Picker("Ứng dụng", selection: lockedBundleIdentifier(scenario)) {
                         Text("Chọn ứng dụng…").tag("")
                         ForEach(runningApplications) { Text($0.name).tag($0.bundleIdentifier) }
                     }
                     .labelsHidden()
-                    .frame(width: 220)
 
-                    Button {
+                    iconButton("arrow.clockwise", help: "Làm mới danh sách ứng dụng") {
                         runningApplications = RunningApplicationOption.current()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
                     }
-                    .help("Làm mới danh sách ứng dụng")
                 }
+            }
 
-                if let error = runner.validate(scenario.wrappedValue)?.errorDescription {
-                    Label(error, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-
-                Spacer()
+            if let error = runner.validate(scenario.wrappedValue)?.errorDescription {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if let pickError {
                 Label(pickError, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func lockToggle(_ scenario: Binding<Scenario>) -> Binding<Bool> {
@@ -238,17 +292,18 @@ struct ScenarioEditorView: View {
 
             Divider()
 
-            HStack(spacing: 8) {
-                Button { addStep(to: scenario) } label: { Image(systemName: "plus") }
-                    .help("Thêm bước")
-
-                Button { duplicateSelectedStep(in: scenario) } label: { Image(systemName: "doc.on.doc") }
-                    .disabled(selectedStepIndex(in: scenario.wrappedValue) == nil)
-                    .help("Nhân bản bước")
-
-                Button { deleteSelectedStep(in: scenario) } label: { Image(systemName: "minus") }
-                    .disabled(selectedStepIndex(in: scenario.wrappedValue) == nil)
-                    .help("Xoá bước")
+            HStack(spacing: 6) {
+                iconButton("plus", help: "Thêm bước") { addStep(to: scenario) }
+                iconButton(
+                    "doc.on.doc",
+                    help: "Nhân bản bước",
+                    isDisabled: selectedStepIndex(in: scenario.wrappedValue) == nil
+                ) { duplicateSelectedStep(in: scenario) }
+                iconButton(
+                    "minus",
+                    help: "Xoá bước",
+                    isDisabled: selectedStepIndex(in: scenario.wrappedValue) == nil
+                ) { deleteSelectedStep(in: scenario) }
 
                 Spacer()
                 Text("Kéo để đổi thứ tự")
@@ -307,16 +362,15 @@ struct ScenarioEditorView: View {
                 },
                 onPickSearchRegion: { apply in
                     pickSearchRegion(in: scenario.wrappedValue, apply: apply)
+                },
+                templateImage: { [scenarioID = scenario.wrappedValue.id] name in
+                    store.templateLibrary(for: scenarioID).loadImage(name).map {
+                        NSImage(cgImage: $0, size: NSSize(width: $0.width, height: $0.height))
+                    }
                 }
             )
         } else {
-            VStack {
-                Spacer()
-                Text("Chọn một bước để sửa")
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            .frame(maxWidth: .infinity)
+            placeholder("Chọn một bước để sửa")
         }
     }
 
@@ -404,7 +458,11 @@ struct ScenarioEditorView: View {
     }
 
     /// RG-4: chụp Ảnh mẫu độc lập hoàn toàn với Ứng dụng khoá.
-    private func captureTemplate(for scenario: Scenario, apply: @escaping (String) -> Void) {
+    /// RG-23: chụp xong thì kèm luôn Vùng tìm mặc định bám quanh chỗ vừa khoanh.
+    private func captureTemplate(
+        for scenario: Scenario,
+        apply: @escaping (String, SearchRegion?) -> Void
+    ) {
         let window = NSApp.keyWindow
         window?.orderOut(nil)
         pickError = nil
@@ -416,13 +474,41 @@ struct ScenarioEditorView: View {
             }
             do {
                 let library = store.templateLibrary(for: scenario.id)
-                if let name = try await captureCoordinator.captureTemplate(into: library) {
-                    apply(name)
-                }
+                guard let capture = try await captureCoordinator.captureTemplate(into: library)
+                else { return }
+
+                let bounds = NSScreen.screens
+                    .map(\.frame)
+                    .reduce(CGRect.null) { $0.union($1) }
+                let padded = TemplateCaptureCoordinator.suggestedSearchRect(
+                    around: capture.rect,
+                    within: bounds.isNull ? capture.rect : bounds
+                )
+                apply(capture.templateName, searchRegion(for: padded, in: scenario))
             } catch {
                 pickError = error.localizedDescription
             }
         }
+    }
+
+    /// RG-6: vùng tìm lưu tương đối Cửa sổ neo khi có sẵn, ngược lại lưu tuyệt đối. Dùng chung
+    /// cho cả khoanh tay lẫn vùng gợi ý sau khi chụp, để hai đường không trôi khỏi nhau.
+    private func searchRegion(for rect: CGRect, in scenario: Scenario) -> SearchRegion {
+        if let locked = scenario.lockedApplication,
+           let processIdentifier = RunningApplicationOption.processIdentifier(
+               forBundleIdentifier: locked.bundleIdentifier
+           ),
+           let frame = WindowAnchor.focusedWindowFrame(ofProcess: processIdentifier) {
+            let offset = WindowAnchor.offset(for: rect.origin, in: frame)
+            return .windowRelative(
+                corner: offset.corner,
+                dx: offset.dx,
+                dy: offset.dy,
+                width: rect.width,
+                height: rect.height
+            )
+        }
+        return .screenRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height)
     }
 
     /// RG-6: vùng tìm lưu tương đối Cửa sổ neo khi có sẵn, ngược lại lưu tuyệt đối — và nói rõ
@@ -441,26 +527,7 @@ struct ScenarioEditorView: View {
                 prompt: "Kéo để chọn vùng tìm  •  Esc để hủy"
             ) else { return }
 
-            if let locked = scenario.lockedApplication,
-               let processIdentifier = RunningApplicationOption.processIdentifier(
-                   forBundleIdentifier: locked.bundleIdentifier
-               ),
-               let frame = WindowAnchor.focusedWindowFrame(ofProcess: processIdentifier) {
-                let offset = WindowAnchor.offset(for: rect.origin, in: frame)
-                apply(
-                    .windowRelative(
-                        corner: offset.corner,
-                        dx: offset.dx,
-                        dy: offset.dy,
-                        width: rect.width,
-                        height: rect.height
-                    )
-                )
-            } else {
-                apply(
-                    .screenRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height)
-                )
-            }
+            apply(searchRegion(for: rect, in: scenario))
         }
     }
 

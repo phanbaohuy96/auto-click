@@ -66,6 +66,16 @@ Lát 4. Xem [ADR-0001](../adr/0001-screencapturekit-va-min-macos-14.md).
   một hàng nút giống nhau, đường kẻ bảng — nên chỗ tốt nhất ở mức thô hay không phải chỗ đúng ở
   mức gốc.
 
+- **RG-23** `[Lát 2]` `[đã làm]` Chụp **Ảnh mẫu** xong thì **Vùng tìm** mặc định bám quanh chính vùng
+  vừa khoanh, không phải cả màn hình. Đệm lấy nửa cạnh dài của Ảnh mẫu, chặn dưới 48 point và chặn
+  trên 160 point, rồi cắt lại cho nằm trong màn hình.
+
+  Lý do: ca dùng chính là game, nơi thứ cần nhắm gần như luôn nằm lại đúng chỗ vừa chụp. Quét cả
+  màn hình vừa chậm hơn vừa dễ vớ phải một mảnh giống hệt ở chỗ khác — đúng kiểu hỏng mà `I2` của
+  kiểm thử tay bày ra. Vùng gợi ý lưu theo cùng một đường với vùng khoanh tay (`RG-6`): tương đối
+  **Cửa sổ neo** khi Kịch bản có khoá ứng dụng, tuyệt đối khi không. Bấm **Bỏ** là quay về tìm cả
+  màn hình.
+
 - **RG-18** `[đã làm]` Việc chọn mức thu nhỏ bị chặn trên bởi một **trần chi phí** khoảng 40 triệu phép so
   sánh cho một lần quét thô. Đây là ràng buộc đối nghịch với `RG-21`: giữ tương phản thì muốn thu
   nhỏ ít, còn quét thì muốn thu nhỏ nhiều. Khi không mức nào thoả cả hai, **trần thắng** — thà

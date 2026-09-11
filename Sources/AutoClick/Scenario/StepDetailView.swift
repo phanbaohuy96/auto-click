@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import SwiftUI
 
@@ -9,8 +10,10 @@ struct StepDetailView: View {
     let lockedApplicationName: String?
     let onPickScreenPoint: (@escaping (CGPoint) -> Void) -> Void
     let onPickWindowOffset: (@escaping (WindowAnchor.Offset) -> Void) -> Void
-    let onCaptureTemplate: (@escaping (String) -> Void) -> Void
+    let onCaptureTemplate: (@escaping (String, SearchRegion?) -> Void) -> Void
     let onPickSearchRegion: (@escaping (SearchRegion) -> Void) -> Void
+    /// Ảnh mẫu đã lưu, để bày thumbnail thay vì tên tệp — tên `3f2a91c0.png` không nói lên gì.
+    let templateImage: (String) -> NSImage?
 
     var body: some View {
         Form {
@@ -163,15 +166,23 @@ struct StepDetailView: View {
             }
 
         case let .template(name, settings):
-            HStack {
+            HStack(alignment: .top) {
                 Text("Ảnh mẫu")
                 Spacer()
-                Text(name.isEmpty ? "Chưa chụp" : name)
-                    .foregroundStyle(name.isEmpty ? .secondary : .primary)
-                    .lineLimit(1)
+                templateThumbnail(name)
                 Button(name.isEmpty ? "Chụp vùng…" : "Chụp lại…") {
-                    onCaptureTemplate { captured in
-                        target.wrappedValue = .template(name: captured, settings: settings)
+                    onCaptureTemplate { captured, suggestedRegion in
+                        target.wrappedValue = .template(
+                            name: captured,
+                            settings: RecognitionSettings(
+                                threshold: settings.threshold,
+                                // RG-23: vùng tìm bám theo chỗ vừa chụp. Chụp lại thì vùng đi
+                                // theo ảnh mới, vì vùng cũ vốn suy ra từ ảnh cũ.
+                                searchRegion: suggestedRegion ?? settings.searchRegion,
+                                waitMilliseconds: settings.waitMilliseconds,
+                                onTimeout: settings.onTimeout
+                            )
+                        )
                     }
                 }
             }
@@ -186,6 +197,32 @@ struct StepDetailView: View {
             ))
             footnote("Không phân biệt hoa thường. Bền hơn ảnh mẫu khi đổi giao diện sáng/tối hay cỡ chữ, nhưng chỉ nhắm được thứ có chữ.")
             recognitionFields(target, settings: settings)
+        }
+    }
+
+    /// Bày chính Ảnh mẫu thay cho tên tệp: tên là `3f2a91c0.png`, nhìn không biết là cái gì.
+    @ViewBuilder
+    private func templateThumbnail(_ name: String) -> some View {
+        if name.isEmpty {
+            Text("Chưa chụp")
+                .foregroundStyle(.secondary)
+        } else if let image = templateImage(name) {
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .frame(maxWidth: 160, maxHeight: 64)
+                .background(.quaternary)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4).strokeBorder(.separator)
+                )
+                // Kích thước thật vẫn cần: nó quyết định vùng quét và tốc độ khớp.
+                .help("\(name) — \(Int(image.size.width))×\(Int(image.size.height)) pixel")
+        } else {
+            Label("Thiếu tệp ảnh mẫu", systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .font(.caption)
         }
     }
 

@@ -43,3 +43,15 @@
   thông báo lỗi **không được cắt cụt**. Trước đây mọi trạng thái không-đang-chạy đều vẽ bằng
   `checkmark.circle`, nên dòng *"Có lỗi: …"* hiện kèm đúng biểu tượng của thành công, lại còn bị
   cắt ở một dòng nên không đọc hết được nguyên nhân. Phát hiện khi chạy `B3` của kiểm thử tay.
+- **UI-17** `[Lát 2]` `[đã làm]` Các nút icon đứng cùng một hàng phải **bằng kích thước nhau**. Mỗi ký
+  hiệu SF có bề rộng tự nhiên riêng nên để mặc định thì `plus`, `doc.on.doc` và `trash` ra ba cỡ
+  lệch nhau — đo trên cây AX: 37×20, 40×26, 38×24. Giờ tất cả là 44×28.
+- **UI-18** `[Lát 2]` `[đã làm]` Cửa sổ **Soạn kịch bản** chia ba cột: danh sách **Kịch bản** bên trái,
+  cấu hình Kịch bản cùng danh sách **Bước** ở giữa, chi tiết Bước bên phải. Trước đây danh sách Kịch
+  bản nằm trong một menu bung xuống, nhìn không ra mình đang có những gì.
+
+  Cấu hình cấp Kịch bản xếp **dọc**: cột giữa chỉ rộng khoảng 380 point, nhồi ngang thì nhãn bị bóp
+  còn 0 point và ô tick kéo cao thành một sọc 21×208.
+- **UI-19** `[Lát 2]` `[đã làm]` **Ảnh mẫu** hiện bằng chính ảnh đó, không phải tên tệp — tên là
+  `3f2a91c0.png`, nhìn không biết là cái gì. Kích thước pixel thật vẫn nằm trong tooltip vì nó quyết
+  định vùng quét và tốc độ khớp. Thiếu tệp thì báo rõ thay vì hiện ô trống.

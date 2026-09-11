@@ -231,3 +231,48 @@ private func templateStep(
 
     #expect(scenario.templateNames == ["a.png", "b.png"])
 }
+
+/// RG-23: chụp Ảnh mẫu xong thì Vùng tìm mặc định bám quanh chỗ vừa chụp, không phải cả màn hình.
+@MainActor
+struct SuggestedSearchRegionTests {
+    private let screen = CGRect(x: 0, y: 0, width: 1512, height: 982)
+
+    @Test func theSuggestedRegionSurroundsTheCapturedRect() {
+        let captured = CGRect(x: 400, y: 300, width: 200, height: 100)
+        let suggested = TemplateCaptureCoordinator.suggestedSearchRect(around: captured, within: screen)
+
+        // Phải trùm hẳn Ảnh mẫu, nếu không lần chạy đầu đã trượt.
+        #expect(suggested.contains(captured))
+        // Và phải nhỏ hơn hẳn cả màn hình, nếu không thì chẳng gợi ý gì cả.
+        #expect(suggested.width * suggested.height < screen.width * screen.height / 4)
+    }
+
+    /// Ảnh mẫu bé xíu — biểu tượng trong game — vẫn phải có chỗ thở, không dính sát mép.
+    @Test func aTinyTemplateStillGetsRoomToMove() {
+        let tiny = CGRect(x: 700, y: 500, width: 26, height: 26)
+        let suggested = TemplateCaptureCoordinator.suggestedSearchRect(around: tiny, within: screen)
+
+        #expect(suggested.width >= tiny.width + 96)
+        #expect(suggested.height >= tiny.height + 96)
+    }
+
+    /// Chụp sát mép màn hình thì vùng gợi ý bị cắt lại, không tràn ra toạ độ âm.
+    @Test func aCaptureAtTheEdgeIsClampedToTheScreen() {
+        let corner = CGRect(x: 0, y: 0, width: 120, height: 60)
+        let suggested = TemplateCaptureCoordinator.suggestedSearchRect(around: corner, within: screen)
+
+        #expect(suggested.minX == 0)
+        #expect(suggested.minY == 0)
+        #expect(screen.contains(suggested))
+        #expect(suggested.contains(corner))
+    }
+
+    /// Đệm có trần: ảnh mẫu rất to không kéo vùng tìm thành cả màn hình.
+    @Test func thePaddingIsCappedSoALargeTemplateDoesNotSelectTheWholeScreen() {
+        let large = CGRect(x: 300, y: 200, width: 800, height: 500)
+        let suggested = TemplateCaptureCoordinator.suggestedSearchRect(around: large, within: screen)
+
+        #expect(suggested.width <= large.width + 320)
+        #expect(suggested.height <= large.height + 320)
+    }
+}
