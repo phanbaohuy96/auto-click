@@ -37,21 +37,29 @@ Luôn nhớ lối thoát: **`⌥⌘S` dừng mọi thứ** (`UI-15`). Thử bấ
 
 ## Phiên A — Đường cơ bản (không cần Screen Recording)
 
-Hỏng ở đây thì dừng lại, các phiên sau không có ý nghĩa.
+**Đã chạy ngày 11/09/2026 — 11/11 mục đạt.** Cách chạy ở [phần cuối](#cách-phiên-a-được-chạy).
 
 | # | Làm | Chờ thấy | Chứng minh | Kết quả |
 |---|---|---|---|---|
-| A1 | Mở popover, **Chế độ đơn giản**, chọn vị trí con trỏ, 5 lần, cách 500 ms, Bắt đầu | Đếm ngược 3 giây rồi click đúng 5 lần tại chỗ con trỏ | `UI-1` `UI-6` `EX-3` | |
-| A2 | Lặp A1 nhưng bấm Dừng trong lúc đếm ngược | **Không** phát click nào | `EX-3` | |
-| A3 | Kiểm tra `~/Library/Application Support/AutoClick/Scenarios/` sau A1 | Không có thư mục nào mới | `UI-7` | |
-| A4 | Soạn thảo → Kịch bản mới → Bước `click` / `điểmMànHình` vào TextEdit, 20 lần, cách 200 ms, chạy | Click đúng chỗ, bảng nổi đếm lên | `UI-2` `UI-13` `EX-4` | |
-| A5 | Giữa lúc A4 chạy, bấm `⌥⌘S` | Dừng ngay, trạng thái ghi "người dùng dừng" | `EX-13` `EX-15` `SF-9` | |
-| A6 | Đổi Bước sang `số lần = 3` trong một Bước, chạy | Ba cặp nhấn/nhả liền nhau, ứng dụng đích hiểu là **triple click** (TextEdit bôi đen cả dòng) | `EX-16` `EX-17` | |
-| A7 | Đặt `giữMs = 1500`, chạy, quan sát | Nút giữ đúng ~1,5 giây rồi nhả | `EX-18` | |
-| A8 | **Trong lúc A7 đang giữ**, bấm `⌥⌘S` | Nút **được nhả**. Sau đó kéo thả cửa sổ bằng tay vẫn bình thường | `SF-1` `SF-2` `EX-14` | |
-| A9 | Đặt số lần lặp = không giới hạn, chạy, để yên 30 giây, rồi `⌥⌘S` | Bảng nổi đếm vòng, không hiện tổng; dừng được | `UI-14` `SF-9` | |
-| A10 | Sửa tên Kịch bản, đóng cửa sổ soạn thảo, mở lại | Tên mới còn đó, không có nút Lưu nào phải bấm | `UI-11` `ST-11` | |
-| A11 | Chạy một Kịch bản rồi thử mở cửa sổ soạn thảo | Không sửa được khi đang chạy | `UI-12` | |
+| A1 | Chế độ đơn giản, theo con trỏ, 5 lần, cách 500 ms | Đếm ngược 3 giây rồi click đúng 5 lần tại chỗ con trỏ | `UI-1` `UI-6` `EX-3` | **Đạt** — 5 cặp down/up tại `(500,550)`, cách 530/508/527/524 ms, click đầu 3,0 s sau khi bấm |
+| A2 | Như A1 nhưng huỷ trong lúc đếm ngược | **Không** phát click nào | `EX-3` | **Đạt** — 0 sự kiện |
+| A3 | Kiểm tra `Scenarios/` sau A1 | Không có thư mục nào mới | `UI-7` | **Đạt** — `AutoClick/` còn chưa từng được tạo |
+| A4 | Kịch bản 1 bước, lặp 20 vòng, cách 200 ms | Click đúng chỗ, bảng nổi đếm lên | `UI-2` `UI-13` `EX-4` | **Đạt** — đúng 20 cặp, tổng 3.993 ms |
+| A5 | Giữa lúc A4 chạy, bấm `⌥⌘S` | Dừng ngay, trạng thái ghi "người dùng dừng" | `EX-13` `EX-15` `SF-9` | **Đạt** — 10/40 sự kiện rồi dừng; trạng thái "Đã dừng" |
+| A6 | Một Bước `click` với `số lần = 3` | Ba cặp liền nhau, hệ điều hành hiểu là triple click | `EX-16` `EX-17` | **Đạt** — `clickState` đúng 1, 2, 3; cách nhau 30 và 32 ms |
+| A7 | `giữMs = 1500`, lặp 3 vòng | Nút giữ đúng ~1,5 giây rồi nhả | `EX-18` | **Đạt** — giữ 1566/1589/1548 ms; nghỉ giữa vòng 532/529 ms |
+| A8 | **Trong lúc A7 đang giữ**, bấm `⌥⌘S` | Nút **được nhả**; chuột vẫn dùng bình thường | `SF-1` `SF-2` `EX-14` | **Đạt** — `leftDown` 4390 → `leftUp` 5424 (cắt còn 1034/1500 ms); rê chuột sau đó không sinh `leftDrag` nào |
+| A9 | Lặp không giới hạn, chạy rồi `⌥⌘S` | Bảng nổi đếm vòng, không hiện tổng; dừng được | `UI-14` `SF-9` | **Đạt** — chạy liên tục ~316 ms/click; sau `⌥⌘S` im hẳn 4 giây; popover ghi "lặp đến khi dừng" |
+| A10 | Sửa tên Kịch bản | Tên mới còn đó, không có nút Lưu nào phải bấm | `UI-11` `ST-11` | **Đạt** — `scenario.json` đổi tên ngay khi gõ xong |
+| A11 | Chạy rồi thử sửa | Không sửa được khi đang chạy | `UI-12` | **Đạt** — hiện khoá "Đang chạy — không sửa được", nút xoá biến mất, control mờ |
+
+### Phát hiện ngoài checklist
+
+Cài đè bản mới lên bản đã được cấp quyền làm **quyền Accessibility hết hiệu lực, nhưng System
+Settings vẫn hiện toggle đang bật**. Thông báo cũ — "Hãy cấp quyền Accessibility rồi thử lại" —
+đẩy người dùng tới đúng cái màn hình nói rằng quyền đã bật. Đã sửa, xem `SF-10`.
+
+Chỉ lộ ra khi cài đè lên một bản đã có quyền. Viết đặc tả không thấy được.
 
 ## Phiên B — Ứng dụng khoá, neo cửa sổ, kéo thả, bàn phím
 
@@ -124,3 +132,25 @@ Hỏng ở đây thì dừng lại, các phiên sau không có ý nghĩa.
 
 Mục nào hỏng thì ghi lại **số hiệu mục, thứ đã thấy, và mã yêu cầu**. Ba dữ kiện đó đủ để lần
 thẳng từ triệu chứng về đoạn đặc tả và đoạn code tương ứng.
+
+---
+
+## Cách phiên A được chạy
+
+Không quan sát bằng mắt. Dựng hai công cụ nhỏ:
+
+- **Bộ đo** — `CGEventTap` chỉ nghe, ghi mọi sự kiện chuột ra TSV kèm thời điểm, toạ độ,
+  `clickState` và **pid nguồn**. `pid=0` là chuột thật của người dùng, `pid=<n>` là sự kiện do tiến
+  trình đó tổng hợp, nên tách được chính xác cái gì do Auto Click phát ra.
+- **Bộ bấm** — phát `mouseMoved` + `mouseDown`/`mouseUp` tại một toạ độ, để điều khiển giao diện
+  như người dùng.
+
+Hai chỗ phải đi đường vòng, và kết quả phiên A phải đọc kèm hai giới hạn này:
+
+- **Cây AX của popover SwiftUI không đọc được thuộc tính** — 63 phần tử, `role`/`name`/`value` đều
+  rỗng. Nên phải bấm theo toạ độ đo từ ảnh chụp. Cửa sổ soạn thảo thì ngược lại, là `NSWindow`
+  thật nên AX dùng tốt.
+- **Kịch bản của A4…A9 được ghi thẳng thành `scenario.json`** bằng chính bộ mã hoá của app, thay
+  vì dựng trong cửa sổ soạn thảo. Cách này kiểm luôn `ST-2`, `ST-5`…`ST-8`, nhưng **không** kiểm
+  `UI-9` (kéo thả đổi thứ tự, thêm/nhân bản/xoá Bước) và `UI-10` (panel chi tiết). Hai mục đó mới
+  chỉ được **nhìn thấy** là có, chưa được bấm thử.

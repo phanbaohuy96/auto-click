@@ -36,7 +36,7 @@ final class ScenarioRecorder: ObservableObject {
     func start() -> Bool {
         guard !isRecording else { return false }
         guard AXIsProcessTrusted() else {
-            message = "Hãy cấp quyền Accessibility rồi thử lại."
+            message = "Hãy cấp quyền Accessibility cho Auto Click rồi thử lại. Nếu Auto Click đã có trong danh sách, hãy tắt rồi bật lại — bản cập nhật làm quyền cũ hết hiệu lực."
             return false
         }
 

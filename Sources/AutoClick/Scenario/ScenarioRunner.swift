@@ -30,7 +30,10 @@ enum ScenarioRunError: LocalizedError, Equatable {
         case .emptyScenario:
             return "Kịch bản chưa có bước nào."
         case .accessibilityDenied:
-            return "Hãy cấp quyền Accessibility rồi thử lại."
+            // SF-10: cập nhật app làm đổi chữ ký, macOS vô hiệu quyền cũ nhưng vẫn
+            // hiện toggle đang bật. Chỉ nói "hãy cấp quyền" thì người dùng mở ra,
+            // thấy đã bật sẵn, và kết luận app hỏng.
+            return "Hãy cấp quyền Accessibility cho Auto Click rồi thử lại. Nếu Auto Click đã có trong danh sách, hãy tắt rồi bật lại — bản cập nhật làm quyền cũ hết hiệu lực."
         case .missingLockedApplication:
             return "Kịch bản có bước neo theo cửa sổ nên phải chọn ứng dụng khoá."
         case let .lockedApplicationNotRunning(name):

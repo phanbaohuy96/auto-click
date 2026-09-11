@@ -23,6 +23,13 @@
 - **SF-6** `[đã làm]` Auto Click **không bao giờ** xin **Input Monitoring**.
   Xem [ADR-0003](../adr/0003-khong-ghi-ban-phim-khi-record.md). Kiểm chứng bằng cách không có
   lời gọi `IOHIDRequestAccess`/`IOHIDCheckAccess` nào trong mã nguồn.
+- **SF-10** `[đã làm]` Thông báo khi thiếu **Accessibility** phải nêu **cả hai** khả năng: chưa
+  cấp bao giờ, và đã cấp nhưng quyền hết hiệu lực sau khi cập nhật app. Cài đè một bản mới làm
+  đổi chữ ký, macOS vô hiệu hoá quyền cũ **nhưng vẫn hiển thị toggle đang bật**; người dùng mở
+  System Settings ra, thấy Auto Click đã bật, và kết luận app hỏng. Cách chữa là tắt rồi bật lại
+  mục đó. Không có API nào đọc được trạng thái thật để phân biệt, nên phải nói ra cả hai — cùng
+  lối với `SF-7`. Phát hiện khi chạy phiên A của [kiểm thử tay](../kiem-thu-e2e.md), không phải
+  khi viết đặc tả: chỉ cài đè lên một bản đã được cấp quyền mới lộ ra.
 - **SF-7** `[Lát 4]` `[đã làm]` Thông báo lỗi khi chụp màn hình thất bại phải nêu **cả hai** khả
   năng: chưa cấp quyền, và đã cấp nhưng cần thoát rồi mở lại app.
 
