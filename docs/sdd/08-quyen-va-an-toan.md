@@ -43,6 +43,14 @@
   mục đó. Không có API nào đọc được trạng thái thật để phân biệt, nên phải nói ra cả hai — cùng
   lối với `SF-7`. Phát hiện khi chạy phiên A của [kiểm thử tay](../kiem-thu-e2e.md), không phải
   khi viết đặc tả: chỉ cài đè lên một bản đã được cấp quyền mới lộ ra.
+
+  **Nguyên nhân, và cách dứt điểm cho máy lập trình:** ký ad-hoc (`codesign --sign -`) cho yêu cầu
+  định danh là `cdhash H"…"`, mà cdhash đổi theo **mỗi lần build**. Ký bằng một chứng chỉ cố định
+  cho yêu cầu định danh là `identifier "com.local.AutoClick" and certificate leaf = H"…"`, không
+  phụ thuộc bản build — cấp quyền một lần là xong. `scripts/create-local-signing-identity.sh` tạo
+  một chứng chỉ tự ký như vậy, và `build-app.sh` tự dùng nó khi có.
+
+  Việc này **không** làm `SF-10` hết cần thiết: người dùng thật vẫn nhận bản build ad-hoc.
 - **SF-7** `[Lát 4]` `[đã làm]` Thông báo lỗi khi chụp màn hình thất bại phải nêu **cả hai** khả
   năng: chưa cấp quyền, và đã cấp nhưng cần thoát rồi mở lại app.
 
