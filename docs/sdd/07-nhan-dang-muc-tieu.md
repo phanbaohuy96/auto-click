@@ -84,6 +84,10 @@ Lát 4. Xem [ADR-0001](../adr/0001-screencapturekit-va-min-macos-14.md).
 - **RG-13** `[đã làm]` Dùng `VNRecognizeTextRequest` với `recognitionLevel = .accurate`, ngôn ngữ theo
   ngôn ngữ hệ thống cộng tiếng Anh.
 - **RG-14** `[đã làm]` So khớp không phân biệt hoa thường và bỏ qua khoảng trắng thừa hai đầu.
-- **RG-15** `[đã làm]` **Vị trí** trả về là tâm hộp bao của đoạn chữ khớp.
+- **RG-15** `[đã làm]` **Vị trí** trả về là tâm hộp bao của **đoạn chữ khớp** — không phải của cả
+  dòng Vision đọc được. Vision gộp cả dòng thành một observation, nên lấy `observation.boundingBox`
+  là click vào giữa dòng: tìm `"Lưu"` trong dòng `"Lưu   ⌘S"` sẽ bắn vào khoảng trống. Phải lấy
+  `candidate.boundingBox(for: range)` của đúng khoảng khớp. Phát hiện khi chạy `C9` của kiểm thử
+  tay: click rơi đúng tâm cả dòng, lệch 83 point khỏi từ cần nhắm.
 - **RG-16** `[đã làm]` Nhiều đoạn cùng khớp thì lấy đoạn có độ tin cậy cao nhất; bằng nhau thì theo quy tắc
   của `RG-10`.

@@ -33,11 +33,17 @@ enum TextFinder {
 
         for observation in observations {
             guard let candidate = observation.topCandidates(1).first,
-                  normalise(candidate.string).contains(target) else { continue }
+                  let range = candidate.string.range(of: target, options: .caseInsensitive)
+            else { continue }
+
+            // RG-15: hộp bao của **đoạn chữ khớp**, không phải của cả dòng Vision đọc được.
+            // Vision gộp cả dòng thành một observation, nên lấy `observation.boundingBox` sẽ
+            // click vào giữa dòng: tìm "Lưu" trong dòng "Lưu   ⌘S" là bắn vào khoảng trống.
+            let matchBox = (try? candidate.boundingBox(for: range))??.boundingBox
 
             // Vision trả về toạ độ chuẩn hoá với gốc ở **dưới-trái**; ảnh và `CGEvent` dùng
             // gốc **trên-trái**, nên phải lật trục dọc.
-            let box = observation.boundingBox
+            let box = matchBox ?? observation.boundingBox
             let match = Match(
                 boundingBox: CGRect(
                     x: box.minX * width,
@@ -57,9 +63,11 @@ enum TextFinder {
         return best
     }
 
-    /// RG-14: không phân biệt hoa thường, bỏ khoảng trắng thừa hai đầu.
+    /// RG-14: bỏ khoảng trắng thừa hai đầu. Việc không phân biệt hoa thường do
+    /// `String.range(of:options:.caseInsensitive)` lo — cách đó cho luôn **vị trí** của đoạn
+    /// khớp, thứ mà so sánh bằng `contains` trên chuỗi đã hạ chữ thường không cho.
     static func normalise(_ text: String) -> String {
-        text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static var recognitionLanguages: [String] {

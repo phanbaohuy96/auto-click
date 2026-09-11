@@ -133,20 +133,39 @@ màn hình.
 
 | # | Làm | Chờ thấy | Chứng minh | Kết quả |
 |---|---|---|---|---|
-| C1 | Bước `click`/`theoẢnh` → **Chụp ảnh mẫu** → khoanh một nút trong TextEdit | Lớp phủ biến mất **trước khi** chụp; ảnh mẫu không dính lớp phủ hay cửa sổ Auto Click | `RG-5` `RG-20` | |
-| C2 | Chạy Bước đó | **Click đúng tâm nút**, không lệch | `RG-2` `RG-11` | |
-| C3 | **Nếu máy có màn hình ngoài không-Retina**: kéo TextEdit sang đó, lặp C1–C2 | Vẫn trúng tâm | `RG-2` | |
-| C4 | **Nếu có nhiều màn hình**: đặt cửa sổ trên màn hình phụ, lặp C1–C2 | Vẫn trúng, không bắn sang màn hình chính | `RG-2` | |
-| C5 | Di chuyển nút đó đi chỗ khác (đổi kích thước cửa sổ), chạy lại | Tìm lại được ở vị trí mới | `RG-8` | |
-| C6 | Che nút đi (đè cửa sổ khác lên), chạy với `chờ = 5000ms`, `khiHếtGiờ = dừng` | Thử lại ~5 giây rồi dừng có báo | `EX-8` | |
-| C7 | Lặp C6 với `khiHếtGiờ = bỏQuaBước` và một Bước nữa phía sau | Bỏ Bước đó, **chạy tiếp** Bước sau | `EX-9` | |
-| C8 | Lặp C6 nhưng bỏ che **trong lúc** đang chờ | Tìm thấy và click ngay, không đợi hết giờ | `EX-8` | |
-| C9 | Bước `click`/`theoChữ` với một từ đang hiện trên màn hình | Click đúng tâm đoạn chữ | `RG-13` `RG-15` | |
-| C10 | Lặp C9 với chữ viết hoa/thường khác đi | Vẫn tìm thấy | `RG-14` | |
-| C11 | **Khoanh vùng tìm** vào nửa trái màn hình, đặt mẫu ở nửa phải, chạy | **Không** tìm thấy — vùng tìm thật sự có tác dụng | `RG-4` `RG-6` | |
-| C12 | Bước `theoẢnh` **không** đặt Ứng dụng khoá | Vẫn chạy được, không bị chặn | `RG-17` (ADR-0006) | |
-| C13 | Đo bằng mắt: một Bước `theoẢnh` mất bao lâu từ lúc bắt đầu tới lúc click | Ghi lại con số. Trên 1 giây là cần xem lại `RG-18` | `RG-18` `RG-21` | |
+| C1 | Bước `click`/`theoẢnh` → **Chụp ảnh mẫu** → khoanh một nút trong TextEdit | Lớp phủ biến mất **trước khi** chụp; ảnh mẫu không dính lớp phủ hay cửa sổ Auto Click | `RG-5` `RG-20` | **Đạt** — ảnh mẫu app chụp **trùng từng pixel** với ảnh tham chiếu (`0.00/255`). Phép thử không vô nghĩa: lớp phủ có thật sự làm tối màn hình (`12,74/255`). `RG-20`: đưa chính cửa sổ Auto Click đè lên vùng chụp — ảnh mẫu vẫn ra TextEdit phía sau (`0.00/255`), khác hẳn thứ đang hiện (`65,74/255`) |
+| C2 | Chạy Bước đó | **Click đúng tâm nút**, không lệch | `RG-2` `RG-11` | **Đạt** — click `(273,321)`, **khớp từng pixel** với tâm đo bằng Accessibility. Ảnh mẫu 272×86 **pixel** → vùng 136×43 **point**: `RG-2` đúng |
+| C3 | **Nếu máy có màn hình ngoài không-Retina**: kéo TextEdit sang đó, lặp C1–C2 | Vẫn trúng tâm | `RG-2` | **Không chạy được** — máy chỉ có một màn hình Retina nội tại (1512×982 @2x) |
+| C4 | **Nếu có nhiều màn hình**: đặt cửa sổ trên màn hình phụ, lặp C1–C2 | Vẫn trúng, không bắn sang màn hình chính | `RG-2` | **Không chạy được** — chỉ có một màn hình |
+| C5 | Di chuyển nút đó đi chỗ khác (đổi kích thước cửa sổ), chạy lại | Tìm lại được ở vị trí mới | `RG-8` | **Đạt** — cửa sổ dời sang `(450,430)`, tìm lại được, click đúng `(523,551)` |
+| C6 | Che nút đi (đè cửa sổ khác lên), chạy với `chờ = 5000ms`, `khiHếtGiờ = dừng` | Thử lại ~5 giây rồi dừng có báo | `EX-8` | **Đạt** — 0 click, Bước sau **không** chạy; đo được 8,44 s = 3 s đếm ngược + **5,44 s thử lại** (đặt 5000 ms) |
+| C7 | Lặp C6 với `khiHếtGiờ = bỏQuaBước` và một Bước nữa phía sau | Bỏ Bước đó, **chạy tiếp** Bước sau | `EX-9` | **Đạt** — Bước 1 hết giờ không click, **Bước 2 vẫn chạy** và click đúng `(900,700)` |
+| C8 | Lặp C6 nhưng bỏ che **trong lúc** đang chờ | Tìm thấy và click ngay, không đợi hết giờ | `EX-8` | **Đạt** — bỏ che lúc t+5,0 s, click ra lúc t+5,7 s: tìm thấy sau **714 ms**, không đợi hết 8 giây |
+| C9 | Bước `click`/`theoChữ` với một từ đang hiện trên màn hình | Click đúng tâm đoạn chữ | `RG-13` `RG-15` | **Hỏng → đã sửa** — click `(356,551)` = tâm **cả dòng** `"ZUKAMI QWERTY"`, không phải `(273,551)` = tâm chữ cần tìm. Lệch 83 point. Xem `RG-15`. **Chờ chạy lại** |
+| C10 | Lặp C9 với chữ viết hoa/thường khác đi | Vẫn tìm thấy | `RG-14` | **Chờ chạy lại** cùng bản sửa `RG-15` |
+| C11 | **Khoanh vùng tìm** vào nửa trái màn hình, đặt mẫu ở nửa phải, chạy | **Không** tìm thấy — vùng tìm thật sự có tác dụng | `RG-4` `RG-6` | **Đạt cả hai chiều** — mục tiêu ngoài vùng tìm: báo *"Không tìm thấy Ảnh mẫu zukami.png (ngưỡng 0.90)"*; dời vào trong vùng: click đúng `(873,551)` |
+| C12 | Bước `theoẢnh` **không** đặt Ứng dụng khoá | Vẫn chạy được, không bị chặn | `RG-17` (ADR-0006) | **Đạt** — Kịch bản không có Ứng dụng khoá vẫn chạy nhận dạng bình thường |
+| C13 | Đo bằng mắt: một Bước `theoẢnh` mất bao lâu từ lúc bắt đầu tới lúc click | Ghi lại con số. Trên 1 giây là cần xem lại `RG-18` | `RG-18` `RG-21` | **Đạt** — 560–710 ms mỗi lần nhận dạng toàn màn hình. Dưới ngưỡng 1 giây |
 | C14 | **Thu hồi** quyền Screen Recording trong System Settings rồi chạy Bước `theoẢnh` | Báo lỗi nêu **cả hai** khả năng (chưa cấp / cần khởi động lại), không sập | `SF-7` | |
+
+### Phát hiện ngoài checklist — phiên C
+
+**`RG-15` — click vào giữa dòng thay vì vào từ cần nhắm.** `TextFinder` lấy
+`observation.boundingBox`, mà Vision gộp **cả dòng** thành một observation. Tìm `"ZUKAMI"` trong
+dòng `"ZUKAMI QWERTY"` cho ra tâm cả dòng, lệch **83 point**. Trong thực tế đó là tìm `"Lưu"`
+trong dòng `"Lưu   ⌘S"` rồi bắn vào khoảng trống giữa hai thứ. Đã sửa bằng
+`candidate.boundingBox(for: range)`, và có test hồi quy: hai từ trên cùng một dòng phải cho **hai
+hộp khác nhau** — lật về code cũ thì hai hộp trùng khít và test đỏ.
+
+### Hai mục treo từ phiên A đã làm xong
+
+Cửa sổ **Soạn kịch bản** là `NSWindow` thật nên cây AX đọc được đầy đủ, khác hẳn popover.
+
+- **`UI-9` đạt** — thêm Bước, **kéo thả đổi thứ tự** (Bước 1 kéo xuống cuối, thứ tự đổi thật),
+  nhân bản (3→4 Bước, hai Bước ảnh mẫu liền nhau), xoá (4→3). Mọi thay đổi ghi thẳng vào
+  `scenario.json`, không có nút Lưu nào (`UI-11`, `ST-11`).
+- **`UI-10` đạt** — panel chi tiết bày đúng **hai picker tách bạch** Hành động và Vị trí, cộng các
+  trường phụ thuộc lựa chọn (Nút, Số lần bấm, Giữ; Ngưỡng khớp, Chờ tối đa, Hết giờ thì, Vùng tìm).
 
 ## Phiên D — Ghi thao tác
 
