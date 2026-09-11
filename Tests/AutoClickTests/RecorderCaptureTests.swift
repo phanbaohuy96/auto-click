@@ -57,6 +57,35 @@ struct RecorderCaptureTests {
         #expect(scenario.steps[0].target == .windowRelative(corner: .topLeft, dx: 50, dy: 40))
     }
 
+    /// RC-2: Auto Click đang là ứng dụng **ở trước** không làm mất cú bấm vào ứng dụng khác.
+    ///
+    /// Đúng luồng người dùng: mở popover, bấm "Ghi thao tác". Popover đóng nhưng Auto Click vẫn là
+    /// ứng dụng ở trước, nên phép thử cũ ("ai đang ở trước") nuốt **thao tác đầu tiên của mọi bản
+    /// ghi**, lặng lẽ. Đo trên app thật: ba cú bấm ra hai Bước, cú mất luôn là cú đầu.
+    ///
+    /// Và Ứng dụng khoá phải là ứng dụng **dưới con trỏ**, không phải Auto Click — nếu quy nhầm,
+    /// cả phiên ghi bị coi là trải trên hai ứng dụng và mất luôn Vị trí tương đối cửa sổ.
+    @Test func theFirstClickIsKeptEvenWhenAutoClickIsStillTheFrontmostApp() throws {
+        let fake = FakeRecordingEnvironment()
+        fake.frontmostProcessIdentifier = FakeRecordingEnvironment.ownProcessIdentifier
+        fake.processIdentifierAtPoint = FakeRecordingEnvironment.otherProcessIdentifier
+        let (recorder, result) = makeRecorder(fake)
+
+        click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)
+        // Cú thứ hai thì ứng dụng kia đã lên trước, như thật.
+        fake.frontmostProcessIdentifier = FakeRecordingEnvironment.otherProcessIdentifier
+        click(recorder, fake, at: CGPoint(x: 250, y: 140), downAt: 1_001, upAt: 1_001.05)
+        recorder.finishSession()
+
+        #expect(recorder.recordedGestureCount == 2)
+        let outcome = try #require(result())
+        #expect(outcome.scenario.steps.count == 2)
+        #expect(outcome.scenario.lockedApplication?.bundleIdentifier == "com.test.Ghi")
+        // Một ứng dụng duy nhất nên không có cảnh báo, và Vị trí được nâng lên tương đối cửa sổ.
+        #expect(outcome.warning == nil)
+        #expect(outcome.scenario.steps[0].target == .windowRelative(corner: .topLeft, dx: 50, dy: 40))
+    }
+
     @Test func aPlainClickBecomesOneStepAnchoredToTheWindow() {
         let fake = FakeRecordingEnvironment()
         let (recorder, result) = makeRecorder(fake)
@@ -75,7 +104,8 @@ struct RecorderCaptureTests {
 
     @Test func eventsBelongingToAutoClickItselfAreNeverRecorded() {
         let fake = FakeRecordingEnvironment()
-        fake.frontmostProcessIdentifier = FakeRecordingEnvironment.ownProcessIdentifier
+        // Điều kiện đúng là **điểm bấm rơi vào cửa sổ của mình**, không phải "mình đang ở trước".
+        fake.ownWindowRects = [CGRect(x: 100, y: 100, width: 200, height: 120)]
         let (recorder, result) = makeRecorder(fake)
 
         click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)

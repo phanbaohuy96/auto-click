@@ -7,15 +7,23 @@ Lát 3. Xem [ADR-0003](../adr/0003-khong-ghi-ban-phim-khi-record.md) (không ghi
 
 - **RC-1** `[đã làm]` Bắt đầu và kết thúc **Phiên ghi** bằng phím tắt toàn cục `⌥⌘R`, **không** bằng nút
   trên màn hình — click vào nút sẽ tự lọt vào bản ghi.
-- **RC-2** `[đã làm]` Sự kiện nào bấm vào chính Auto Click thì bị loại khỏi bản ghi, kể cả phần
-  đuôi của cú thao tác đó (nhả chuột, kéo) chứ không riêng lúc nhấn xuống.
+- **RC-2** `[đã làm]` Sự kiện nào **rơi vào một cửa sổ của chính Auto Click** thì bị loại khỏi bản
+  ghi, kể cả phần đuôi của cú thao tác đó (nhả chuột, kéo) chứ không riêng lúc nhấn xuống.
 
-  Cần **hai** phép thử vì không phép nào đủ một mình:
+  Điều kiện là **vị trí**, không phải "ứng dụng nào đang ở trước". Phép thử theo ứng dụng ở trước
+  sai **cả hai chiều**, và cả hai đều đo được trên app thật:
 
-  1. tiến trình đang ở trước là chính mình — bắt các cửa sổ thường;
-  2. điểm bấm rơi vào một cửa sổ của chính mình — bắt **bảng nổi lúc ghi**, vốn là `NSPanel` kiểu
-     `.nonactivatingPanel` nên bấm vào nó **không** làm Auto Click lên trước. Chỉ có phép thử 1
-     thì cú bấm nút "Kết thúc" lọt vào bản ghi thành một Bước click thừa ngay chỗ cái nút.
+  - **Bỏ sót.** Bảng nổi lúc ghi là `NSPanel` kiểu `.nonactivatingPanel`, bấm vào nó **không** làm
+    Auto Click lên trước — nên cú bấm nút "Kết thúc" lọt vào bản ghi thành một Bước click thừa
+    ngay chỗ cái nút.
+  - **Bắt nhầm, nặng hơn.** Người dùng mở popover rồi bấm "Ghi thao tác": popover đóng nhưng Auto
+    Click **vẫn là ứng dụng ở trước**, nên cú bấm đầu tiên vào ứng dụng đích bị coi là của chính
+    mình và bị nuốt. Tức là **mọi bản ghi bắt đầu từ popover đều mất thao tác đầu tiên**, lặng lẽ.
+    Đo được: ba cú bấm ra hai Bước, cú mất luôn là cú đầu.
+
+  Kèm theo đó, **ứng dụng sở hữu** cú thao tác phải hỏi theo toạ độ khi ứng dụng ở trước là chính
+  Auto Click. Quy nhầm cho mình thì cả phiên ghi bị coi là trải trên hai ứng dụng (`RC-14`) và mất
+  luôn Vị trí tương đối **Cửa sổ neo** (`RC-13`).
 - **RC-3** `[đã làm]` Trong lúc ghi, bảng nổi hiển thị số **Bước** đã ghi và nhắc `⌥⌘R` để kết thúc.
 - **RC-4** `[đã làm]` **Phiên ghi** chỉ quan sát chuột: `mouseDown`, `mouseUp`, `mouseDragged`, `scrollWheel`.
 

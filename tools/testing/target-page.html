@@ -247,12 +247,23 @@ const queue = [];
 let count = 0;
 const t0 = performance.now();
 
+// An SVG child's `className` is an SVGAnimatedString, which serialises to `{}` — useless in the
+// log. Walk up to the nearest element that actually carries a name.
+function namedTarget(node) {
+  if (!node || !node.closest) return '?';
+  const named = node.closest('[id]');
+  if (named && named.id) return named.id;
+  const cls = node.closest('.icon, .tile');
+  if (cls) return (typeof cls.className === 'string' ? cls.className : cls.getAttribute('class')) || '?';
+  return typeof node.className === 'string' && node.className ? node.className : (node.tagName || '?');
+}
+
 function record(e, extra) {
   const entry = {
     n: ++count,
     type: e.type,
     t: Math.round(performance.now() - t0),
-    target: (e.target && e.target.id) || (e.target && e.target.className) || '?'
+    target: namedTarget(e.target)
   };
   if ('clientX' in e) {
     Object.assign(entry, {

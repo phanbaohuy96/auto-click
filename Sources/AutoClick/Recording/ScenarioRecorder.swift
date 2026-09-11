@@ -153,16 +153,21 @@ final class ScenarioRecorder: ObservableObject {
         case .mouseUp, .mouseDragged: isGestureStart = false
         }
 
-        // RC-2: bỏ sự kiện thuộc chính Auto Click ra khỏi bản ghi.
         var processIdentifier: pid_t?
         var windowFrame: CGRect?
         if isGestureStart {
-            processIdentifier = environment.frontmostProcessIdentifier()
-            // Hai phép thử, vì không phép nào đủ một mình: cửa sổ thường thì Auto Click lên trước,
-            // còn bảng nổi lúc ghi thì không (`.nonactivatingPanel`) nên phải hỏi theo toạ độ.
-            ignoringGesture = processIdentifier == environment.ownProcessIdentifier()
-                || environment.pointIsInOwnWindow(event.location)
+            // RC-2: bỏ đúng những cú bấm **rơi vào cửa sổ của chính Auto Click**, và chỉ thế.
+            ignoringGesture = environment.pointIsInOwnWindow(event.location)
             if ignoringGesture { return }
+
+            // Ứng dụng sở hữu cú thao tác. Thường là ứng dụng đang ở trước — nhưng ngay sau khi
+            // người dùng bấm nút "Ghi thao tác", ứng dụng ở trước là **Auto Click**, nên phải hỏi
+            // theo toạ độ. Nếu không, cú đầu bị quy cho chính mình và cả phiên ghi bị coi là trải
+            // trên hai ứng dụng, mất luôn Vị trí tương đối cửa sổ.
+            let owner = environment.frontmostProcessIdentifier()
+            processIdentifier = owner == environment.ownProcessIdentifier()
+                ? environment.processIdentifierAtPoint(event.location)
+                : owner
             if let processIdentifier {
                 windowFrame = environment.anchorWindowFrame(processIdentifier)
             }

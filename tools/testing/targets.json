@@ -468,7 +468,7 @@
     },
     {
       "id": "LATE",
-      "visible": true,
+      "visible": false,
       "client": {
         "x": 280,
         "y": 470,

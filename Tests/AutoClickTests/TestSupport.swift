@@ -169,6 +169,8 @@ final class FakeRecordingEnvironment {
     var doubleClickInterval: TimeInterval = 0.5
     /// Các cửa sổ của chính Auto Click, theo toạ độ màn hình gốc trên-trái như `CGEvent.location`.
     var ownWindowRects: [CGRect] = []
+    /// Tiến trình sở hữu cửa sổ dưới con trỏ; mặc định là ứng dụng đang được ghi.
+    var processIdentifierAtPoint: pid_t? = FakeRecordingEnvironment.otherProcessIdentifier
     /// Đồng hồ do test lái: mỗi sự kiện tự chọn thời điểm của mình.
     var now: TimeInterval = 1_000
 
@@ -179,6 +181,7 @@ final class FakeRecordingEnvironment {
             pointIsInOwnWindow: { [self] (point: CGPoint) in
                 ownWindowRects.contains { $0.contains(point) }
             },
+            processIdentifierAtPoint: { [self] _ in processIdentifierAtPoint },
             anchorWindowFrame: { [self] _ in anchorWindowFrame },
             application: { [self] in applications[$0] },
             doubleClickInterval: { [self] in doubleClickInterval },

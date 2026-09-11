@@ -17,6 +17,10 @@ struct RecordingEnvironment {
     /// `.nonactivatingPanel`, bấm vào nó **không** làm Auto Click thành ứng dụng trước, nên hỏi
     /// "ai đang ở trước" vẫn ra ứng dụng kia và cú bấm "Kết thúc" lọt thẳng vào bản ghi.
     var pointIsInOwnWindow: (CGPoint) -> Bool
+    /// Tiến trình sở hữu cửa sổ nằm dưới một điểm. Cần khi Auto Click đang là ứng dụng ở
+    /// trước — ngay sau khi người dùng bấm nút "Ghi thao tác" — nên hỏi "ai đang ở trước" sẽ ra
+    /// chính mình chứ không ra ứng dụng người dùng đang thao tác.
+    var processIdentifierAtPoint: (CGPoint) -> pid_t?
     var anchorWindowFrame: (pid_t) -> CGRect?
     var application: (pid_t) -> LockedApplication?
     var doubleClickInterval: () -> TimeInterval
@@ -35,6 +39,7 @@ struct RecordingEnvironment {
             let number = NSWindow.windowNumber(at: flipped, belowWindowWithWindowNumber: 0)
             return NSApp.windows.contains { $0.isVisible && $0.windowNumber == number }
         },
+        processIdentifierAtPoint: ScenarioSystemBridge.live.processIdentifierAtPoint,
         anchorWindowFrame: WindowAnchor.focusedWindowFrame(ofProcess:),
         application: { processIdentifier in
             guard let application = NSRunningApplication(processIdentifier: processIdentifier),
