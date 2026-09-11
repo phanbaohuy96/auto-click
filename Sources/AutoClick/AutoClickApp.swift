@@ -18,8 +18,7 @@ struct AutoClickApp: App {
 
         // RC-16: ghi xong thì lưu Kịch bản, chọn nó, rồi mở cửa sổ soạn thảo.
         recorder.onFinished = { result in
-            store.save(result.scenario)
-            store.selectedScenarioID = result.scenario.id
+            store.addRecorded(result.scenario)
             editorController.show()
         }
 

@@ -78,6 +78,11 @@ Lát 3. Xem [ADR-0003](../adr/0003-khong-ghi-ban-phim-khi-record.md) (không ghi
 
 - **RC-16** `[đã làm]` Kết thúc **Phiên ghi** tạo một **Kịch bản** mới đã lưu, tên mặc định theo ứng dụng
   và thời điểm ghi, rồi mở cửa sổ soạn thảo với **Kịch bản** đó.
+
+  Tên phải **không trùng**: mốc thời gian chỉ tới phút, nên hai lần ghi trong cùng một phút ra
+  đúng cùng một tên và trình chọn bày ra hai dòng y hệt nhau. Đo được khi chạy phiên D: sáu bản
+  ghi, ba cặp trùng tên. Đường lưu thường (`save`) vẫn **không** đụng tới tên, vì nó cũng là
+  đường ghi từng ký tự người dùng gõ khi đổi tên.
 - **RC-17** `[đã làm]` **Phiên ghi** không ghi được **Bước** nào thì không tạo **Kịch bản**.
 
 ## Kiểm chứng

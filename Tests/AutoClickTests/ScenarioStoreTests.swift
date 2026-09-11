@@ -198,3 +198,23 @@ private struct Fixture {
     // Và bản gốc không bị đụng vào.
     #expect(FileManager.default.fileExists(atPath: library.url(for: "nut.png").path))
 }
+
+/// RC-16: hai lần ghi trong cùng một phút ra cùng một tên, nên tên phải được làm cho khác nhau.
+///
+/// `save` không đụng tới tên — đúng, vì nó cũng là đường lưu mỗi ký tự người dùng gõ khi đổi tên.
+/// Nhưng đường **ghi thao tác** thì cần, nếu không trình chọn bày ra hai dòng y hệt nhau.
+@MainActor
+@Test func twoRecordingsInTheSameMinuteDoNotEndUpWithTheSameName() throws {
+    let fixture = Fixture()
+    defer { fixture.cleanUp() }
+
+    let store = fixture.makeStore()
+    let first = store.addRecorded(Scenario(name: "Google Chrome 12/09 01:09"))
+    let second = store.addRecorded(Scenario(name: "Google Chrome 12/09 01:09"))
+
+    #expect(first.name == "Google Chrome 12/09 01:09")
+    #expect(second.name == "Google Chrome 12/09 01:09 2")
+    #expect(store.scenarios.count == 2)
+    // Và cái vừa ghi là cái đang được chọn.
+    #expect(store.selectedScenarioID == second.id)
+}

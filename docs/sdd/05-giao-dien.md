@@ -55,3 +55,7 @@
 - **UI-19** `[Lát 2]` `[đã làm]` **Ảnh mẫu** hiện bằng chính ảnh đó, không phải tên tệp — tên là
   `3f2a91c0.png`, nhìn không biết là cái gì. Kích thước pixel thật vẫn nằm trong tooltip vì nó quyết
   định vùng quét và tốc độ khớp. Thiếu tệp thì báo rõ thay vì hiện ô trống.
+- **UI-20** `[Lát 2]` `[đã làm]` Dòng thông báo dưới phần cấu hình không phải lúc nào cũng là lý do
+  **chưa chạy được**: bộ ghi cũng báo **thành công** qua đó. `"Đã ghi 3 bước."` từng hiện kèm
+  `exclamationmark.triangle.fill` màu cam, trông y như hỏng — cùng lỗi với `UI-16` ở dòng trạng
+  thái, chỉ khác chỗ. Thông báo nào cần người dùng xử lý mới mang biểu tượng cảnh báo.

@@ -14,6 +14,11 @@ final class ScenarioRecorder: ObservableObject {
     }
     @Published private(set) var recordedGestureCount = 0
     @Published private(set) var message: String?
+    /// Thông báo hiện tại có phải chuyện cần người dùng xử lý không.
+    ///
+    /// `"Đã ghi 3 bước."` là **thành công**. Đổ chung một dòng với các lý do không chạy được thì
+    /// nó hiện kèm tam giác cam, trông y như hỏng — cùng lỗi với `UI-16` ở dòng trạng thái.
+    @Published private(set) var messageNeedsAttention = false
 
     var onRecordingStateChanged: ((Bool) -> Void)?
     /// Gọi khi phiên ghi kết thúc và có ít nhất một Bước (RC-16, RC-17).
@@ -39,6 +44,7 @@ final class ScenarioRecorder: ObservableObject {
         guard !isRecording else { return false }
         guard AXIsProcessTrusted() else {
             message = "Hãy cấp quyền Accessibility cho Auto Click rồi thử lại. Nếu Auto Click đã có trong danh sách, hãy tắt rồi bật lại — bản cập nhật làm quyền cũ hết hiệu lực."
+            messageNeedsAttention = true
             return false
         }
 
@@ -56,6 +62,7 @@ final class ScenarioRecorder: ObservableObject {
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
             message = "Không tạo được bộ lắng nghe sự kiện."
+            messageNeedsAttention = true
             return false
         }
 
@@ -69,6 +76,7 @@ final class ScenarioRecorder: ObservableObject {
         events.removeAll()
         recordedGestureCount = 0
         message = nil
+        messageNeedsAttention = false
         isRecording = true
         return true
     }
@@ -91,6 +99,7 @@ final class ScenarioRecorder: ObservableObject {
         guard !recorded.isEmpty else {
             // RC-17: không ghi được Bước nào thì không tạo Kịch bản.
             message = "Không ghi được thao tác nào."
+            messageNeedsAttention = true
             return
         }
 
@@ -100,6 +109,7 @@ final class ScenarioRecorder: ObservableObject {
             lockedApplication: lockedApplication(for: recorded)
         )
         message = result.warning ?? "Đã ghi \(recorded.count) bước."
+        messageNeedsAttention = result.warning != nil
         onFinished?(result)
     }
 

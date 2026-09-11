@@ -240,3 +240,53 @@ struct RecorderNeverListensToTheKeyboardTests {
         #expect(captured == nil)
     }
 }
+
+/// UI-16 (cùng họ): `"Đã ghi N bước."` là **thành công**, không được mang biểu tượng lỗi.
+///
+/// Thông báo của bộ ghi bị đổ chung một dòng với các lý do không chạy được, mà dòng đó luôn vẽ
+/// bằng `exclamationmark.triangle.fill` màu cam. Nên ghi xong thành công vẫn trông như hỏng.
+@MainActor
+struct RecorderMessageSeverityTests {
+    @Test func aSuccessfulRecordingDoesNotAskForAttention() throws {
+        let fake = FakeRecordingEnvironment()
+        let recorder = ScenarioRecorder(environment: fake.environment)
+
+        recorder.handle(type: .leftMouseDown, event: TestEvent.mouse(.leftMouseDown, at: CGPoint(x: 150, y: 140)))
+        fake.now += 0.05
+        recorder.handle(type: .leftMouseUp, event: TestEvent.mouse(.leftMouseUp, at: CGPoint(x: 150, y: 140)))
+        recorder.finishSession()
+
+        #expect(recorder.message == "Đã ghi 1 bước.")
+        #expect(recorder.messageNeedsAttention == false)
+    }
+
+    @Test func recordingNothingDoesAskForAttention() {
+        let fake = FakeRecordingEnvironment()
+        fake.ownWindowRects = [CGRect(x: 100, y: 100, width: 200, height: 120)]
+        let recorder = ScenarioRecorder(environment: fake.environment)
+
+        recorder.handle(type: .leftMouseDown, event: TestEvent.mouse(.leftMouseDown, at: CGPoint(x: 150, y: 140)))
+        recorder.handle(type: .leftMouseUp, event: TestEvent.mouse(.leftMouseUp, at: CGPoint(x: 150, y: 140)))
+        recorder.finishSession()
+
+        #expect(recorder.message == "Không ghi được thao tác nào.")
+        #expect(recorder.messageNeedsAttention)
+    }
+
+    /// Bản ghi trải trên hai ứng dụng vẫn là cảnh báo thật: Vị trí tụt về toạ độ tuyệt đối.
+    @Test func aRecordingSpanningTwoApplicationsDoesAskForAttention() {
+        let fake = FakeRecordingEnvironment()
+        fake.applications[7] = LockedApplication(bundleIdentifier: "com.test.Hai", name: "App Hai")
+        let recorder = ScenarioRecorder(environment: fake.environment)
+
+        recorder.handle(type: .leftMouseDown, event: TestEvent.mouse(.leftMouseDown, at: CGPoint(x: 150, y: 140)))
+        recorder.handle(type: .leftMouseUp, event: TestEvent.mouse(.leftMouseUp, at: CGPoint(x: 150, y: 140)))
+        fake.now += 1
+        fake.frontmostProcessIdentifier = 7
+        recorder.handle(type: .leftMouseDown, event: TestEvent.mouse(.leftMouseDown, at: CGPoint(x: 400, y: 400)))
+        recorder.handle(type: .leftMouseUp, event: TestEvent.mouse(.leftMouseUp, at: CGPoint(x: 400, y: 400)))
+        recorder.finishSession()
+
+        #expect(recorder.messageNeedsAttention)
+    }
+}

@@ -161,6 +161,20 @@ final class ScenarioStore: ObservableObject {
     /// phần JSON mà bản app này không giải mã được. Nhân bản sẽ ghi ra một Kịch bản rỗng mang tên
     /// bản gốc và `schemaVersion` hiện tại, tức đúng thứ `ST-12` sinh ra để tránh: đọc sai thành
     /// một Kịch bản trông như thật. Phát hiện ở `E2` của kiểm thử tay.
+    /// Lưu một **Kịch bản** vừa ghi, và chọn nó.
+    ///
+    /// Khác `save`: tên được làm cho không trùng. `RC-16` đặt tên theo phút, nên hai lần ghi trong
+    /// cùng một phút ra **đúng cùng một tên** — trên trình chọn thì không phân biệt nổi cái nào là
+    /// cái nào. Đo được khi chạy phiên D: sáu bản ghi, ba cặp trùng tên.
+    @discardableResult
+    func addRecorded(_ scenario: Scenario) -> Scenario {
+        var stored = scenario
+        stored.name = uniqueName(from: scenario.name)
+        save(stored)
+        selectedScenarioID = stored.id
+        return stored
+    }
+
     @discardableResult
     func duplicate(_ scenario: Scenario) -> Scenario? {
         guard !readOnlyScenarioIDs.contains(scenario.id) else { return nil }

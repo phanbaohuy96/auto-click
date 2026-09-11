@@ -53,10 +53,15 @@ struct AutoClickMenuView: View {
             .disabled(runner.isRunning)
 
             if let blocker {
-                Label(blocker, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
+                Label(
+                    blocker.text,
+                    systemImage: blocker.needsAttention
+                        ? "exclamationmark.triangle.fill"
+                        : "checkmark.circle"
+                )
+                .font(.caption)
+                .foregroundStyle(blocker.needsAttention ? Color.orange : Color.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             }
 
             Label(runner.statusText, systemImage: statusIcon)
@@ -118,18 +123,37 @@ struct AutoClickMenuView: View {
 
     // MARK: - Bắt đầu / Dừng
 
-    private var blocker: String? {
+    /// Dòng dưới phần cấu hình. Phần lớn là lý do chưa chạy được, nhưng **không phải tất cả**:
+    /// bộ ghi cũng báo thành công qua đây, và một dòng thành công không được mang biểu tượng lỗi.
+    private struct Notice {
+        let text: String
+        let needsAttention: Bool
+    }
+
+    private var blocker: Notice? {
         if runner.isRunning { return nil }
         switch mode.wrappedValue {
         case .simple:
-            return clicker.validationMessage ?? clicker.message
+            guard let text = clicker.validationMessage ?? clicker.message else { return nil }
+            return Notice(text: text, needsAttention: true)
         case .scenario:
-            guard let scenario = store.selectedScenario else { return "Chưa có kịch bản nào." }
-            if store.isReadOnly(scenario) { return "Kịch bản này chỉ xem được." }
-            if needsScreenRecording {
-                return "Kịch bản dùng nhận dạng ảnh/chữ nên cần thêm quyền Screen Recording."
+            guard let scenario = store.selectedScenario else {
+                return Notice(text: "Chưa có kịch bản nào.", needsAttention: true)
             }
-            return runner.validate(scenario)?.errorDescription ?? recorder.message
+            if store.isReadOnly(scenario) {
+                return Notice(text: "Kịch bản này chỉ xem được.", needsAttention: true)
+            }
+            if needsScreenRecording {
+                return Notice(
+                    text: "Kịch bản dùng nhận dạng ảnh/chữ nên cần thêm quyền Screen Recording.",
+                    needsAttention: true
+                )
+            }
+            if let invalid = runner.validate(scenario)?.errorDescription {
+                return Notice(text: invalid, needsAttention: true)
+            }
+            guard let recorderMessage = recorder.message else { return nil }
+            return Notice(text: recorderMessage, needsAttention: recorder.messageNeedsAttention)
         }
     }
 
