@@ -88,7 +88,8 @@ chính bộ chạy đó ([ADR-0002](../adr/0002-buoc-la-hanh-dong-nhan-vi-tri.md
   lượt. Mọi con số tỉ lệ đều đã bị rút lại. Xem [ADR-0007].
 
   `B10` của kiểm thử tay vẫn **hỏng** sau thay đổi này: một Kịch bản có hai Bước `gõChuỗi` ra
-  `"â"` thay vì `"[B10b]"`. Chưa tìm ra nguyên nhân, chưa sửa.
+  `"â"` thay vì `"[B10b]"`. Chưa tìm ra nguyên nhân, chưa sửa — **để mở có chủ ý**: gõ chuỗi được
+  xếp ưu tiên thấp, kiểm thử cơ bản là đủ.
 - **EX-25** `[Lát 2]` `[đã làm]` Cửa sổ **đang thu nhỏ dưới Dock** không được dùng làm **Cửa sổ
   neo**. Accessibility vẫn trả về vị trí và kích thước cũ của nó như thể nó còn trên màn hình;
   tin vào đó thì `lệchCửaSổ` giải ra một toạ độ trỏ vào chỗ trống, hoặc vào cửa sổ ứng dụng khác.

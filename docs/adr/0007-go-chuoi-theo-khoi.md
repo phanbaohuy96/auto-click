@@ -52,5 +52,7 @@ một cách** trước và sau: bản cũ hỏng lặp lại được, bản m�
   nó. Còn mở.
 - Đường **dán qua clipboard** (lưu clipboard, đặt chuỗi, gửi `⌘V`, trả lại) là cách duy nhất
   không đi qua cơ chế đang hỏng. Đã cân và chưa chọn: nó cướp clipboard của người dùng ngay giữa
-  lúc họ đang làm việc khác, và ứng dụng nào chặn dán thì vẫn chịu. Nếu `B10` không lần ra được
-  nguyên nhân, đây là hướng nên xét lại.
+  lúc họ đang làm việc khác, và ứng dụng nào chặn dán thì vẫn chịu.
+- **Dừng ở đây theo quyết định của chủ dự án:** gõ chuỗi là tính năng ưu tiên thấp, kiểm thử cơ
+  bản là đủ. Nguyên nhân gốc và `B10` được để mở có chủ ý, không phải bỏ sót. Nếu sau này gõ chuỗi
+  lên ưu tiên, hướng clipboard là chỗ xét lại đầu tiên.

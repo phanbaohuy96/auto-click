@@ -80,7 +80,7 @@ Chỉ lộ ra khi cài đè lên một bản đã có quyền. Viết đặc t�
 | B7 | **Trong lúc B6 đang kéo**, bấm `⌥⌘S` | Chuột được nhả, không kẹt ở trạng thái đang kéo | `SF-1` `EX-23` | **Đạt** — 7 `leftDown` / **165** `leftDrag` / 7 `leftUp`. Trọn vẹn phải là 168, nên lần kéo thứ 7 bị cắt ở bước 21/24 và nhả tại `x=464` chứ không phải đích `x=500`. Rê chuột sau đó: 0 `leftDrag` |
 | B8 | Bước `gõChuỗi` với `Xin chào 123 — ăn` | Ra đúng chữ, đúng dấu tiếng Việt và dấu gạch dài | `EX-21` | **Đạt sau khi sửa** — bản cũ ra `"Aa chào 123 — ăn"`, không báo lỗi. Sau khi gửi theo khối (`EX-24`, [ADR-0007]): **8/8 lần đúng** qua chính app |
 | B9 | Bước `nhấnPhím` `⌘A` rồi Bước `nhấnPhím` `⌫` | Chọn hết rồi xoá hết | `EX-22` | **Đạt** — tài liệu từ `"Xin chào 123 — ăn"` về rỗng |
-| B10 | Chạy Kịch bản hai Bước gõ, **cướp focus sang Finder giữa hai Bước** | TextEdit **được đưa lên trước** rồi mới gõ; chữ không lọt sang Finder | `SF-4` `EX-12` | **Hỏng** — `SF-4` có chạy (Finder bị cướp focus lúc t+4 s, TextEdit trở lại lúc t+7,3 s), nhưng chữ ra `"â"` thay vì `"[B10b]"`. Cùng kiểu hỏng với `EX-24` nhưng **chưa lần ra nguyên nhân** |
+| B10 | Chạy Kịch bản hai Bước gõ, **cướp focus sang Finder giữa hai Bước** | TextEdit **được đưa lên trước** rồi mới gõ; chữ không lọt sang Finder | `SF-4` `EX-12` | **Hỏng, để mở** — `SF-4` có chạy (Finder bị cướp focus lúc t+4 s, TextEdit trở lại lúc t+7,3 s), nhưng chữ ra `"â"` thay vì `"[B10b]"`. Chưa lần ra nguyên nhân. **Chủ dự án xếp gõ chuỗi là ưu tiên thấp**, nên dừng ở đây thay vì đào tiếp |
 
 ### Phát hiện ngoài checklist — phiên B
 
