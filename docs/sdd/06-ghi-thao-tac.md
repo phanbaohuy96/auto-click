@@ -7,7 +7,15 @@ Lát 3. Xem [ADR-0003](../adr/0003-khong-ghi-ban-phim-khi-record.md) (không ghi
 
 - **RC-1** `[đã làm]` Bắt đầu và kết thúc **Phiên ghi** bằng phím tắt toàn cục `⌥⌘R`, **không** bằng nút
   trên màn hình — click vào nút sẽ tự lọt vào bản ghi.
-- **RC-2** `[đã làm]` Sự kiện nào có tiến trình đích là chính Auto Click thì bị loại khỏi bản ghi.
+- **RC-2** `[đã làm]` Sự kiện nào bấm vào chính Auto Click thì bị loại khỏi bản ghi, kể cả phần
+  đuôi của cú thao tác đó (nhả chuột, kéo) chứ không riêng lúc nhấn xuống.
+
+  Cần **hai** phép thử vì không phép nào đủ một mình:
+
+  1. tiến trình đang ở trước là chính mình — bắt các cửa sổ thường;
+  2. điểm bấm rơi vào một cửa sổ của chính mình — bắt **bảng nổi lúc ghi**, vốn là `NSPanel` kiểu
+     `.nonactivatingPanel` nên bấm vào nó **không** làm Auto Click lên trước. Chỉ có phép thử 1
+     thì cú bấm nút "Kết thúc" lọt vào bản ghi thành một Bước click thừa ngay chỗ cái nút.
 - **RC-3** `[đã làm]` Trong lúc ghi, bảng nổi hiển thị số **Bước** đã ghi và nhắc `⌥⌘R` để kết thúc.
 - **RC-4** `[đã làm]` **Phiên ghi** chỉ quan sát chuột: `mouseDown`, `mouseUp`, `mouseDragged`, `scrollWheel`.
 

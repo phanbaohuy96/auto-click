@@ -167,6 +167,8 @@ final class FakeRecordingEnvironment {
             LockedApplication(bundleIdentifier: "com.test.Ghi", name: "App Ghi")
     ]
     var doubleClickInterval: TimeInterval = 0.5
+    /// Các cửa sổ của chính Auto Click, theo toạ độ màn hình gốc trên-trái như `CGEvent.location`.
+    var ownWindowRects: [CGRect] = []
     /// Đồng hồ do test lái: mỗi sự kiện tự chọn thời điểm của mình.
     var now: TimeInterval = 1_000
 
@@ -174,6 +176,9 @@ final class FakeRecordingEnvironment {
         RecordingEnvironment(
             ownProcessIdentifier: { FakeRecordingEnvironment.ownProcessIdentifier },
             frontmostProcessIdentifier: { [self] in frontmostProcessIdentifier },
+            pointIsInOwnWindow: { [self] (point: CGPoint) in
+                ownWindowRects.contains { $0.contains(point) }
+            },
             anchorWindowFrame: { [self] _ in anchorWindowFrame },
             application: { [self] in applications[$0] },
             doubleClickInterval: { [self] in doubleClickInterval },

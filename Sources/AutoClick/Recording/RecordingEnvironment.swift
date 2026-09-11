@@ -11,6 +11,12 @@ import Foundation
 struct RecordingEnvironment {
     var ownProcessIdentifier: () -> pid_t
     var frontmostProcessIdentifier: () -> pid_t?
+    /// Điểm này có rơi vào một cửa sổ của chính Auto Click không (`RC-2`).
+    ///
+    /// Không thể thay bằng `frontmostProcessIdentifier`: bảng nổi lúc ghi là `NSPanel` kiểu
+    /// `.nonactivatingPanel`, bấm vào nó **không** làm Auto Click thành ứng dụng trước, nên hỏi
+    /// "ai đang ở trước" vẫn ra ứng dụng kia và cú bấm "Kết thúc" lọt thẳng vào bản ghi.
+    var pointIsInOwnWindow: (CGPoint) -> Bool
     var anchorWindowFrame: (pid_t) -> CGRect?
     var application: (pid_t) -> LockedApplication?
     var doubleClickInterval: () -> TimeInterval
@@ -20,6 +26,15 @@ struct RecordingEnvironment {
     static let live = RecordingEnvironment(
         ownProcessIdentifier: { ProcessInfo.processInfo.processIdentifier },
         frontmostProcessIdentifier: { NSWorkspace.shared.frontmostApplication?.processIdentifier },
+        pointIsInOwnWindow: { point in
+            // `CGEvent.location` lấy gốc ở trên-trái màn hình chính, `NSWindow` lấy gốc dưới-trái.
+            guard let mainScreen = NSScreen.screens.first else { return false }
+            let flipped = NSPoint(x: point.x, y: mainScreen.frame.maxY - point.y)
+            // Hỏi hệ thống cửa sổ nào **trên cùng** tại điểm đó, nên cửa sổ mình bị ứng dụng khác
+            // che thì không tính là của mình.
+            let number = NSWindow.windowNumber(at: flipped, belowWindowWithWindowNumber: 0)
+            return NSApp.windows.contains { $0.isVisible && $0.windowNumber == number }
+        },
         anchorWindowFrame: WindowAnchor.focusedWindowFrame(ofProcess:),
         application: { processIdentifier in
             guard let application = NSRunningApplication(processIdentifier: processIdentifier),

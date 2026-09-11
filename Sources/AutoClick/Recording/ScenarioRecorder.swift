@@ -25,6 +25,8 @@ final class ScenarioRecorder: ObservableObject {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var events: [RecordedEvent] = []
+    /// Đang bỏ qua cú thao tác hiện tại vì nó bấm vào chính Auto Click (`RC-2`).
+    private var ignoringGesture = false
 
     init(environment: RecordingEnvironment = .live) {
         self.environment = environment
@@ -142,11 +144,18 @@ final class ScenarioRecorder: ObservableObject {
         var windowFrame: CGRect?
         if isGestureStart {
             processIdentifier = environment.frontmostProcessIdentifier()
-            if processIdentifier == environment.ownProcessIdentifier() { return }
+            // Hai phép thử, vì không phép nào đủ một mình: cửa sổ thường thì Auto Click lên trước,
+            // còn bảng nổi lúc ghi thì không (`.nonactivatingPanel`) nên phải hỏi theo toạ độ.
+            ignoringGesture = processIdentifier == environment.ownProcessIdentifier()
+                || environment.pointIsInOwnWindow(event.location)
+            if ignoringGesture { return }
             if let processIdentifier {
                 windowFrame = environment.anchorWindowFrame(processIdentifier)
             }
             recordedGestureCount += 1
+        } else if ignoringGesture {
+            // Bỏ nốt phần đuôi của cú thao tác đã bỏ, nếu không bản ghi dính một `mouseUp` mồ côi.
+            return
         }
 
         events.append(

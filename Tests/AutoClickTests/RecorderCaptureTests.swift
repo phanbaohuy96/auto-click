@@ -32,6 +32,31 @@ struct RecorderCaptureTests {
         recorder.handle(type: .leftMouseUp, event: TestEvent.mouse(.leftMouseUp, at: point))
     }
 
+    /// RC-2: bấm nút "Kết thúc" trên bảng nổi lúc ghi không được thành một Bước.
+    ///
+    /// Bảng nổi là `NSPanel` kiểu `.nonactivatingPanel`: bấm vào nó **không** làm Auto Click
+    /// thành ứng dụng trước, nên phép thử "ai đang ở trước" vẫn trả về ứng dụng đang được ghi và
+    /// cú bấm lọt thẳng vào bản ghi. Chủ dự án gặp đúng vậy: ghi xong, bấm Kết thúc, bản ghi thừa
+    /// một Bước click ngay chỗ cái nút.
+    @Test func aClickOnTheFloatingPanelIsNotRecordedEvenThoughItDoesNotActivateTheApp() throws {
+        let fake = FakeRecordingEnvironment()
+        // Đúng như thật: ứng dụng trước vẫn là ứng dụng đang được ghi, không phải Auto Click.
+        #expect(fake.frontmostProcessIdentifier == FakeRecordingEnvironment.otherProcessIdentifier)
+        fake.ownWindowRects = [CGRect(x: 500, y: 40, width: 390, height: 86)]
+        let (recorder, result) = makeRecorder(fake)
+
+        // Một cú bấm thật vào ứng dụng đang được ghi…
+        click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)
+        // …rồi bấm "Kết thúc" trên bảng nổi.
+        click(recorder, fake, at: CGPoint(x: 690, y: 83), downAt: 1_001, upAt: 1_001.05)
+        recorder.finishSession()
+
+        #expect(recorder.recordedGestureCount == 1)
+        let scenario = try #require(result()?.scenario)
+        #expect(scenario.steps.count == 1)
+        #expect(scenario.steps[0].target == .windowRelative(corner: .topLeft, dx: 50, dy: 40))
+    }
+
     @Test func aPlainClickBecomesOneStepAnchoredToTheWindow() {
         let fake = FakeRecordingEnvironment()
         let (recorder, result) = makeRecorder(fake)
