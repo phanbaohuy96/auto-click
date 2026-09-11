@@ -167,6 +167,50 @@ Cửa sổ **Soạn kịch bản** là `NSWindow` thật nên cây AX đọc đ�
 - **`UI-10` đạt** — panel chi tiết bày đúng **hai picker tách bạch** Hành động và Vị trí, cộng các
   trường phụ thuộc lựa chọn (Nút, Số lần bấm, Giữ; Ngưỡng khớp, Chờ tối đa, Hết giờ thì, Vùng tìm).
 
+## Bia tập bắn cho nhận dạng ảnh — `I1`…`I8`
+
+Phiên C dùng TextEdit làm bia, và TextEdit **không lộ ra được** lớp lỗi nguy nhất với ca dùng
+chính: trong game, vùng cần nhắm thường **không có chữ nào**, và hai nút gần giống nhau là chuyện
+thường ngày. Nên dựng một trang bia riêng: `tools/testing/target-page.html` + `log-server.py`.
+
+Trang tự khai báo **toạ độ màn hình của từng bia** và ghi lại **nó nhận được cú click nào**. Nhờ
+vậy mỗi phép thử có **hai nguồn đo độc lập**: bộ đo pid ghi cái Auto Click phát ra, trang ghi cái
+ứng dụng nhận được. Khu ảnh cố ý không có một chữ nào.
+
+| # | Bia | Chờ thấy | Kết quả |
+|---|---|---|---|
+| I1 | Một hình khối rõ ràng giữa các hình khác | Click đúng nó | **Đạt** |
+| I2 | Hai ô gần giống nhau, chỉ khác chút màu (`#1e88e5` / `#2b93e8`) | Click đúng ô đưa ảnh mẫu | **Hỏng → đã sửa** — xem dưới. **Chờ chạy lại** |
+| I3 | Một hình khác biệt giữa bầy giống nhau | Click đúng cái khác biệt | **Đạt** |
+| I4 | Năm hình tròn giống hệt | Ghi lại cái nào thắng | **Chưa chạy** |
+| I5 | Bia tí hon 26 px | Vẫn tìm ra | **Chưa chạy** |
+| I6 | Bia đặt trên nền nhiễu | Vẫn tìm ra | **Chưa chạy** |
+| I7 | Bia hiện muộn | Chờ rồi click | **Chưa chạy** |
+| I8 | Bia đã dời chỗ | Tìm ở chỗ mới | **Chưa chạy** |
+
+### Phát hiện ngoài checklist — khớp ảnh
+
+**Khớp ảnh chọn nhầm mục tiêu gần giống.** Đưa ảnh mẫu ô **A**, Auto Click click vào ô **B**. Đo
+bằng chính bộ khớp của app:
+
+| | Điểm |
+|---|---|
+| ảnh mẫu A trên ô **A** (đúng) | `0,999498` |
+| ảnh mẫu A trên ô **B** (sai) | **`1,001296`** ← thắng |
+
+Điểm **vượt quá 1,0** là điều không thể với tương quan chuẩn hoá — dấu hiệu triệt tiêu chữ số.
+Tính lại **cùng công thức** ở `Double`: ô A = `1,000000`, ô B = `0,999957`. Tức bộ khớp **phân biệt
+được**, chênh lệch thật `4·10⁻⁵`; nhưng dạng `Σh² − n·h̄²` cộng dồn bằng `Float` sinh nhiễu
+`~2·10⁻³` — **gấp 40 lần chênh lệch thật** — nên nó chọn bừa. Đối chứng: ảnh mẫu `S3` được
+`1,0017` trên `S3` và `0,5841` trên `S2`, tức phép đo vẫn phân biệt được khi hai thứ khác hẳn nhau.
+
+Đã đổi sang cộng dồn `Double`. Hai test hồi quy dựng đúng điều kiện mất chữ số tệ nhất (vùng sáng,
+tương phản thấp, 124×124) và đều kiểm mutation: bản `Float` cho điểm `1,0148` và **chọn đúng cái
+bia sai**.
+
+Lỗi này cũng là lý do `RG-23` ra đời: vùng tìm mặc định bám quanh chỗ vừa chụp thì ngay từ đầu đã
+không có cơ hội vớ phải mảnh giống hệt ở góc màn hình khác.
+
 ## Phiên D — Ghi thao tác
 
 | # | Làm | Chờ thấy | Chứng minh | Kết quả |
@@ -190,11 +234,30 @@ Cửa sổ **Soạn kịch bản** là `NSWindow` thật nên cây AX đọc đ�
 
 | # | Làm | Chờ thấy | Chứng minh | Kết quả |
 |---|---|---|---|---|
-| E1 | `echo "hỏng" > ~/Library/Application\ Support/AutoClick/Scenarios/<uuid>/scenario.json` rồi mở lại app | App vẫn chạy, chỉ thiếu Kịch bản đó | `ST-9` | |
-| E2 | Sửa `"schemaVersion"` của một Kịch bản thành `99`, mở lại app | Kịch bản hiện ra nhưng **chỉ đọc**, không mất dữ liệu | `ST-12` | |
-| E3 | Thêm một trường lạ vào `scenario.json`, mở lại | Bỏ qua, không lỗi | `ST-10` | |
-| E4 | Xoá một Kịch bản dùng Ảnh mẫu, kiểm tra thư mục | Cả thư mục biến mất, kể cả `templates/` | `ST-3` | |
-| E5 | Đổi Ảnh mẫu của một Bước vài lần, đếm tệp trong `templates/` | Tệp cũ bị dọn, thư mục không phình | `ST-12` | |
+| E1 | `echo "hỏng" > ~/Library/Application\ Support/AutoClick/Scenarios/<uuid>/scenario.json` rồi mở lại app | App vẫn chạy, chỉ thiếu Kịch bản đó | `ST-9` | **Đạt** — trước khi phá: app thấy đủ **9/9** Kịch bản, không cảnh báo. Sau: thấy **8**, đúng cái bị phá biến mất, và hiện *"1 kịch bản có vấn đề"*, tooltip nêu đích danh thư mục. Tệp hỏng và `templates/` của nó **còn nguyên** — app không tự dọn thứ nó không đọc được |
+| E2 | Sửa `"schemaVersion"` của một Kịch bản thành `99`, mở lại app | Kịch bản hiện ra nhưng **chỉ đọc**, không mất dữ liệu | `ST-12` | **Đạt, nhưng lòi ra lỗi mất dữ liệu** — Kịch bản hiện đúng tên, panel sửa bị thay hẳn bằng thông báo khoá (không còn ô tên, ô số vòng, danh sách Bước), tệp trên đĩa không bị đụng. Nhưng nút **Sao Chép** vẫn bấm được → xem phần dưới |
+| E3 | Thêm một trường lạ vào `scenario.json`, mở lại | Bỏ qua, không lỗi | `ST-10` | **Đạt cả ba vế** — thêm trường lạ ở gốc *và* trong Bước, bỏ `delayMillisecondsAfter`, đặt `repeat = 999.999.999` và `threshold = 7,5`. Kịch bản nạp bình thường, không cảnh báo; app bày `×1.000.000` và `ngưỡng 1.00` — kẹp đúng khoảng. Tệp trên đĩa **không bị ghi đè**: giá trị ngoài khoảng chỉ được kẹp trong bộ nhớ |
+| E4 | Xoá một Kịch bản dùng Ảnh mẫu, kiểm tra thư mục | Cả thư mục biến mất, kể cả `templates/` | `ST-3` | **Đạt** — nhân bản `I6` (có `NOISYICON.png`) rồi xoá bản sao: cả thư mục biến mất, kể cả `templates/`. Dựng phép thử này mới lộ ra vế ngược lại của `ST-3` bị hỏng → xem phần dưới |
+| E5 | Đổi Ảnh mẫu của một Bước vài lần, đếm tệp trong `templates/` | Tệp cũ bị dọn, thư mục không phình | `ST-12` | **Chưa chạy** — cần quyền Screen Recording để chụp lại Ảnh mẫu |
+
+### Phát hiện ngoài checklist — phiên E
+
+Hai lỗi **mất dữ liệu**, cùng một họ: Kịch bản trông bình thường nhưng rỗng ruột.
+
+**Nhân bản một Kịch bản chỉ đọc đẻ ra bản rỗng.** Bản nạp của Kịch bản `schemaVersion` mới hơn chỉ
+có `id` và `name` — các Bước nằm trong phần JSON bản app này không giải mã được. Nút Sao Chép vẫn
+bấm được, và ghi thẳng xuống đĩa một Kịch bản mang **tên bản gốc**, `schemaVersion` **hiện tại**,
+**không Bước nào**. Đo được: bấm một lần ra `"I6 tren nen nhieu (bản sao)"` với 0 bước, trình soạn
+thảo bảo *"Kịch bản chưa có bước nào."* Nguy ở chỗ bản sao trông hoàn toàn bình thường: người dùng
+tưởng đã cứu được dữ liệu khỏi cái khoá chỉ-đọc rồi xoá bản gốc là mất sạch. Đúng thứ `ST-12` sinh
+ra để tránh. Đã chặn ở kho và tắt luôn nút; xoá thì vẫn cho vì đó là việc người dùng cố ý làm.
+
+**Nhân bản bỏ quên Ảnh mẫu.** [ADR-0005] chọn *"mỗi Kịch bản một thư mục, Ảnh mẫu được nhân bản"*
+đúng để xoá là xoá thư mục và **nhân bản là copy thư mục**. Vế xoá đã đúng (`E4`), vế nhân bản thì
+chỉ copy `scenario.json`: bản sao giữ nguyên tên tệp Ảnh mẫu nhưng `templates/` của nó rỗng, nên
+mọi Bước nhận dạng của nó hỏng ngay. Trước khi có `UI-19` thì trên giao diện chỉ thấy một cái tên
+tệp, không cách nào biết là tệp không tồn tại. Đã sửa; kiểm lại trên app thật: bản sao của `I6` giờ
+mang theo `NOISYICON.png` trong thư mục của chính nó.
 
 ---
 
