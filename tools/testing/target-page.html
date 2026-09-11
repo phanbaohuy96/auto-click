@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Auto Click — target page</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #fff; color: #111;
+    font: 13px -apple-system, "Helvetica Neue", sans-serif;
+    /* No page scrolling: target coordinates must not move. */
+    overflow: hidden;
+  }
+  #board { position: absolute; left: 0; top: 0; width: 1000px; height: 900px; }
+  #header { position: absolute; left: 0; top: 0; width: 1000px; height: 52px;
+            border-bottom: 1px solid #ddd; padding: 6px 12px; font-variant-numeric: tabular-nums; }
+  #summary { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #444; }
+  .tile {
+    position: absolute; width: 110px; height: 70px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font: 700 28px ui-monospace, Menlo, monospace; color: #fff;
+    user-select: none; border: 3px solid rgba(0,0,0,.25);
+  }
+  /* Image targets carry NO text: this is the shape games actually present. */
+  .icon { position: absolute; background: #fff; border: 1px solid #e3e3e3; border-radius: 6px; }
+  .icon svg { display: block; }
+  .caption { position: absolute; font-size: 11px; color: #777; }
+  #noisy { position: absolute; left: 24px; top: 470px; width: 150px; height: 90px;
+           border: 1px solid #ccc; border-radius: 6px; overflow: hidden; }
+  #text-targets { position: absolute; left: 24px; top: 584px; width: 640px; }
+  #text-targets div { font: 600 28px Helvetica, sans-serif; margin-bottom: 8px; white-space: pre; }
+  #type-box { position: absolute; left: 24px; top: 688px; width: 640px; height: 36px;
+              font: 18px Helvetica, sans-serif; padding: 4px 10px; }
+  #scroll-box { position: absolute; left: 700px; top: 64px; width: 270px; height: 240px;
+                overflow-y: scroll; border: 2px solid #888; background: #fafafa; }
+  #scroll-box p { margin: 0; padding: 5px 10px; font: 600 16px ui-monospace, Menlo, monospace;
+                  border-bottom: 1px solid #eee; }
+  #drag-surface { position: absolute; left: 700px; top: 330px; width: 270px; height: 130px;
+                  border: 2px dashed #888; background: #f4f4f8; }
+  .btn { position: absolute; font: 12px -apple-system, sans-serif; padding: 4px 10px; }
+  #log { position: absolute; left: 24px; top: 740px; width: 946px; height: 140px;
+         overflow: auto; font: 11px ui-monospace, Menlo, monospace; color: #333;
+         background: #f7f7f7; border: 1px solid #ddd; padding: 6px; white-space: pre; }
+</style>
+</head>
+<body>
+<div id="board">
+  <div id="header">
+    <b>Auto Click — target page</b>
+    <div id="summary">starting…</div>
+  </div>
+
+  <div class="caption" style="left:24px; top:232px">shapes — no text anywhere</div>
+  <div class="caption" style="left:520px; top:232px">near-duplicates</div>
+  <div class="caption" style="left:24px; top:330px">six alike, one different</div>
+  <div class="caption" style="left:24px; top:452px">on noise</div>
+  <div class="caption" style="left:200px; top:452px">tiny</div>
+  <div class="caption" style="left:280px; top:452px">appears late</div>
+  <div class="caption" style="left:400px; top:452px">movable</div>
+
+  <div id="noisy"></div>
+
+  <div id="text-targets">
+    <div id="menu-row">Save     ⌘S</div>
+    <div id="word-row">ZUKAMI QWERTY</div>
+  </div>
+
+  <input id="type-box" placeholder="typing target">
+
+  <div id="scroll-box"></div>
+  <div id="drag-surface"></div>
+
+  <button class="btn" id="move-btn" style="left:400px; top:560px">move</button>
+  <button class="btn" id="delay-btn" style="left:280px; top:560px">show later</button>
+  <button class="btn" id="clear-btn" style="left:880px; top:712px">clear log</button>
+
+  <div id="log"></div>
+</div>
+
+<script>
+// Target page for Auto Click's manual end-to-end testing.
+//
+// Why it exists: a CGEventTap only sees what Auto Click *emits*. This page records what the
+// target application *receives* — which target was hit, at what screen point, how many clicks,
+// how long the button was held, how far it scrolled. Two independent measurements to compare.
+//
+// The image section is deliberately text-free. Games are the main thing this app is pointed at,
+// and a game's buttons are pictures: OCR has nothing to read, so template matching carries the
+// whole feature. Testing recognition only against words would miss exactly that.
+const SERVER = location.origin.startsWith('http') ? location.origin : null;
+const params = new URLSearchParams(location.search);
+
+// ── Coloured tiles: plain click targets at known coordinates ────────────────
+const COLOURS = ['#c0392b','#2980b9','#27ae60','#8e44ad','#d35400','#16a085','#2c3e50','#c2185b'];
+const tiles = [];
+for (let i = 0; i < 8; i++) {
+  const el = document.createElement('div');
+  el.className = 'tile';
+  el.id = 'T' + (i + 1);
+  el.textContent = 'T' + (i + 1);
+  el.style.left = (24 + (i % 4) * 130) + 'px';
+  el.style.top  = (64 + Math.floor(i / 4) * 86) + 'px';
+  el.style.background = COLOURS[i];
+  document.getElementById('board').appendChild(el);
+  tiles.push(el);
+}
+
+// ── Image targets, no text ──────────────────────────────────────────────────
+// Drawn as inline SVG so every pixel is deterministic across runs and machines.
+function shape(kind, colour, size) {
+  const s = size || 60;
+  const c = s / 2;
+  const body = {
+    circle:   `<circle cx="${c}" cy="${c}" r="${c - 6}" fill="${colour}"/>`,
+    square:   `<rect x="8" y="8" width="${s - 16}" height="${s - 16}" rx="4" fill="${colour}"/>`,
+    triangle: `<polygon points="${c},7 ${s - 7},${s - 8} 7,${s - 8}" fill="${colour}"/>`,
+    diamond:  `<polygon points="${c},6 ${s - 6},${c} ${c},${s - 6} 6,${c}" fill="${colour}"/>`,
+    // Two bars, not one path: a path built from c-14 offsets goes negative at small sizes.
+    cross:    `<rect x="${c - s * 0.1}" y="${s * 0.12}" width="${s * 0.2}" height="${s * 0.76}" ` +
+              `rx="2" fill="${colour}"/>` +
+              `<rect x="${s * 0.12}" y="${c - s * 0.1}" width="${s * 0.76}" height="${s * 0.2}" ` +
+              `rx="2" fill="${colour}"/>`,
+    ring:     `<circle cx="${c}" cy="${c}" r="${c - 10}" fill="none" stroke="${colour}" stroke-width="8"/>`,
+    star:     `<polygon fill="${colour}" points="${c},6 ${c + 7},${c - 6} ${s - 6},${c - 6} ` +
+              `${c + 11},${c + 4} ${c + 18},${s - 6} ${c},${c + 12} ${c - 18},${s - 6} ` +
+              `${c - 11},${c + 4} 6,${c - 6} ${c - 7},${c - 6}"/>`
+  }[kind];
+  return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">${body}</svg>`;
+}
+function icon(id, left, top, kind, colour, size) {
+  const el = document.createElement('div');
+  el.className = 'icon';
+  el.id = id;
+  el.style.left = left + 'px';
+  el.style.top = top + 'px';
+  el.innerHTML = shape(kind, colour, size);
+  document.getElementById('board').appendChild(el);
+  return el;
+}
+
+// Six distinct shapes — the clean case.
+const SHAPES = [['circle','#e53935'], ['square','#1e88e5'], ['triangle','#43a047'],
+                ['diamond','#8e24aa'], ['cross','#fb8c00'], ['ring','#00897b']];
+SHAPES.forEach(([kind, colour], i) => icon('S' + (i + 1), 24 + i * 76, 248, kind, colour));
+
+// Near-duplicates: same shape, slightly different colour. Whether these are told apart is
+// entirely down to the match threshold, and getting that wrong is silent in a game.
+icon('DUP-A', 520, 248, 'square', '#1e88e5');
+icon('DUP-B', 596, 248, 'square', '#2b93e8');
+
+// Six alike, one different — exercises "highest score wins", not "first one found".
+for (let i = 0; i < 6; i++) {
+  icon('G' + (i + 1), 24 + i * 60, 350, i === 3 ? 'star' : 'circle', i === 3 ? '#fdd835' : '#5c6bc0', 48);
+}
+
+// A tiny target: the size a game's close button actually is.
+icon('TINY', 200, 470, 'cross', '#d81b60', 26);
+
+// Appears only after a delay — for "wait until it shows up, then click".
+const late = icon('LATE', 280, 470, 'diamond', '#00acc1');
+late.style.visibility = 'hidden';
+function showLate(ms) {
+  late.style.visibility = 'hidden';
+  setTimeout(() => { late.style.visibility = 'visible'; sendTargets(); },
+             ms === undefined ? 4000 : ms);
+}
+document.getElementById('delay-btn').onclick = () => showLate(Number(params.get('delay')) || 4000);
+if (params.has('delay')) showLate(Number(params.get('delay')));
+
+// Moves to a new spot on demand — for "the target moved, find it again".
+const movable = icon('MOVE', 400, 470, 'ring', '#6d4c41');
+let moved = false;
+document.getElementById('move-btn').onclick = () => {
+  moved = !moved;
+  movable.style.left = (moved ? 560 : 400) + 'px';
+  movable.style.top = (moved ? 500 : 470) + 'px';
+  sendTargets();
+};
+
+// An icon over noise: flat backgrounds flatter a matcher, real screens are not flat.
+(function drawNoise() {
+  const box = document.getElementById('noisy');
+  const canvas = document.createElement('canvas');
+  canvas.width = 150; canvas.height = 90;
+  canvas.style.position = 'absolute';
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(150, 90);
+  let seed = 12345;  // cố định để ảnh nhiễu giống hệt nhau giữa các lần chạy
+  for (let i = 0; i < img.data.length; i += 4) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    const v = 140 + (seed % 90);
+    img.data[i] = v; img.data[i + 1] = v; img.data[i + 2] = 200 - (seed % 60); img.data[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  box.appendChild(canvas);
+  const over = document.createElement('div');
+  over.id = 'NOISY-ICON';
+  over.style.cssText = 'position:absolute; left:45px; top:15px;';
+  over.innerHTML = shape('star', '#212121', 60);
+  box.appendChild(over);
+})();
+
+const scrollBox = document.getElementById('scroll-box');
+for (let i = 1; i <= 60; i++) {
+  const p = document.createElement('p');
+  p.textContent = 'line ' + String(i).padStart(2, '0');
+  scrollBox.appendChild(p);
+}
+
+// ── Screen-coordinate mapping ───────────────────────────────────────────────
+// screenX - clientX gives the exact offset between the content origin and the screen origin,
+// whatever the browser chrome height is. Estimate first, then correct from a real event.
+let offset = { x: window.screenX, y: window.screenY + (window.outerHeight - window.innerHeight) };
+let calibrated = false;
+
+function allTargets() {
+  return Array.from(document.querySelectorAll('.tile, .icon'))
+    .concat(['menu-row', 'word-row', 'type-box', 'scroll-box', 'drag-surface', 'NOISY-ICON',
+             'move-btn', 'delay-btn', 'clear-btn']
+      .map(id => document.getElementById(id)).filter(Boolean));
+}
+function describeTargets() {
+  return allTargets().map(el => {
+    const r = el.getBoundingClientRect();
+    return {
+      id: el.id,
+      visible: getComputedStyle(el).visibility !== 'hidden',
+      client: { x: r.x, y: r.y, w: r.width, h: r.height },
+      screen: { x: r.x + offset.x, y: r.y + offset.y, w: r.width, h: r.height },
+      centre: { x: Math.round(r.x + r.width / 2 + offset.x),
+                y: Math.round(r.y + r.height / 2 + offset.y) }
+    };
+  });
+}
+function sendTargets() {
+  if (!SERVER) return;
+  fetch(SERVER + '/targets', {
+    method: 'POST',
+    body: JSON.stringify({ offset, calibrated, dpr: devicePixelRatio,
+                           targets: describeTargets() }, null, 2)
+  }).catch(() => {});
+}
+
+// ── Event recording ─────────────────────────────────────────────────────────
+const queue = [];
+let count = 0;
+const t0 = performance.now();
+
+function record(e, extra) {
+  const entry = {
+    n: ++count,
+    type: e.type,
+    t: Math.round(performance.now() - t0),
+    target: (e.target && e.target.id) || (e.target && e.target.className) || '?'
+  };
+  if ('clientX' in e) {
+    Object.assign(entry, {
+      screenX: e.screenX, screenY: e.screenY,
+      pageX: Math.round(e.clientX), pageY: Math.round(e.clientY),
+      button: e.button, clickCount: e.detail
+    });
+    // Correct the offset from a real event — more accurate than any estimate.
+    if (!calibrated) {
+      offset = { x: e.screenX - e.clientX, y: e.screenY - e.clientY };
+      calibrated = true;
+      sendTargets();
+    }
+  }
+  if (extra) Object.assign(entry, extra);
+  queue.push(entry);
+  return entry;
+}
+
+function draw(entry) {
+  const el = document.getElementById('log');
+  const at = ('screenX' in entry) ? ` @(${entry.screenX},${entry.screenY})` : '';
+  el.textContent = `${String(entry.n).padStart(3)} ${String(entry.t).padStart(6)}ms ` +
+    `${entry.type.padEnd(12)} ${String(entry.target).padEnd(11)}${at}` +
+    (entry.heldMs !== undefined ? ` held ${entry.heldMs}ms` : '') +
+    (entry.dx !== undefined ? ` scroll(${entry.dx},${entry.dy})` : '') +
+    (entry.key !== undefined ? ` key ${entry.key}` : '') + '\n' + el.textContent;
+  document.getElementById('summary').textContent =
+    `${count} events · origin offset (${offset.x},${offset.y})` +
+    `${calibrated ? ' calibrated' : ' estimated'} · dpr ${devicePixelRatio}`;
+  document.title = `${count} ev · ${entry.type} ${entry.target}${at}`;
+}
+
+let pressedAt = null;
+addEventListener('mousedown', e => { pressedAt = performance.now(); draw(record(e)); }, true);
+addEventListener('mouseup', e => {
+  const held = pressedAt === null ? undefined : Math.round(performance.now() - pressedAt);
+  pressedAt = null;
+  draw(record(e, { heldMs: held }));
+}, true);
+addEventListener('click', e => draw(record(e)), true);
+addEventListener('dblclick', e => draw(record(e)), true);
+addEventListener('contextmenu', e => { e.preventDefault(); draw(record(e)); }, true);
+addEventListener('wheel', e => draw(record(e, { dx: Math.round(e.deltaX), dy: Math.round(e.deltaY),
+                                                deltaMode: e.deltaMode })), true);
+addEventListener('keydown', e => draw(record(e, { key: e.key, code: e.code,
+                                                  modifiers: [e.metaKey && 'cmd', e.altKey && 'opt',
+                                                              e.ctrlKey && 'ctrl', e.shiftKey && 'shift']
+                                                              .filter(Boolean).join('+') })), true);
+document.getElementById('type-box').addEventListener('input', e =>
+  draw(record(e, { value: e.target.value })));
+document.getElementById('clear-btn').onclick = () => {
+  document.getElementById('log').textContent = '';
+  if (SERVER) fetch(SERVER + '/clear').catch(() => {});
+};
+
+// Drag path: only recorded while the button is down, and thinned so the log stays readable.
+let lastMove = 0;
+addEventListener('mousemove', e => {
+  if (pressedAt === null) return;
+  const now = performance.now();
+  if (now - lastMove < 20) return;
+  lastMove = now;
+  record(e);
+}, true);
+
+setInterval(() => {
+  if (!queue.length || !SERVER) return;
+  const batch = queue.splice(0, queue.length);
+  fetch(SERVER + '/events', { method: 'POST', body: JSON.stringify(batch) }).catch(() => {});
+}, 250);
+
+addEventListener('load', sendTargets);
+addEventListener('resize', sendTargets);
+sendTargets();
+document.getElementById('summary').textContent =
+  `0 events · origin offset (${offset.x},${offset.y}) estimated · dpr ${devicePixelRatio}`;
+</script>
+</body>
+</html>

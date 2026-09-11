@@ -1,0 +1,3 @@
+{"n": 13, "type": "mousedown", "t": 129876, "target": {}, "screenX": 289, "screenY": 449, "pageX": 229, "pageY": 375, "button": 0, "clickCount": 1}
+{"n": 14, "type": "mouseup", "t": 129877, "target": {}, "screenX": 289, "screenY": 449, "pageX": 229, "pageY": 375, "button": 0, "clickCount": 1, "heldMs": 1}
+{"n": 15, "type": "click", "t": 129877, "target": {}, "screenX": 289, "screenY": 449, "pageX": 229, "pageY": 375, "button": 0, "clickCount": 1}

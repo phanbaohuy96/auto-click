@@ -209,21 +209,32 @@ enum TemplateMatcher {
     }
 
     private struct Statistics {
-        var mean: Float
-        var deviation: Float
+        var mean: Double
+        var deviation: Double
     }
 
     static func standardDeviation(_ pixels: [Float]) -> Float {
-        statistics(of: pixels).deviation / Float(max(1, pixels.count)).squareRoot()
+        Float(statistics(of: pixels).deviation / Double(max(1, pixels.count)).squareRoot())
     }
 
     private static func statistics(of pixels: [Float]) -> Statistics {
-        let count = Float(pixels.count)
-        let mean = pixels.reduce(0, +) / count
-        let variance = pixels.reduce(Float(0)) { $0 + ($1 - mean) * ($1 - mean) }
+        let count = Double(pixels.count)
+        let mean = pixels.reduce(0.0) { $0 + Double($1) } / count
+        let variance = pixels.reduce(0.0) { $0 + (Double($1) - mean) * (Double($1) - mean) }
         return Statistics(mean: mean, deviation: variance.squareRoot())
     }
 
+    /// Tương quan chéo chuẩn hoá tại một vị trí.
+    ///
+    /// Cộng dồn bằng `Double` chứ không `Float`, và đó **không** phải chuyện tinh chỉnh vi mô.
+    /// Dạng `Σh² − n·h̄²` bị **triệt tiêu chữ số**: hai số lớn gần bằng nhau trừ nhau, phần chênh
+    /// lệch nhỏ còn lại mất gần hết chữ số có nghĩa. Ở `Float` (23 bit định trị) với mẫu chừng
+    /// 15.000 điểm ảnh, sai số lên tới ~2·10⁻³ — đủ để điểm vượt quá 1,0, vốn là điều không thể
+    /// về mặt toán học.
+    ///
+    /// Vì sao quan trọng: hai nút gần giống nhau — chuyện thường ngày trong game — chênh nhau
+    /// thật sự khoảng 4·10⁻⁵. Nhiễu Float lớn gấp 40 lần khoảng đó, nên bộ khớp **chọn bừa** giữa
+    /// đúng và sai. Đo được khi chạy `I2` của kiểm thử tay: ảnh mẫu của ô A khớp vào ô B.
     private static func correlation(
         template: GrayImage,
         templateStatistics: Statistics,
@@ -231,22 +242,22 @@ enum TemplateMatcher {
         originX: Int,
         originY: Int
     ) -> Double {
-        var windowTotal: Float = 0
-        var windowSquareTotal: Float = 0
-        var crossTotal: Float = 0
+        var windowTotal = 0.0
+        var windowSquareTotal = 0.0
+        var crossTotal = 0.0
 
         for y in 0..<template.height {
             let haystackRow = (originY + y) * haystack.width + originX
             let templateRow = y * template.width
             for x in 0..<template.width {
-                let haystackValue = haystack.pixels[haystackRow + x]
+                let haystackValue = Double(haystack.pixels[haystackRow + x])
                 windowTotal += haystackValue
                 windowSquareTotal += haystackValue * haystackValue
-                crossTotal += haystackValue * template.pixels[templateRow + x]
+                crossTotal += haystackValue * Double(template.pixels[templateRow + x])
             }
         }
 
-        let count = Float(template.width * template.height)
+        let count = Double(template.width * template.height)
         let windowMean = windowTotal / count
         let windowVariance = windowSquareTotal - count * windowMean * windowMean
         guard windowVariance > 0 else { return 0 }
@@ -255,6 +266,6 @@ enum TemplateMatcher {
         let denominator = windowVariance.squareRoot() * templateStatistics.deviation
         guard denominator > 0 else { return 0 }
 
-        return Double(numerator / denominator)
+        return numerator / denominator
     }
 }
