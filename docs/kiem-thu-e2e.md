@@ -179,16 +179,27 @@ vậy mỗi phép thử có **hai nguồn đo độc lập**: bộ đo pid ghi c
 
 | # | Bia | Chờ thấy | Kết quả |
 |---|---|---|---|
-| I1 | Một hình khối rõ ràng giữa các hình khác | Click đúng nó | **Đạt** |
-| I2 | Hai ô gần giống nhau, chỉ khác chút màu (`#1e88e5` / `#2b93e8`) | Click đúng ô đưa ảnh mẫu | **Hỏng → đã sửa** — xem dưới. **Chờ chạy lại** |
+| I1 | Một hình khối rõ ràng giữa các hình khác | Click đúng nó | **Đạt** — `S3@(267,353)`, đúng tâm bia trang tự khai |
+| I2 | Hai ô gần giống nhau, chỉ khác chút màu (`#1e88e5` / `#2b93e8`) | Click đúng ô đưa ảnh mẫu | **Đạt** — `DUP-A@(611,353)`, tìm trên **toàn màn hình** với `DUP-B` ở ngay cạnh. Lần chạy đầu ra `S2@(191,353)` và làm lộ ra bia hỏng → xem dưới |
 | I3 | Một hình khác biệt giữa bầy giống nhau | Click đúng cái khác biệt | **Đạt** |
-| I4 | Năm hình tròn giống hệt | Ghi lại cái nào thắng | **Chưa chạy** |
-| I5 | Bia tí hon 26 px | Vẫn tìm ra | **Chưa chạy** |
-| I6 | Bia đặt trên nền nhiễu | Vẫn tìm ra | **Chưa chạy** |
-| I7 | Bia hiện muộn | Chờ rồi click | **Chưa chạy** |
-| I8 | Bia đã dời chỗ | Tìm ở chỗ mới | **Chưa chạy** |
+| I4 | Năm hình tròn giống hệt | Ghi lại cái nào thắng | **Đạt** — `G1@(109,449)`, tức **cái trái nhất** thắng. Năm hình tròn giống hệt nhau nên điểm bằng nhau; cái đầu tiên trong thứ tự quét giữ ngôi. Không ngẫu nhiên, chạy lại vẫn ra `G1` |
+| I5 | Bia tí hon 26 px | Vẫn tìm ra | **Đạt** — `TINY@(274,558)`, khớp đúng tâm dù bia chỉ 28×28 |
+| I6 | Bia đặt trên nền nhiễu | Vẫn tìm ra | **Đạt** — `NOISY-ICON@(160,591)`, lệch 1 px so với tâm trang khai `(160,592)` do bia cao 63,5 px bị làm tròn |
+| I7 | Bia hiện muộn | Chờ rồi click | **Đạt** — bấm nút cho `LATE` hiện sau 4 s rồi mới chạy; Kịch bản chờ trong hạn 12 s và click `LATE@(371,575)` |
+| I8 | Bia đã dời chỗ | Tìm ở chỗ mới | **Đạt** — dời `MOVE` từ `(491,575)` sang `(651,605)` ngay trước khi chạy; Auto Click click đúng `(651,605)`, không bám chỗ cũ |
 
 ### Phát hiện ngoài checklist — khớp ảnh
+
+**Bia `I2` đặt sai đề bài.** Lần chạy lại đầu tiên sau khi sửa `Float`→`Double`, Auto Click click
+`S2` chứ không phải `DUP-A`. Không phải app sai: `S2` được khai là `['square','#1e88e5']` và
+`DUP-A` cũng là ô vuông `#1e88e5` cùng cỡ `62×62` — **hai bia giống nhau từng điểm ảnh**. Câu hỏi
+"click đúng ô đã đưa ảnh mẫu" khi ấy có **hai** đáp án đúng, và một lần chạy toàn màn hình có thể
+đạt mà chưa từng phải phân biệt `DUP-A` với `DUP-B` — đúng thứ `I2` sinh ra để đo.
+
+Đã đổi `S2` sang `#0d47a1` để cặp gần-giống duy nhất trên bảng là `DUP-A`/`DUP-B`. Chạy lại: đúng
+`DUP-A`. Không bia nào khác dùng ảnh mẫu `S2` nên các mục còn lại không bị ảnh hưởng; `I1` và `I3`
+đã chạy lại trên bảng mới và vẫn đạt.
+
 
 **Khớp ảnh chọn nhầm mục tiêu gần giống.** Đưa ảnh mẫu ô **A**, Auto Click click vào ô **B**. Đo
 bằng chính bộ khớp của app:

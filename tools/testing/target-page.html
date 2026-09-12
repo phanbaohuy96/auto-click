@@ -140,7 +140,12 @@ function icon(id, left, top, kind, colour, size) {
 }
 
 // Six distinct shapes — the clean case.
-const SHAPES = [['circle','#e53935'], ['square','#1e88e5'], ['triangle','#43a047'],
+// S2 used to be '#1e88e5' — the exact colour and shape of DUP-A below, making it a
+// pixel-identical twin. That turned I2 ("click the one you were given a template of") into a
+// question with two right answers, and a full-screen search could satisfy it without ever
+// telling DUP-A from DUP-B. S2 is now a plainly different blue so the only near-duplicate pair
+// on the board is DUP-A/DUP-B.
+const SHAPES = [['circle','#e53935'], ['square','#0d47a1'], ['triangle','#43a047'],
                 ['diamond','#8e24aa'], ['cross','#fb8c00'], ['ring','#00897b']];
 SHAPES.forEach(([kind, colour], i) => icon('S' + (i + 1), 24 + i * 76, 248, kind, colour));
 
