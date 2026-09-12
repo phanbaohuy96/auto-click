@@ -1,21 +1,21 @@
 import CoreGraphics
 import Foundation
 
-/// Dựng **Kịch bản** từ các Bước đã suy luận (RC-13, RC-14).
+/// Builds a **Scenario** out of the Steps that were inferred (RC-13, RC-14).
 ///
-/// Hàm thuần tuý, tách khỏi việc bắt sự kiện: đây là chỗ quyết định bản ghi có dùng được ngay
-/// hay bắt người dùng sửa tay từng bước, nên nó phải kiểm chứng được.
+/// A pure function, split off from event capture: this is where it is decided whether a recording is usable
+/// straight away or forces the user to fix every step by hand, so it has to be verifiable.
 enum RecordingAssembler {
     struct Result: Equatable {
         var scenario: Scenario
-        /// Cảnh báo hiện lên sau khi ghi xong; `nil` nghĩa là bản ghi dùng được ngay.
+        /// The warning shown after recording ends; `nil` means the recording is usable as it is.
         var warning: String?
     }
 
-    /// Tiến trình duy nhất mà cả phiên ghi chạm tới, hoặc `nil` nếu trải trên nhiều ứng dụng.
+    /// The single process the whole session touched, or `nil` if it spans several applications.
     ///
-    /// Một Bước không xác định được tiến trình cũng làm cả phiên mất tư cách: nâng lên tương đối
-    /// cửa sổ dựa trên phỏng đoán còn tệ hơn là giữ nguyên toạ độ tuyệt đối và nói rõ ra.
+    /// One Step whose process could not be determined disqualifies the whole session: raising Targets to
+    /// window-relative on a guess is worse than keeping absolute coordinates and saying so plainly.
     static func singleProcessIdentifier(in steps: [RecordedStep]) -> pid_t? {
         guard !steps.isEmpty, steps.allSatisfy({ $0.processIdentifier != nil }) else { return nil }
         let identifiers = Set(steps.compactMap(\.processIdentifier))
@@ -69,7 +69,7 @@ enum RecordingAssembler {
         frame: CGRect?,
         isLocked: Bool
     ) -> StepTarget {
-        // RC-13: chỉ nâng lên tương đối khi vừa có Ứng dụng khoá vừa lấy được cửa sổ lúc ghi.
+        // RC-13: only raise to relative when there is both a Locked application and a window frame read while recording.
         guard isLocked, let frame, frame.width > 0, frame.height > 0 else {
             return .screenPoint(x: point.x, y: point.y)
         }
@@ -82,7 +82,7 @@ enum RecordingAssembler {
 
         let identifiers = Set(recorded.compactMap(\.processIdentifier))
         if identifiers.count > 1 {
-            // RC-14: nói thẳng ra thay vì để người dùng phát hiện lúc kịch bản bắn trượt.
+            // RC-14: say so plainly rather than letting the user find out when the scenario fires wide.
             return "Bản ghi trải trên \(identifiers.count) ứng dụng nên dùng toạ độ tuyệt đối; "
                 + "các bước sẽ trượt nếu cửa sổ dịch chuyển."
         }

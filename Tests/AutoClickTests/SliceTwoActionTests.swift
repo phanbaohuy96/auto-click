@@ -3,16 +3,16 @@ import Foundation
 import Testing
 @testable import AutoClick
 
-// MARK: - Neo cửa sổ
+// MARK: - Window anchoring
 
-/// DM-18: Vị trí tương đối cửa sổ không giải được nếu thiếu Ứng dụng khoá, nên chặn từ lúc kiểm
-/// tra chứ không để chạy rồi mới hỏng.
+/// DM-18: a window-relative Target cannot be resolved without a Locked application, so block it at validation
+/// rather than letting it start and fail.
 @MainActor
 @Test func aWindowRelativeStepWithoutALockedApplicationIsRefused() {
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
-        name: "Thiếu khoá",
+        name: "Missing lock",
         steps: [Step(action: .move, target: .windowRelative(corner: .topLeft, dx: 10, dy: 10))]
     )
 
@@ -45,7 +45,7 @@ import Testing
     #expect(recorder.records.first?.location == CGPoint(x: 820, y: 388))
 }
 
-/// EX-7: không lấy được cửa sổ nào thì dừng, và thông báo phải nêu tên ứng dụng.
+/// EX-7: when no window can be read, stop — and the message has to name the application.
 @MainActor
 @Test func aMissingAnchorWindowStopsTheScenarioWithANamedMessage() async {
     let recorder = EventRecorder()
@@ -54,7 +54,7 @@ import Testing
     let runner = makeRunner(recorder: recorder, system: system)
 
     let scenario = Scenario(
-        name: "Không cửa sổ",
+        name: "No window",
         steps: [Step(action: .move, target: .windowRelative(corner: .topLeft, dx: 1, dy: 1))],
         lockedApplication: FakeSystem.lockedApplication
     )
@@ -62,18 +62,18 @@ import Testing
     #expect(runner.start(scenario))
     #expect(await waitUntil { !runner.isRunning })
     #expect(recorder.records.isEmpty)
-    #expect(runner.statusText.contains("App Thử"))
+    #expect(runner.statusText.contains("Test App"))
 }
 
-// MARK: - Kéo thả
+// MARK: - Drag
 
-/// EX-20: nhiều ứng dụng bỏ qua thao tác kéo nếu con trỏ nhảy thẳng từ đầu tới cuối.
+/// EX-20: many applications ignore a drag if the cursor jumps straight from start to end.
 @MainActor
 @Test func draggingPassesThroughIntermediatePoints() async {
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
-        name: "Kéo",
+        name: "Drag",
         steps: [
             Step(
                 action: .drag(button: .left, destination: .screenPoint(x: 300, y: 100)),
@@ -94,18 +94,18 @@ import Testing
     )
     #expect(recorder.records.first?.location == CGPoint(x: 100, y: 100))
     #expect(recorder.records.last?.location == CGPoint(x: 300, y: 100))
-    // Các điểm trung gian phải tiến dần chứ không nhảy cóc.
+    // The intermediate points must advance gradually, not leapfrog.
     let xs = recorder.records.map(\.location.x)
     #expect(zip(xs, xs.dropFirst()).allSatisfy { $0 <= $1 })
 }
 
-/// SF-1 áp cho cả kéo thả: dừng giữa lúc đang kéo vẫn phải nhả nút.
+/// SF-1 applies to drag as well: stopping mid-drag still has to release the button.
 @MainActor
 @Test func stoppingMidDragStillReleasesTheMouseButton() async {
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
-        name: "Kéo dài",
+        name: "Long drag",
         steps: [
             Step(
                 action: .drag(button: .left, destination: .screenPoint(x: 2000, y: 100)),
@@ -124,18 +124,18 @@ import Testing
     #expect(recorder.types.contains(.leftMouseUp))
 }
 
-// MARK: - Bàn phím
+// MARK: - Keyboard
 
-/// SF-4: sự kiện bàn phím không mang toạ độ nên `EX-10` không bảo vệ được nó.
+/// SF-4: keyboard events carry no coordinates, so `EX-10` cannot protect them.
 @MainActor
 @Test func aKeyboardStepBringsTheLockedApplicationToFrontFirst() async {
     let recorder = EventRecorder()
     let system = FakeSystem()
-    system.frontmostProcessIdentifier = 9999  // một ứng dụng khác vừa cướp focus
+    system.frontmostProcessIdentifier = 9999  // another application has just stolen focus
     let runner = makeRunner(recorder: recorder, system: system)
 
     let scenario = Scenario(
-        name: "Gõ",
+        name: "Type",
         steps: [Step(action: .typeText("hi"), target: .cursor, delayMillisecondsAfter: 0)],
         lockedApplication: FakeSystem.lockedApplication
     )
@@ -144,7 +144,7 @@ import Testing
     #expect(await waitUntil { !runner.isRunning })
 
     #expect(system.frontmostProcessIdentifier == FakeSystem.applicationProcessIdentifier)
-    // EX-24: cả chuỗi đi trong một khối, nên là một cặp down/up chứ không phải mỗi ký tự một cặp.
+    // EX-24: the whole string goes in one chunk, so one down/up pair rather than one pair per character.
     #expect(recorder.records.count == 2)
     #expect(recorder.typedText == "hi")
 }
@@ -158,7 +158,7 @@ import Testing
     let runner = makeRunner(recorder: recorder, system: system)
 
     let scenario = Scenario(
-        name: "Gõ hỏng",
+        name: "Type fails",
         steps: [Step(action: .typeText("hi"), target: .cursor, delayMillisecondsAfter: 0)],
         lockedApplication: FakeSystem.lockedApplication
     )
@@ -167,10 +167,10 @@ import Testing
     #expect(await waitUntil { !runner.isRunning })
 
     #expect(recorder.records.isEmpty)
-    #expect(runner.statusText.contains("App Thử"))
+    #expect(runner.statusText.contains("Test App"))
 }
 
-/// EX-22: tổ hợp phím gửi mã phím vật lý kèm cờ phím bổ trợ.
+/// EX-22: a key combination sends the physical key code together with the modifier flags.
 @MainActor
 @Test func aKeyStrokeSendsItsKeyCodeAndModifierFlags() async {
     let recorder = EventRecorder()
@@ -199,7 +199,7 @@ import Testing
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
-        name: "Phím lạ",
+        name: "Unknown key",
         steps: [Step(action: .pressKey(KeyStroke(key: "khongton")), target: .cursor)]
     )
 
@@ -219,20 +219,20 @@ import Testing
 }
 
 
-// MARK: - EX-24: gõ chuỗi theo khối
+// MARK: - EX-24: typing a string in chunks
 
-/// Chứng minh chuỗi được cắt đúng chỗ và ghép lại không sai một ký tự.
+/// Proves the string is split in the right places and reassembles without losing a character.
 ///
-/// Gửi từng ký tự một đo được chỉ đúng ~1/5 lần trên máy thật: payload Unicode thỉnh thoảng bị
-/// mất và hệ thống rơi về `virtualKey` (số 0 = phím `a`). Test này khoá lại cách chia khối.
+/// Sending one character at a time was measured to work only about 1 time in 5 on a real machine: the Unicode
+/// payload is occasionally dropped and the system falls back to `virtualKey` (0 = the `a` key). This test pins down the chunking.
 @MainActor
 @Test func aLongStringIsSentInChunksThatReassembleExactly() async {
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder)
 
-    let text = String(repeating: "abcde", count: 13)  // 65 đơn vị UTF-16 → 4 khối
+    let text = String(repeating: "abcde", count: 13)  // 65 UTF-16 units → 4 chunks
     let scenario = Scenario(
-        name: "Gõ dài",
+        name: "Long typing",
         steps: [Step(action: .typeText(text), target: .cursor, delayMillisecondsAfter: 0)]
     )
 
@@ -240,30 +240,30 @@ import Testing
     #expect(await waitUntil { !runner.isRunning })
 
     #expect(recorder.typedText == text)
-    #expect(recorder.records.count == 8)  // 4 khối × (down + up)
+    #expect(recorder.records.count == 8)  // 4 chunks × (down + up)
 
-    // Chuỗi chỉ đi trên phím nhấn; phím nhả không mang chữ, đúng như gõ thật.
+    // The text rides on key-down only; key-up carries no characters, just like real typing.
     let downs = recorder.records.filter { $0.type == .keyDown }
     #expect(downs.count == 4)
     #expect(downs.allSatisfy { $0.unicodeString.utf16.count <= ScenarioLimits.typingChunkUTF16Units })
 
-    // Phím nhả đọc ra "a" — ký tự của `virtualKey: 0` — vì không gỡ được thuộc tính đó khỏi sự
-    // kiện. Vô hại: ứng dụng chỉ chèn chữ ở phím nhấn. Nhưng đây đúng là con chữ xuất hiện khi
-    // payload Unicode bị mất, nên `typedText` chỉ được đọc từ phím nhấn.
+    // Key-up reads as "a" — the character of `virtualKey: 0` — because that attribute cannot be removed from
+    // the event. Harmless: applications only insert text on key-down. But this is exactly the character that
+    // shows up when the Unicode payload is lost, so `typedText` must only be read from key-down.
     #expect(recorder.records.filter { $0.type == .keyUp }.allSatisfy { $0.unicodeString == "a" })
 }
 
-/// Cắt theo đơn vị UTF-16 mà không để ý thì một emoji nằm vắt qua ranh giới khối sẽ vỡ đôi
-/// thành hai ký tự rác — lỗi chỉ lộ ra đúng ở vị trí thứ 20.
+/// Splitting by UTF-16 units carelessly would tear an emoji straddling a chunk boundary into two pieces of
+/// garbage — a bug that only shows up at exactly position 20.
 @MainActor
 @Test func aSurrogatePairIsNeverSplitAcrossChunks() async {
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder)
 
-    // 19 đơn vị chữ thường rồi tới emoji: ranh giới khối rơi vào giữa cặp thay thế.
+    // 19 lowercase units then an emoji: the chunk boundary falls in the middle of the surrogate pair.
     let text = String(repeating: "x", count: 19) + "😀" + "yz"
     let scenario = Scenario(
-        name: "Gõ emoji",
+        name: "Typing emoji",
         steps: [Step(action: .typeText(text), target: .cursor, delayMillisecondsAfter: 0)]
     )
 
@@ -271,14 +271,14 @@ import Testing
     #expect(await waitUntil { !runner.isRunning })
 
     #expect(recorder.typedText == text)
-    // Không khối nào được kết thúc bằng nửa đầu của một cặp thay thế.
+    // No chunk may end with the leading half of a surrogate pair.
     #expect(recorder.records.allSatisfy { record in
         guard let last = record.unicodeString.utf16.last else { return true }
         return !UTF16.isLeadSurrogate(last)
     })
 }
 
-// MARK: - UI-16: trạng thái lỗi phải nhìn ra là lỗi
+// MARK: - UI-16: an error state has to look like an error
 
 @MainActor
 @Test func aFailedRunMarksItsMessageAsAnError() async {
@@ -289,7 +289,7 @@ import Testing
     let runner = makeRunner(recorder: recorder, system: system)
 
     let scenario = Scenario(
-        name: "Gõ hỏng",
+        name: "Type fails",
         steps: [Step(action: .typeText("hi"), target: .cursor, delayMillisecondsAfter: 0)],
         lockedApplication: FakeSystem.lockedApplication
     )
@@ -305,7 +305,7 @@ import Testing
     let runner = makeRunner(recorder: recorder)
 
     let scenario = Scenario(
-        name: "Gõ xong",
+        name: "Typing done",
         steps: [Step(action: .typeText("hi"), target: .cursor, delayMillisecondsAfter: 0)]
     )
 

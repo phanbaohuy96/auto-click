@@ -1,10 +1,10 @@
 import AppKit
 
-/// Lớp phủ toàn màn hình để kéo chọn một vùng chữ nhật (RG-4).
+/// A full-screen overlay for dragging out a rectangular region (RG-4).
 ///
-/// Khoanh được ở **bất cứ đâu**, không ràng buộc vào Ứng dụng khoá: mục tiêu cần nhắm thường
-/// chưa hiện trên màn hình lúc soạn Kịch bản, nên người dùng hay mở một ảnh chụp màn hình cũ
-/// rồi cắt Ảnh mẫu từ chính ảnh đó — xem [ADR-0006].
+/// A region can be drawn **anywhere**, with no tie to the Locked application: the target you need to aim at is
+/// usually not on screen yet while the Scenario is being written, so users often open an old screenshot and
+/// crop the Template out of that — see [ADR-0006].
 @MainActor
 final class ScreenRegionSelector {
     private var windows: [NSWindow] = []
@@ -74,7 +74,7 @@ private final class RegionSelectionView: NSView {
     private let onSelect: (CGRect) -> Void
     private let onCancel: () -> Void
 
-    /// Toạ độ trong không gian của `CGEvent` (gốc trên-trái toàn cục).
+    /// Coordinates in `CGEvent` space (origin at the global top-left).
     private var anchor: CGPoint?
     private var current: CGPoint?
 
@@ -123,7 +123,7 @@ private final class RegionSelectionView: NSView {
         self.anchor = nil
         current = nil
 
-        // Vùng bé tí thường là lỡ tay click chứ không phải chủ ý khoanh.
+        // A minuscule region is usually a stray click rather than a deliberate drag.
         guard rect.width >= 4, rect.height >= 4 else {
             needsDisplay = true
             return
@@ -135,7 +135,7 @@ private final class RegionSelectionView: NSView {
         if event.keyCode == 53 { onCancel() } else { super.keyDown(with: event) }
     }
 
-    /// Khung đang kéo, quy về toạ độ nội bộ của view (gốc dưới-trái).
+    /// The rectangle being dragged, converted into the view's own coordinates (origin at the bottom-left).
     private var selectionRectInView: NSRect? {
         guard let anchor, let current, let window else { return nil }
         let screenTop = window.screen?.frame.maxY ?? 0
@@ -158,7 +158,7 @@ private final class RegionSelectionView: NSView {
         dirtyRect.fill()
 
         if let selection = selectionRectInView, selection.width > 0, selection.height > 0 {
-            // Khoét vùng đang chọn ra để người dùng thấy đúng thứ sắp được chụp.
+            // Punch the selected region out so the user sees exactly what is about to be captured.
             NSColor.clear.setFill()
             selection.fill(using: .copy)
             NSColor.controlAccentColor.setStroke()

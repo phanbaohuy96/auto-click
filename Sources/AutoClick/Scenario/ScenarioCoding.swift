@@ -1,10 +1,10 @@
 import Foundation
 
-/// Mã hoá Kịch bản sang JSON đọc và sửa tay được (ST-5, ST-6, ST-7).
+/// Encodes a Scenario into JSON that can be read and edited by hand (ST-5, ST-6, ST-7).
 ///
-/// Không dùng Codable tổng hợp sẵn cho enum có giá trị đi kèm: nó sinh ra JSON lồng theo tên
-/// `case` của Swift, nghĩa là đổi tên một `case` trong code sẽ âm thầm làm hỏng mọi file đã lưu.
-/// Trường phân biệt `kind` tách định dạng trên đĩa khỏi tên trong code.
+/// Synthesised Codable is not used for enums with associated values: it produces JSON nested under the Swift
+/// `case` names, which means renaming a `case` in the code would silently break every saved file.
+/// The `kind` discriminator keeps the on-disk format separate from the names in the code.
 enum ScenarioSchema {
     static let currentVersion = 1
 }
@@ -26,7 +26,7 @@ enum ScenarioDecodingError: LocalizedError, Equatable {
     }
 }
 
-/// Phần đầu của `scenario.json` đọc được kể cả khi phần còn lại thuộc định dạng mới hơn (ST-12).
+/// The head of `scenario.json`, readable even when the rest is in a newer format (ST-12).
 struct ScenarioHeader: Decodable {
     let schemaVersion: Int
     let id: UUID

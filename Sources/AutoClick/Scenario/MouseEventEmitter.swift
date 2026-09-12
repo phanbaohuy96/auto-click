@@ -1,16 +1,16 @@
 import CoreGraphics
 import Foundation
 
-/// Phát sự kiện chuột và ghi nhớ nút nào đang bị giữ.
+/// Emits mouse events and remembers which buttons are being held.
 ///
-/// Việc ghi nhớ tồn tại vì `SF-1`: Hành động `click` có `holdMilliseconds`, và từ Lát 2 có kéo
-/// thả — cả hai đều để lại `mouseDown` chưa có `mouseUp` nếu bị cắt giữa chừng. Khi đó hệ điều
-/// hành tin rằng nút chuột đang bị giữ và người dùng mất khả năng thao tác. `releaseAllHeld()`
-/// là hàm đồng bộ, không `async`, để gọi được từ `defer` sau khi tác vụ đã bị huỷ (`SF-2`).
+/// The ledger exists because of `SF-1`: the `click` Action has `holdMilliseconds`, and since Slice 2 there is
+/// drag — both leave a `mouseDown` with no `mouseUp` if cut off part-way. The operating system then believes the
+/// button is held down and the user loses the ability to interact. `releaseAllHeld()` is synchronous, not
+/// `async`, so it can be called from a `defer` after the task has been cancelled (`SF-2`).
 @MainActor
 final class MouseEventEmitter {
-    /// Nơi sự kiện đi tới. Tách ra được để test kiểm chứng `SF-1` mà không thật sự click lên
-    /// máy đang chạy test.
+    /// Where events go. Separable so tests can verify `SF-1` without really clicking on the machine running
+    /// the tests.
     typealias EventSink = @MainActor (CGEvent) -> Void
 
     private var heldButtons: [MouseButton: CGPoint] = [:]
@@ -21,7 +21,7 @@ final class MouseEventEmitter {
         self.sink = sink
     }
 
-    /// Phát vào hệ thống để ứng dụng đích xử lý như thao tác thật (EX-19).
+    /// Post into the system so the destination application handles it as a real operation (EX-19).
     static func postToSystem(_ event: CGEvent) {
         event.post(tap: .cghidEventTap)
     }
@@ -42,13 +42,13 @@ final class MouseEventEmitter {
         post(type: .mouseMoved, button: .left, at: point, clickState: 0)
     }
 
-    /// Một chặng của thao tác kéo. Nút phải đang được giữ (EX-20).
+    /// One leg of a drag. The button must already be held (EX-20).
     func dragMove(_ button: MouseButton, to point: CGPoint) {
         heldButtons[button] = point
         post(type: button.draggedEventType, button: button, at: point, clickState: 0)
     }
 
-    /// Cuộn tại `point`. Đơn vị là dòng, `deltaY` dương là cuộn lên.
+    /// Scrolls at `point`. The unit is lines; a positive `deltaY` scrolls up.
     func scroll(deltaX: Int, deltaY: Int, at point: CGPoint) {
         guard let event = CGEvent(
             scrollWheelEvent2Source: source,
@@ -59,13 +59,13 @@ final class MouseEventEmitter {
             wheel3: 0
         ) else { return }
 
-        // Sự kiện cuộn đi theo vị trí ghi trong chính nó, nên đặt toạ độ ở đây là đủ; không cần
-        // dời con trỏ thật của người dùng.
+        // A scroll event follows the position recorded in the event itself, so setting the coordinates here is
+        // enough; the user's real cursor need not be moved.
         event.location = point
         sink(event)
     }
 
-    /// Nhả mọi nút còn đang giữ (SF-1). Gọi được sau khi tác vụ đã bị huỷ (SF-2).
+    /// Releases every button still held (SF-1). Callable after the task has been cancelled (SF-2).
     func releaseAllHeld() {
         let held = heldButtons
         heldButtons.removeAll()
@@ -88,8 +88,8 @@ final class MouseEventEmitter {
         ) else { return }
 
         if clickState > 0 {
-            // Thiếu trường này thì AppKit coi n cú click là n thao tác rời rạc chứ không phải
-            // một double click (EX-16).
+            // Without this field AppKit treats n clicks as n separate operations rather than one double click
+            // (EX-16).
             event.setIntegerValueField(.mouseEventClickState, value: Int64(clickState))
         }
         sink(event)

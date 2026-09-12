@@ -16,7 +16,7 @@ private func makeClicker(
     )
 }
 
-/// UI-6: Chế độ đơn giản không phải bộ chạy thứ hai — nó dựng một Kịch bản một bước.
+/// UI-6: Simple mode is not a second runner — it builds a one-step Scenario.
 @MainActor
 @Test func simpleModeBuildsASingleStepScenario() throws {
     let clicker = makeClicker(interval: 250, repeatCount: 12)
@@ -28,7 +28,7 @@ private func makeClicker(
     #expect(scenario.runCount == .times(1))
     #expect(scenario.steps[0].action == .click(button: .left, count: 1, holdMilliseconds: 0))
     #expect(scenario.steps[0].target == .cursor)
-    // Số lần lặp nằm ở Bước, không ở Kịch bản: đó là điều làm "click 200 lần rồi lưu" diễn đạt được.
+    // The repeat count lives on the Step, not on the Scenario: that is what makes "click 200 times, then save" expressible.
     #expect(scenario.steps[0].repeatCount == 12)
     #expect(scenario.steps[0].delayMillisecondsAfter == 250)
 }

@@ -19,9 +19,9 @@ private func scroll(_ dy: Int, at time: TimeInterval, pid: pid_t? = 1) -> Record
     RecordedEvent(kind: .scroll(deltaX: 0, deltaY: dy), location: CGPoint(x: 50, y: 50), timestamp: time, processIdentifier: pid, windowFrame: nil)
 }
 
-// MARK: - Suy luận Hành động
+// MARK: - Inferring Actions
 
-/// RC-5: nhấn nhả nhanh tại chỗ là một click thường.
+/// RC-5: a quick press and release in place is an ordinary click.
 @Test func aQuickPressBecomesAPlainClick() {
     let steps = RecordingInterpreter.steps(from: [down(100, 200, at: 0), up(100, 200, at: 0.08)])
 
@@ -30,14 +30,14 @@ private func scroll(_ dy: Int, at time: TimeInterval, pid: pid_t? = 1) -> Record
     #expect(steps[0].location == CGPoint(x: 100, y: 200))
 }
 
-/// RC-6: giữ lâu hơn ngưỡng là giữ nhấn, và thời gian giữ thật được ghi lại.
+/// RC-6: held longer than the threshold is a long press, and the real hold time is recorded.
 @Test func aSlowPressBecomesALongPressCarryingItsRealDuration() {
     let steps = RecordingInterpreter.steps(from: [down(100, 200, at: 0), up(100, 200, at: 0.7)])
 
     #expect(steps[0].action == .click(button: .left, count: 1, holdMilliseconds: 700))
 }
 
-/// RC-7: hai click sát nhau gộp thành double click chứ không phải hai bước rời.
+/// RC-7: two clicks close together fold into a double click rather than two separate steps.
 @Test func twoQuickClicksMergeIntoADoubleClick() {
     let steps = RecordingInterpreter.steps(
         from: [
@@ -75,7 +75,7 @@ private func scroll(_ dy: Int, at time: TimeInterval, pid: pid_t? = 1) -> Record
     #expect(steps.count == 2)
 }
 
-/// RC-8: di chuyển quá ngưỡng thì là kéo thả, và chỉ điểm đầu/điểm cuối được giữ.
+/// RC-8: moving beyond the threshold makes it a drag, and only the start and end points are kept.
 @Test func movingWhileHeldDownBecomesADrag() {
     let steps = RecordingInterpreter.steps(
         from: [
@@ -93,7 +93,7 @@ private func scroll(_ dy: Int, at time: TimeInterval, pid: pid_t? = 1) -> Record
     #expect(steps[0].location == CGPoint(x: 100, y: 100))
 }
 
-/// RC-9: một lần cuộn trackpad phát khoảng 100 sự kiện. Không gộp thì bản ghi thành 100 Bước.
+/// RC-9: one trackpad scroll emits about 100 events. Without folding, the recording becomes 100 Steps.
 @Test func aBurstOfScrollEventsBecomesOneStep() {
     var events: [RecordedEvent] = []
     for index in 0..<100 {
@@ -116,10 +116,10 @@ private func scroll(_ dy: Int, at time: TimeInterval, pid: pid_t? = 1) -> Record
     #expect(steps[1].action == .scroll(deltaX: 0, deltaY: -3))
 }
 
-// MARK: - Thời gian
+// MARK: - Timing
 
-/// RC-10 / ADR-0004: khoảng chờ giữ nguyên thời gian thật, kể cả khi rất dài. Cắt trần sẽ đoán
-/// sai đúng vào lúc quan trọng — "đợi trang tải" và "đi pha cà phê" trông giống hệt nhau.
+/// RC-10 / ADR-0004: the delay keeps its real duration, even a very long one. Capping would guess wrong at
+/// exactly the moment that matters — "wait for the page to load" and "go make coffee" look identical.
 @Test func gapsKeepTheirRealDurationEvenWhenLong() {
     let steps = RecordingInterpreter.steps(
         from: [
@@ -131,7 +131,7 @@ private func scroll(_ dy: Int, at time: TimeInterval, pid: pid_t? = 1) -> Record
     #expect(steps[0].delayMillisecondsAfter == 8000)
 }
 
-/// RC-11: Bước cuối cùng không có khoảng chờ treo lơ lửng.
+/// RC-11: the last Step has no dangling trailing delay.
 @Test func theLastStepHasNoTrailingDelay() {
     let steps = RecordingInterpreter.steps(from: [down(1, 1, at: 0), up(1, 1, at: 0.05)])
 
@@ -144,9 +144,9 @@ private func scroll(_ dy: Int, at time: TimeInterval, pid: pid_t? = 1) -> Record
     #expect(steps.isEmpty)
 }
 
-// MARK: - Dựng Kịch bản
+// MARK: - Building the Scenario
 
-/// RC-13: cả phiên nằm trong một ứng dụng thì tự khoá và nâng lên Vị trí tương đối cửa sổ.
+/// RC-13: a session lying inside one application locks it automatically and raises Targets to window-relative.
 @Test func aSingleApplicationRecordingIsUpgradedToWindowRelativeTargets() {
     let frame = CGRect(x: 700, y: 300, width: 800, height: 600)
     let recorded = RecordingInterpreter.steps(
@@ -164,8 +164,8 @@ private func scroll(_ dy: Int, at time: TimeInterval, pid: pid_t? = 1) -> Record
     #expect(result.warning == nil)
 }
 
-/// RC-14: trải nhiều ứng dụng thì giữ toạ độ tuyệt đối và nói thẳng ra, thay vì để người dùng
-/// phát hiện lúc kịch bản bắn trượt.
+/// RC-14: spanning several applications keeps absolute coordinates and says so plainly, rather than letting the
+/// user find out when the scenario fires wide.
 @Test func aMultiApplicationRecordingStaysAbsoluteAndWarns() {
     let recorded = RecordingInterpreter.steps(
         from: [
@@ -176,7 +176,7 @@ private func scroll(_ dy: Int, at time: TimeInterval, pid: pid_t? = 1) -> Record
 
     #expect(RecordingAssembler.singleProcessIdentifier(in: recorded) == nil)
 
-    let result = RecordingAssembler.scenario(named: "Hỗn hợp", from: recorded, lockedApplication: nil)
+    let result = RecordingAssembler.scenario(named: "Mixed", from: recorded, lockedApplication: nil)
 
     #expect(result.scenario.steps.allSatisfy { !$0.target.needsAnchorWindow })
     #expect(result.scenario.lockedApplication == nil)
@@ -194,20 +194,20 @@ private func scroll(_ dy: Int, at time: TimeInterval, pid: pid_t? = 1) -> Record
     )
 
     let result = RecordingAssembler.scenario(
-        named: "Kéo",
+        named: "Drag",
         from: recorded,
         lockedApplication: LockedApplication(bundleIdentifier: "x", name: "X")
     )
 
     guard case let .drag(_, destination) = result.scenario.steps[0].action else {
-        Issue.record("Bước không phải kéo thả")
+        Issue.record("The Step is not a drag")
         return
     }
     #expect(destination == .windowRelative(corner: .bottomRight, dx: -100, dy: -100))
     #expect(result.scenario.steps[0].target == .windowRelative(corner: .topLeft, dx: 100, dy: 100))
 }
 
-/// RC-15: Phiên ghi không bao giờ tự sinh Vị trí theo Ảnh mẫu.
+/// RC-15: a recording session never invents a Template Target on its own.
 @Test func recordingNeverInventsImageTargets() {
     let recorded = RecordingInterpreter.steps(from: [down(1, 1, at: 0), up(1, 1, at: 0.05)])
     let result = RecordingAssembler.scenario(named: "t", from: recorded, lockedApplication: nil)
@@ -215,7 +215,7 @@ private func scroll(_ dy: Int, at time: TimeInterval, pid: pid_t? = 1) -> Record
     #expect(result.scenario.steps.allSatisfy { $0.target == .screenPoint(x: 1, y: 1) })
 }
 
-/// Bước ghi được mà mỗi bước lặp đúng một lần — người dùng tự chỉnh sau.
+/// A recorded Step repeats exactly once — the user adjusts it afterwards.
 @Test func recordedStepsRepeatExactlyOnce() {
     let recorded = RecordingInterpreter.steps(
         from: [down(1, 1, at: 0), up(1, 1, at: 0.05), down(2, 2, at: 1), up(2, 2, at: 1.05)]

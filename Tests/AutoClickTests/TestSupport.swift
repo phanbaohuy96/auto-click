@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 @testable import AutoClick
 
-/// Hệ thống giả để test kiểm chứng được `SF-4`, `EX-7`, `EX-10` mà không mở ứng dụng thật.
+/// A fake system so the tests can verify `SF-4`, `EX-7`, `EX-10` without opening a real application.
 @MainActor
 final class FakeSystem {
     static let applicationBundleIdentifier = "com.test.App"
@@ -16,13 +16,13 @@ final class FakeSystem {
     var frontmostProcessIdentifier: pid_t? = FakeSystem.applicationProcessIdentifier
     var anchorWindowFrame: CGRect? = CGRect(x: 100, y: 200, width: 800, height: 600)
     var processIdentifierAtPoint: pid_t? = FakeSystem.applicationProcessIdentifier
-    /// Cửa sổ của từng tiến trình, theo tiêu đề. Dựng cảnh "hai tiến trình cùng bundle id".
+    /// Each process's windows, by title. Sets up the "two processes sharing one bundle id" scene.
     var windowTitles: [pid_t: [String]] = [:]
-    /// Khung riêng của một cửa sổ có tiêu đề cụ thể, khi test cần phân biệt hai cửa sổ.
+    /// The frame of one specific titled window, when a test needs to tell two windows apart.
     var frameForWindowTitle: [String: CGRect] = [:]
-    /// Tiến trình nào đã bị hỏi tới, và với tiêu đề nào.
+    /// Which process was asked about, and with which title.
     private(set) var anchorLookups: [(processIdentifier: pid_t, title: String?)] = []
-    /// `false` mô phỏng trường hợp một dialog modal chặn không cho đưa ứng dụng lên trước.
+    /// `false` simulates a modal dialog blocking the application from being brought forward.
     var activationSucceeds = true
     private(set) var activations: [pid_t] = []
 
@@ -60,7 +60,7 @@ final class FakeSystem {
     }
 
     static var lockedApplication: LockedApplication {
-        LockedApplication(bundleIdentifier: applicationBundleIdentifier, name: "App Thử")
+        LockedApplication(bundleIdentifier: applicationBundleIdentifier, name: "Test App")
     }
 }
 
@@ -72,7 +72,7 @@ final class EventRecorder {
         var location: CGPoint
         var keyCode: Int64
         var flags: CGEventFlags
-        /// Chuỗi Unicode gắn trên sự kiện bàn phím — thứ `EX-24` cắt thành khối.
+        /// The Unicode string attached to a keyboard event — what `EX-24` splits into chunks.
         var unicodeString: String = ""
     }
 
@@ -101,7 +101,7 @@ final class EventRecorder {
 
     var types: [CGEventType] { records.map(\.type) }
 
-    /// Chuỗi mà một Bước `gõChuỗi` thực sự gửi đi, ghép lại từ mọi khối.
+    /// The string a `typeText` Step actually sent, reassembled from every chunk.
     var typedText: String {
         records.filter { $0.type == .keyDown }.map(\.unicodeString).joined()
     }
@@ -119,10 +119,10 @@ final class EventRecorder {
     }
 }
 
-/// Bộ nhận dạng giả: kiểm chứng ngữ nghĩa thử lại của `EX-8`/`EX-9` mà không chụp màn hình thật.
+/// A fake recogniser: verifies the retry semantics of `EX-8`/`EX-9` without a real screen capture.
 @MainActor
 final class FakeRecognizer: TargetRecognizing {
-    /// Lần thử thứ mấy thì "thấy" mục tiêu; `nil` là không bao giờ thấy.
+    /// On which attempt the target is "seen"; `nil` means never.
     var foundOnAttempt: Int? = 1
     var point = CGPoint(x: 500, y: 400)
     var error: Error?
@@ -162,8 +162,8 @@ func makeRunner(
     )
 }
 
-/// Chờ tới khi `condition` đúng, tối đa `timeout`. Bộ chạy làm việc trên MainActor nên test
-/// phải nhường lượt chứ không thể chặn.
+/// Waits until `condition` holds, at most `timeout`. The runner works on the MainActor, so the test has to
+/// yield rather than block.
 @MainActor
 func waitUntil(
     timeout: Duration = .seconds(3),
@@ -177,8 +177,8 @@ func waitUntil(
     return false
 }
 
-/// Môi trường ghi giả: cho phép bơm `CGEvent` dựng sẵn vào `ScenarioRecorder` mà không cần
-/// `CGEventTap` thật, tức không cần quyền Accessibility lẫn thao tác tay.
+/// A fake recording environment: lets prebuilt `CGEvent`s be injected into `ScenarioRecorder` without a real
+/// `CGEventTap`, which means without the Accessibility permission and without manual operation.
 @MainActor
 final class FakeRecordingEnvironment {
     static let ownProcessIdentifier: pid_t = 99
@@ -186,18 +186,18 @@ final class FakeRecordingEnvironment {
 
     var frontmostProcessIdentifier: pid_t? = FakeRecordingEnvironment.otherProcessIdentifier
     var anchorWindowFrame: CGRect? = CGRect(x: 100, y: 100, width: 400, height: 300)
-    /// Tiêu đề cửa sổ neo mà bộ ghi sẽ đọc được.
-    var anchorWindowTitle: String? = "Cửa sổ Thử"
+    /// The anchor window title the recorder will read.
+    var anchorWindowTitle: String? = "Test Window"
     var applications: [pid_t: LockedApplication] = [
         FakeRecordingEnvironment.otherProcessIdentifier:
             LockedApplication(bundleIdentifier: "com.test.Ghi", name: "App Ghi")
     ]
     var doubleClickInterval: TimeInterval = 0.5
-    /// Các cửa sổ của chính Auto Click, theo toạ độ màn hình gốc trên-trái như `CGEvent.location`.
+    /// Auto Click's own windows, in top-left-origin screen coordinates like `CGEvent.location`.
     var ownWindowRects: [CGRect] = []
-    /// Tiến trình sở hữu cửa sổ dưới con trỏ; mặc định là ứng dụng đang được ghi.
+    /// The process owning the window under the cursor; by default the application being recorded.
     var processIdentifierAtPoint: pid_t? = FakeRecordingEnvironment.otherProcessIdentifier
-    /// Đồng hồ do test lái: mỗi sự kiện tự chọn thời điểm của mình.
+    /// A clock driven by the test: every event picks its own moment.
     var now: TimeInterval = 1_000
 
     var environment: RecordingEnvironment {
@@ -217,8 +217,8 @@ final class FakeRecordingEnvironment {
     }
 }
 
-/// Dựng `CGEvent` thật (tạo sự kiện không cần quyền, chỉ phát mới cần) để test đi qua đúng
-/// đường giải mã mà `ScenarioRecorder` dùng với sự kiện từ tap.
+/// Builds real `CGEvent`s (creating an event needs no permission, only posting one does) so the tests go through
+/// the same decoding path `ScenarioRecorder` uses for events from the tap.
 enum TestEvent {
     static func mouse(_ type: CGEventType, at point: CGPoint, button: CGMouseButton = .left) -> CGEvent {
         CGEvent(
@@ -229,7 +229,7 @@ enum TestEvent {
         )!
     }
 
-    /// `kCGScrollWheelEventDeltaAxis1` là trục dọc, `Axis2` là trục ngang — theo `CGEventTypes.h`.
+    /// `kCGScrollWheelEventDeltaAxis1` is the vertical axis, `Axis2` the horizontal one — per `CGEventTypes.h`.
     static func scroll(deltaX: Int, deltaY: Int, at point: CGPoint) -> CGEvent {
         let event = CGEvent(
             scrollWheelEvent2Source: nil,

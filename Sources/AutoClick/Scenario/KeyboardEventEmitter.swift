@@ -1,10 +1,10 @@
 import CoreGraphics
 import Foundation
 
-/// Phát sự kiện bàn phím (EX-21, EX-22).
+/// Emits keyboard events (EX-21, EX-22).
 ///
-/// Không có sổ ghi nút đang giữ như `MouseEventEmitter`: phím bổ trợ được gắn thẳng vào cờ của
-/// từng sự kiện chứ không phát riêng, nên huỷ giữa chừng không để lại phím nào bị kẹt.
+/// There is no held-key ledger like `MouseEventEmitter`'s: modifiers are attached straight to each event's flags
+/// rather than emitted separately, so cancelling part-way leaves no key stuck down.
 @MainActor
 final class KeyboardEventEmitter {
     typealias EventSink = @MainActor (CGEvent) -> Void
@@ -20,16 +20,16 @@ final class KeyboardEventEmitter {
         event.post(tap: .cghidEventTap)
     }
 
-    /// Gõ một chuỗi ký tự bất kỳ.
+    /// Types an arbitrary string.
     ///
-    /// Dùng `keyboardSetUnicodeString` thay vì tra mã phím, nên không phụ thuộc bố cục bàn phím
-    /// và gõ được cả tiếng Việt lẫn emoji — điều mà cách map keycode không làm được.
+    /// Uses `keyboardSetUnicodeString` rather than looking up key codes, so it does not depend on the keyboard
+    /// layout and can type Vietnamese and emoji alike — which a keycode mapping cannot.
     ///
-    /// EX-24: chuỗi được cắt thành **khối**, mỗi khối một cặp phím — không phải mỗi ký tự một
-    /// cặp. Đo trên máy thật: gửi từng ký tự chỉ đúng ~1/5 lần với chuỗi dài, vì payload Unicode
-    /// thỉnh thoảng bị mất và hệ thống rơi về `virtualKey` (số 0 = phím `a`), chèn ra chữ `a`
-    /// thay cho chữ thật mà **không báo lỗi gì**. Cắt khối giảm số sự kiện đi 20 lần và nâng tỉ
-    /// lệ đúng lên ~94%. Vẫn chưa phải 100% — giới hạn còn lại được nói rõ ở `EX-24`.
+    /// EX-24: the string is split into **chunks**, one key pair per chunk — not one pair per character. Measured
+    /// on a real machine: sending one character at a time worked only about 1 time in 5 with a long string,
+    /// because the Unicode payload is occasionally lost and the system falls back to `virtualKey` (0 = the `a`
+    /// key), inserting an `a` instead of the real character **with no error at all**. Chunking cuts the event
+    /// count by 20× and raises the success rate to ~94%. Still not 100% — the remaining limit is stated in `EX-24`.
     func type(_ text: String) async throws {
         let units = Array(text.utf16)
         guard !units.isEmpty else { return }
@@ -37,21 +37,21 @@ final class KeyboardEventEmitter {
         var index = 0
         while index < units.count {
             var end = min(index + ScenarioLimits.typingChunkUTF16Units, units.count)
-            // Không cắt giữa một cặp thay thế, nếu không emoji vỡ thành hai ký tự rác.
+            // Never cut inside a surrogate pair, otherwise an emoji breaks into two pieces of garbage.
             if end < units.count, end - 1 > index, UTF16.isLeadSurrogate(units[end - 1]) {
                 end -= 1
             }
             let chunk = Array(units[index..<end])
 
-            // Chuỗi chỉ gắn vào `keyDown`; phím nhả không mang chữ, đúng như gõ thật.
+            // The text is attached to `keyDown` only; key-up carries no characters, just like real typing.
             if let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true) {
                 down.keyboardSetUnicodeString(stringLength: chunk.count, unicodeString: chunk)
                 sink(down)
             }
-            // Phím nhả không mang chữ. Không xoá được ký tự của `virtualKey` khỏi nó — đọc ra
-            // vẫn là `a` — nhưng ứng dụng chỉ chèn chữ ở phím nhấn nên không sao. Đổi sang mã
-            // phím không-sinh-chữ (F13, fn) thì đo được là **không gõ ra gì cả**, nên số 0 là
-            // bắt buộc chứ không phải lựa chọn.
+            // Key-up carries no text. The character of `virtualKey` cannot be removed from it — it still reads
+            // as `a` — but applications only insert text on key-down, so it does no harm. Switching to a key
+            // code that produces no character (F13, fn) was measured to type **nothing at all**, so 0 is
+            // mandatory rather than a choice.
             if let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) {
                 sink(up)
             }
@@ -65,7 +65,7 @@ final class KeyboardEventEmitter {
         }
     }
 
-    /// Nhấn một tổ hợp phím. Trả về `false` nếu không nhận ra tên phím.
+    /// Presses a key combination. Returns `false` if the key name is not recognised.
     @discardableResult
     func press(_ stroke: KeyStroke) -> Bool {
         guard let keyCode = KeyCatalog.keyCode(for: stroke.key) else { return false }

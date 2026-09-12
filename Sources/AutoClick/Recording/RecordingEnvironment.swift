@@ -2,42 +2,42 @@ import AppKit
 import CoreGraphics
 import Foundation
 
-/// Mọi thứ việc ghi cần hỏi hệ điều hành, gom vào một chỗ — cùng lối với `ScenarioSystemBridge`.
+/// Everything recording needs to ask the operating system, gathered in one place — the same way as `ScenarioSystemBridge`.
 ///
-/// Tách ra vì phần bắt sự kiện chỉ chạy được khi có `CGEventTap` thật, mà tap thật lại đòi quyền
-/// Accessibility và thao tác tay của người dùng. Với seam này, test bơm thẳng `CGEvent` dựng sẵn
-/// vào `ScenarioRecorder.handle` và kiểm chứng được `RC-2`, `RC-12`, `RC-13` trên máy không quyền.
+/// Split out because the event-capture path only runs with a real `CGEventTap`, and a real tap requires the
+/// Accessibility permission and manual operation by the user. With this seam, tests inject prebuilt `CGEvent`s
+/// straight into `ScenarioRecorder.handle` and verify `RC-2`, `RC-12`, `RC-13` on a machine with no permission.
 @MainActor
 struct RecordingEnvironment {
     var ownProcessIdentifier: () -> pid_t
     var frontmostProcessIdentifier: () -> pid_t?
-    /// Điểm này có rơi vào một cửa sổ của chính Auto Click không (`RC-2`).
+    /// Whether this point falls inside one of Auto Click's own windows (`RC-2`).
     ///
-    /// Không thể thay bằng `frontmostProcessIdentifier`: bảng nổi lúc ghi là `NSPanel` kiểu
-    /// `.nonactivatingPanel`, bấm vào nó **không** làm Auto Click thành ứng dụng trước, nên hỏi
-    /// "ai đang ở trước" vẫn ra ứng dụng kia và cú bấm "Kết thúc" lọt thẳng vào bản ghi.
+    /// It cannot be replaced by `frontmostProcessIdentifier`: the floating panel shown while recording is an
+    /// `NSPanel` of kind `.nonactivatingPanel`, so clicking it does **not** make Auto Click the frontmost
+    /// application, and asking "who is in front" still returns the other application — the "Finish" click then lands straight in the recording.
     var pointIsInOwnWindow: (CGPoint) -> Bool
-    /// Tiến trình sở hữu cửa sổ nằm dưới một điểm. Cần khi Auto Click đang là ứng dụng ở
-    /// trước — ngay sau khi người dùng bấm nút "Ghi thao tác" — nên hỏi "ai đang ở trước" sẽ ra
-    /// chính mình chứ không ra ứng dụng người dùng đang thao tác.
+    /// The process owning the window under a point. Needed while Auto Click is the frontmost application —
+    /// right after the user presses the "Record" button — where asking "who is in front" returns ourselves
+    /// rather than the application the user is operating.
     var processIdentifierAtPoint: (CGPoint) -> pid_t?
     var anchorWindowFrame: (pid_t) -> CGRect?
-    /// Tiêu đề của cửa sổ neo, để bản ghi còn chỉ được **cửa sổ** chứ không chỉ mỗi ứng dụng.
+    /// The anchor window's title, so a recording can name a **window** and not just an application.
     var anchorWindowTitle: (pid_t) -> String?
     var application: (pid_t) -> LockedApplication?
     var doubleClickInterval: () -> TimeInterval
-    /// Đồng hồ, tính bằng giây. Bơm được để test dựng khoảng nghỉ thật mà không phải chờ thật.
+    /// The clock, in seconds. Injectable so tests can build real gaps without really waiting.
     var now: () -> TimeInterval
 
     static let live = RecordingEnvironment(
         ownProcessIdentifier: { ProcessInfo.processInfo.processIdentifier },
         frontmostProcessIdentifier: { NSWorkspace.shared.frontmostApplication?.processIdentifier },
         pointIsInOwnWindow: { point in
-            // `CGEvent.location` lấy gốc ở trên-trái màn hình chính, `NSWindow` lấy gốc dưới-trái.
+            // `CGEvent.location` has its origin at the top-left of the main screen, `NSWindow` at the bottom-left.
             guard let mainScreen = NSScreen.screens.first else { return false }
             let flipped = NSPoint(x: point.x, y: mainScreen.frame.maxY - point.y)
-            // Hỏi hệ thống cửa sổ nào **trên cùng** tại điểm đó, nên cửa sổ mình bị ứng dụng khác
-            // che thì không tính là của mình.
+            // Ask the system which window is **topmost** at that point, so one of our windows covered by another
+            // application's does not count as ours.
             let number = NSWindow.windowNumber(at: flipped, belowWindowWithWindowNumber: 0)
             return NSApp.windows.contains { $0.isVisible && $0.windowNumber == number }
         },

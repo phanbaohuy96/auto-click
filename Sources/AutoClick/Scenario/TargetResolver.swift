@@ -3,17 +3,17 @@ import Foundation
 
 enum TargetResolutionError: LocalizedError, Equatable {
     case anchorWindowUnavailable
-    /// Vị trí này phải đi tìm mục tiêu trên màn hình nên không giải được đồng bộ.
+    /// This Target has to go looking for its target on screen, so it cannot be resolved synchronously.
     case requiresRecognition
 }
 
-/// Giải một Vị trí ra toạ độ thật (EX-6, EX-7).
+/// Resolves a Target into real coordinates (EX-6, EX-7).
 ///
-/// Việc giải diễn ra ngay trước **mỗi lần lặp** của Bước, không phải một lần cho cả Bước —
-/// nhờ vậy `theoConTrỏ` với số lần lặp lớn hơn 1 sẽ đi theo tay người dùng (DM-19).
+/// Resolution happens just before **each repetition** of a Step, not once for the whole Step — that is what
+/// makes `atCursor` with a repeat count above 1 follow the user's hand (DM-19).
 ///
-/// Khung Cửa sổ neo được truyền vào chứ không tự đi hỏi Accessibility: giữ cho việc giải Vị trí
-/// là một phép biến đổi thuần tuý, kiểm chứng được mà không cần dựng cửa sổ thật.
+/// The Anchor window frame is passed in rather than asked of Accessibility here: that keeps resolving a Target
+/// a pure transformation, verifiable without a real window.
 struct TargetResolver: Sendable {
     let currentCursorPoint: @Sendable () -> CGPoint
 
@@ -36,11 +36,11 @@ struct TargetResolver: Sendable {
         }
     }
 
-    /// Giải một **Vùng tìm** ra hình chữ nhật thật.
+    /// Resolves a **Search region** into a real rectangle.
     ///
-    /// [ADR-0006]: vùng tương đối cửa sổ mà không giải được thì **lùi về phạm vi mặc định**
-    /// (`RG-7`) chứ không báo lỗi — Vùng tìm không bao giờ được ràng buộc Kịch bản phải có
-    /// Ứng dụng khoá.
+    /// [ADR-0006]: a window-relative region that cannot be resolved **falls back to the default scope**
+    /// (`RG-7`) rather than reporting an error — a Search region must never force a Scenario to have a
+    /// Locked application.
     func resolve(_ region: SearchRegion?, anchorWindowFrame: CGRect?) -> CGRect? {
         switch region {
         case nil:
@@ -59,8 +59,8 @@ struct TargetResolver: Sendable {
 }
 
 extension TargetResolver {
-    /// Bộ giải dùng lúc chạy thật: đọc vị trí con trỏ trong không gian toạ độ của `CGEvent`
-    /// (gốc ở góc trên-trái màn hình chính, đơn vị point — DM-12).
+    /// The resolver used at run time: reads the cursor position in `CGEvent` coordinate space
+    /// (origin at the top-left of the main screen, measured in points — DM-12).
     static let live = TargetResolver(
         currentCursorPoint: { CGEvent(source: nil)?.location ?? .zero }
     )

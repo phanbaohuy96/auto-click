@@ -7,9 +7,9 @@ configuration="${1:-release}"
 app_dir="$project_dir/dist/Auto Click.app"
 contents_dir="$app_dir/Contents"
 binary_dir="$(cd "$project_dir" && swift build -c "$configuration" --show-bin-path)"
-# Ký ad-hoc ("-") cho yêu cầu định danh là cdhash, mà cdhash đổi theo mỗi lần build — nên mọi
-# quyền đã cấp đều hết hiệu lực sau mỗi lần cài. Có chứng chỉ cố định thì dùng nó, để cấp quyền
-# một lần là xong. Tạo bằng ./scripts/create-local-signing-identity.sh
+# Ad-hoc signing ("-") produces a designated requirement of cdhash, and the cdhash changes with every build —
+# so every granted permission is invalidated on each install. When a stable certificate exists, use it, so that
+# granting the permission once is enough. Create one with ./scripts/create-local-signing-identity.sh
 local_identity="Auto Click Local Signing"
 if [ -n "${AUTO_CLICK_SIGNING_IDENTITY:-}" ]; then
     signing_identity="$AUTO_CLICK_SIGNING_IDENTITY"

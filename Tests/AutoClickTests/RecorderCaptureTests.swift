@@ -3,11 +3,11 @@ import Foundation
 import Testing
 @testable import AutoClick
 
-/// Phần bắt sự kiện của `ScenarioRecorder`: giải mã `CGEvent`, loại sự kiện của chính mình,
-/// và lấy mẫu Cửa sổ neo đúng thời điểm.
+/// The event-capture half of `ScenarioRecorder`: decoding a `CGEvent`, excluding our own events,
+/// and sampling the Anchor window at the right moment.
 ///
-/// Đây là đường mà trước đây chỉ `CGEventTap` thật mới chạy tới. Test bơm `CGEvent` dựng sẵn
-/// thẳng vào `handle` nên chứng minh được `RC-2`, `RC-12`, `RC-13` trên máy không có quyền.
+/// This is the path that used to be reachable only through a real `CGEventTap`. The tests inject prebuilt
+/// `CGEvent`s straight into `handle`, so they prove `RC-2`, `RC-12`, `RC-13` on a machine with no permission.
 @MainActor
 struct RecorderCaptureTests {
     private func makeRecorder(
@@ -32,22 +32,22 @@ struct RecorderCaptureTests {
         recorder.handle(type: .leftMouseUp, event: TestEvent.mouse(.leftMouseUp, at: point))
     }
 
-    /// RC-2: bấm nút "Kết thúc" trên bảng nổi lúc ghi không được thành một Bước.
+    /// RC-2: pressing "Finish" on the floating panel while recording must not become a Step.
     ///
-    /// Bảng nổi là `NSPanel` kiểu `.nonactivatingPanel`: bấm vào nó **không** làm Auto Click
-    /// thành ứng dụng trước, nên phép thử "ai đang ở trước" vẫn trả về ứng dụng đang được ghi và
-    /// cú bấm lọt thẳng vào bản ghi. Chủ dự án gặp đúng vậy: ghi xong, bấm Kết thúc, bản ghi thừa
-    /// một Bước click ngay chỗ cái nút.
+    /// The floating panel is an `NSPanel` of kind `.nonactivatingPanel`: clicking it does **not** make Auto Click
+    /// the frontmost application, so the "who is in front" test still returns the application being recorded and
+    /// the click lands straight in the recording. The project owner hit exactly this: finish recording, press
+    /// Finish, and the recording has a spurious click Step right where the button is.
     @Test func aClickOnTheFloatingPanelIsNotRecordedEvenThoughItDoesNotActivateTheApp() throws {
         let fake = FakeRecordingEnvironment()
-        // Đúng như thật: ứng dụng trước vẫn là ứng dụng đang được ghi, không phải Auto Click.
+        // Just like the real thing: the frontmost app is still the one being recorded, not Auto Click.
         #expect(fake.frontmostProcessIdentifier == FakeRecordingEnvironment.otherProcessIdentifier)
         fake.ownWindowRects = [CGRect(x: 500, y: 40, width: 390, height: 86)]
         let (recorder, result) = makeRecorder(fake)
 
-        // Một cú bấm thật vào ứng dụng đang được ghi…
+        // A real click on the application being recorded…
         click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)
-        // …rồi bấm "Kết thúc" trên bảng nổi.
+        // …then pressing "Finish" on the floating panel.
         click(recorder, fake, at: CGPoint(x: 690, y: 83), downAt: 1_001, upAt: 1_001.05)
         recorder.finishSession()
 
@@ -57,14 +57,14 @@ struct RecorderCaptureTests {
         #expect(scenario.steps[0].target == .windowRelative(corner: .topLeft, dx: 50, dy: 40))
     }
 
-    /// RC-2: Auto Click đang là ứng dụng **ở trước** không làm mất cú bấm vào ứng dụng khác.
+    /// RC-2: Auto Click being the **frontmost** application must not lose a click on another application.
     ///
-    /// Đúng luồng người dùng: mở popover, bấm "Ghi thao tác". Popover đóng nhưng Auto Click vẫn là
-    /// ứng dụng ở trước, nên phép thử cũ ("ai đang ở trước") nuốt **thao tác đầu tiên của mọi bản
-    /// ghi**, lặng lẽ. Đo trên app thật: ba cú bấm ra hai Bước, cú mất luôn là cú đầu.
+    /// The real user flow: open the popover, press "Record". The popover closes but Auto Click is still the
+    /// frontmost application, so the old test ("who is in front") swallowed **the first operation of every
+    /// recording**, silently. Measured on the real app: three clicks produced two Steps, and the missing one was always the first.
     ///
-    /// Và Ứng dụng khoá phải là ứng dụng **dưới con trỏ**, không phải Auto Click — nếu quy nhầm,
-    /// cả phiên ghi bị coi là trải trên hai ứng dụng và mất luôn Vị trí tương đối cửa sổ.
+    /// And the Locked application has to be the one **under the cursor**, not Auto Click — attributing it wrongly
+    /// makes the whole session look like it spans two applications and loses window-relative Targets entirely.
     @Test func theFirstClickIsKeptEvenWhenAutoClickIsStillTheFrontmostApp() throws {
         let fake = FakeRecordingEnvironment()
         fake.frontmostProcessIdentifier = FakeRecordingEnvironment.ownProcessIdentifier
@@ -72,7 +72,7 @@ struct RecorderCaptureTests {
         let (recorder, result) = makeRecorder(fake)
 
         click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)
-        // Cú thứ hai thì ứng dụng kia đã lên trước, như thật.
+        // By the second click the other application has come forward, as it would in reality.
         fake.frontmostProcessIdentifier = FakeRecordingEnvironment.otherProcessIdentifier
         click(recorder, fake, at: CGPoint(x: 250, y: 140), downAt: 1_001, upAt: 1_001.05)
         recorder.finishSession()
@@ -81,7 +81,7 @@ struct RecorderCaptureTests {
         let outcome = try #require(result())
         #expect(outcome.scenario.steps.count == 2)
         #expect(outcome.scenario.lockedApplication?.bundleIdentifier == "com.test.Ghi")
-        // Một ứng dụng duy nhất nên không có cảnh báo, và Vị trí được nâng lên tương đối cửa sổ.
+        // A single application, so no warning, and the Target is raised to window-relative.
         #expect(outcome.warning == nil)
         #expect(outcome.scenario.steps[0].target == .windowRelative(corner: .topLeft, dx: 50, dy: 40))
     }
@@ -96,7 +96,7 @@ struct RecorderCaptureTests {
         let scenario = try! #require(result()?.scenario)
         #expect(scenario.steps.count == 1)
         #expect(scenario.steps[0].action == .click(button: .left, count: 1, holdMilliseconds: 0))
-        // RC-13: có Ứng dụng khoá và có khung cửa sổ nên Vị trí được nâng lên tương đối.
+        // RC-13: there is a Locked application and a window frame, so the Target is raised to relative.
         #expect(scenario.steps[0].target == .windowRelative(corner: .topLeft, dx: 50, dy: 40))
         #expect(scenario.lockedApplication?.bundleIdentifier == "com.test.Ghi")
         #expect(result()?.warning == nil)
@@ -104,14 +104,14 @@ struct RecorderCaptureTests {
 
     @Test func eventsBelongingToAutoClickItselfAreNeverRecorded() {
         let fake = FakeRecordingEnvironment()
-        // Điều kiện đúng là **điểm bấm rơi vào cửa sổ của mình**, không phải "mình đang ở trước".
+        // The right condition is **the click point falling inside one of our own windows**, not "we are in front".
         fake.ownWindowRects = [CGRect(x: 100, y: 100, width: 200, height: 120)]
         let (recorder, result) = makeRecorder(fake)
 
         click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)
         recorder.finishSession()
 
-        // RC-2: bấm vào chính cửa sổ Auto Click không được lọt vào bản ghi.
+        // RC-2: a click on Auto Click's own window must not get into the recording.
         #expect(recorder.recordedGestureCount == 0)
         #expect(result() == nil)
         #expect(recorder.message == "Không ghi được thao tác nào.")
@@ -127,7 +127,7 @@ struct RecorderCaptureTests {
         )
         recorder.finishSession()
 
-        // Đảo hai trục là lỗi âm thầm: kịch bản vẫn chạy, chỉ cuộn sai chiều.
+        // Swapping the two axes is a silent bug: the scenario still runs, it just scrolls the wrong way.
         let scenario = try! #require(result()?.scenario)
         #expect(scenario.steps[0].action == .scroll(deltaX: 3, deltaY: -7))
     }
@@ -141,7 +141,7 @@ struct RecorderCaptureTests {
             type: .leftMouseDown,
             event: TestEvent.mouse(.leftMouseDown, at: CGPoint(x: 150, y: 140))
         )
-        // Cửa sổ dịch chuyển giữa lúc giữ chuột; Vị trí phải tính theo khung lúc bắt đầu.
+        // The window moves while the button is held; the Target must be computed from the frame at the start.
         fake.anchorWindowFrame = CGRect(x: 700, y: 700, width: 400, height: 300)
         fake.now = 1_000.05
         recorder.handle(
@@ -156,7 +156,7 @@ struct RecorderCaptureTests {
 
     @Test func aSessionSpanningTwoApplicationsFallsBackToAbsolutePointsAndSaysSo() {
         let fake = FakeRecordingEnvironment()
-        fake.applications[7] = LockedApplication(bundleIdentifier: "com.test.Khac", name: "App Khác")
+        fake.applications[7] = LockedApplication(bundleIdentifier: "com.test.Other", name: "Other App")
         let (recorder, result) = makeRecorder(fake)
 
         click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)
@@ -164,7 +164,7 @@ struct RecorderCaptureTests {
         click(recorder, fake, at: CGPoint(x: 160, y: 150), downAt: 1_002, upAt: 1_002.05)
         recorder.finishSession()
 
-        // RC-14: không có Ứng dụng khoá nào đúng cho cả phiên nên phải nói ra, không im lặng.
+        // RC-14: no Locked application is right for the whole session, so it has to say so rather than stay silent.
         let unwrapped = try! #require(result())
         #expect(unwrapped.scenario.lockedApplication == nil)
         #expect(unwrapped.scenario.steps.allSatisfy { !$0.target.needsAnchorWindow })
@@ -182,7 +182,7 @@ struct RecorderCaptureTests {
         click(recorder, fake, at: CGPoint(x: 150, y: 140), downAt: 1_000, upAt: 1_000.05)
         recorder.finishSession()
 
-        // Sự kiện báo tap bị tắt không phải thao tác của người dùng.
+        // An event reporting the tap was disabled is not a user operation.
         #expect(result()?.scenario.steps.count == 1)
     }
 
@@ -194,19 +194,19 @@ struct RecorderCaptureTests {
         click(recorder, fake, at: CGPoint(x: 300, y: 250), downAt: 1_002.55, upAt: 1_002.6)
         recorder.finishSession()
 
-        // ADR-0004: giữ nguyên 2,5 giây người dùng thật sự chờ, không cắt bớt.
+        // ADR-0004: keep the 2.5 seconds the user really waited, uncut.
         let steps = try! #require(result()?.scenario.steps)
         #expect(steps[0].delayMillisecondsAfter == 2_500)
         #expect(steps[1].delayMillisecondsAfter == 0)
     }
 }
 
-/// `SF-6` / ADR-0003: bộ ghi **không bao giờ** được nghe bàn phím.
+/// `SF-6` / ADR-0003: the recorder must **never** listen to the keyboard.
 ///
-/// Đây là ràng buộc an toàn mạnh nhất của dự án và trước đây không có test nào canh nó: mặt nạ sự
-/// kiện nằm trong thân `startSession`, chỉ `CGEventTap` thật mới chạm tới. Ai đó thêm `.keyDown`
-/// vào để "ghi cả phím cho tiện" sẽ biến Auto Click thành keylogger toàn hệ thống, kéo theo quyền
-/// Input Monitoring, và mật khẩu gõ lúc đang ghi sẽ nằm nguyên văn trong `scenario.json`.
+/// This is the project's strongest safety constraint and it used to have no test holding it: the event mask lived
+/// inside the body of `startSession`, where only a real `CGEventTap` ever reached it. Someone adding `.keyDown`
+/// to "record keys too, for convenience" would turn Auto Click into a system-wide keylogger, drag in the Input
+/// Monitoring permission, and a password typed while recording would sit verbatim in `scenario.json`.
 @MainActor
 struct RecorderNeverListensToTheKeyboardTests {
     private func listens(to type: CGEventType) -> Bool {
@@ -218,12 +218,12 @@ struct RecorderNeverListensToTheKeyboardTests {
         #expect(!listens(to: .keyUp))
         #expect(!listens(to: .flagsChanged))
 
-        // Và phải thật sự nghe chuột, nếu không khẳng định trên đúng một cách vô nghĩa.
+        // And it must really listen to the mouse, otherwise the assertion above holds vacuously.
         #expect(listens(to: .leftMouseDown))
         #expect(listens(to: .scrollWheel))
     }
 
-    /// Vế thứ hai: kể cả khi mặt nạ bị nới ra, phần giải mã cũng không biến phím thành Bước.
+    /// The second layer: even if the mask were widened, the decoding path still would not turn keys into Steps.
     @Test func aKeyboardEventFedStraightIntoTheRecorderProducesNothing() {
         let fake = FakeRecordingEnvironment()
         let recorder = ScenarioRecorder(environment: fake.environment)
@@ -241,10 +241,10 @@ struct RecorderNeverListensToTheKeyboardTests {
     }
 }
 
-/// UI-16 (cùng họ): `"Đã ghi N bước."` là **thành công**, không được mang biểu tượng lỗi.
+/// UI-16 (same family): `"Đã ghi N bước."` is a **success**, and must not carry the error icon.
 ///
-/// Thông báo của bộ ghi bị đổ chung một dòng với các lý do không chạy được, mà dòng đó luôn vẽ
-/// bằng `exclamationmark.triangle.fill` màu cam. Nên ghi xong thành công vẫn trông như hỏng.
+/// The recorder's message was poured into the same line as the reasons a Scenario cannot run, and that line was
+/// always drawn with an orange `exclamationmark.triangle.fill`. So a successful recording still looked like a failure.
 @MainActor
 struct RecorderMessageSeverityTests {
     @Test func aSuccessfulRecordingDoesNotAskForAttention() throws {
@@ -273,7 +273,7 @@ struct RecorderMessageSeverityTests {
         #expect(recorder.messageNeedsAttention)
     }
 
-    /// Bản ghi trải trên hai ứng dụng vẫn là cảnh báo thật: Vị trí tụt về toạ độ tuyệt đối.
+    /// A recording spanning two applications really does deserve attention: Targets fall back to absolute coordinates.
     @Test func aRecordingSpanningTwoApplicationsDoesAskForAttention() {
         let fake = FakeRecordingEnvironment()
         fake.applications[7] = LockedApplication(bundleIdentifier: "com.test.Hai", name: "App Hai")

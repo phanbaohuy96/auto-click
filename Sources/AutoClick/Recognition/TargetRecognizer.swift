@@ -1,16 +1,16 @@
 import CoreGraphics
 import Foundation
 
-/// Đi tìm mục tiêu trên màn hình cho các **Vị trí** phải nhận dạng (DM-14, DM-15).
+/// Goes looking on screen for the **Target**s that need recognition (DM-14, DM-15).
 ///
-/// Là giao thức để bộ chạy kiểm chứng được ngữ nghĩa thử lại của `EX-8`/`EX-9` mà không cần chụp
-/// màn hình thật.
+/// It is a protocol so the runner can verify the retry semantics of `EX-8`/`EX-9` without a real screen
+/// capture.
 @MainActor
 protocol TargetRecognizing: AnyObject {
-    /// Trỏ vào thư mục Ảnh mẫu của Kịch bản sắp chạy.
+    /// Points at the Templates directory of the Scenario about to run.
     func prepare(templatesDirectory: URL?)
 
-    /// Toạ độ `CGEvent` của mục tiêu, hoặc `nil` nếu lần thử này chưa thấy.
+    /// The target's `CGEvent` coordinates, or `nil` if this attempt did not find it.
     func locate(_ target: StepTarget, within region: CGRect?) async throws -> CGPoint?
 }
 
@@ -41,14 +41,14 @@ final class ScreenTargetRecognizer: TargetRecognizing {
     ) async throws -> CGPoint? {
         guard let template = templates?.loadGray(name) else { return nil }
 
-        // RG-3: chụp lại ở mỗi lần thử. Mục đích của việc thử lại là thấy giao diện đã thay đổi.
+        // RG-3: capture again on every attempt. The point of retrying is to see an interface that has changed.
         var best: (point: CGPoint, score: Double)?
         for captured in try await capture.capture(within: region) {
             guard let haystack = GrayImage(cgImage: captured.image),
                   let match = TemplateMatcher.bestMatch(of: template, in: haystack),
                   match.score >= settings.threshold else { continue }
 
-            // RG-11: Vị trí trả về là tâm vùng khớp.
+            // RG-11: the Target returned is the centre of the matched area.
             let centre = CGPoint(
                 x: match.origin.x + Double(template.width) / 2,
                 y: match.origin.y + Double(template.height) / 2
@@ -70,7 +70,7 @@ final class ScreenTargetRecognizer: TargetRecognizing {
         for captured in try await capture.capture(within: region) {
             guard let match = TextFinder.find(text, in: captured.image) else { continue }
 
-            // RG-15: tâm hộp bao của đoạn chữ khớp.
+            // RG-15: the centre of the matched piece of text's bounding box.
             let point = captured.screenPoint(
                 fromPixel: CGPoint(x: match.boundingBox.midX, y: match.boundingBox.midY)
             )

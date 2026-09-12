@@ -3,19 +3,19 @@ import CoreGraphics
 import Foundation
 import ScreenCaptureKit
 
-/// Một mảnh màn hình đã chụp, kèm đủ thông tin để quy toạ độ điểm ảnh về toạ độ `CGEvent`.
+/// One captured piece of the screen, carrying enough information to convert pixel coordinates into `CGEvent` coordinates.
 struct CapturedImage: Sendable {
     var image: CGImage
-    /// Vùng màn hình mà ảnh này phủ, tính bằng **point**, gốc trên-trái toàn cục.
+    /// The screen region this image covers, in **points**, origin at the global top-left.
     var frame: CGRect
-    /// Số điểm ảnh trên mỗi point của màn hình chứa nó.
+    /// How many pixels per point the display holding it has.
     var scale: Double
 
-    /// Quy một điểm trong ảnh (đơn vị **pixel**) về toạ độ `CGEvent` (đơn vị **point**).
+    /// Converts a point inside the image (in **pixels**) into `CGEvent` coordinates (in **points**).
     ///
-    /// RG-2: đây là nguồn bug kinh điển của tính năng này. Ảnh chụp ra pixel, `CGEvent` làm việc
-    /// bằng point, và máy có màn hình retina lẫn màn hình ngoài sẽ có hai hệ số khác nhau trong
-    /// cùng một không gian toạ độ.
+    /// RG-2: this is the classic source of bugs in this feature. A capture comes back in pixels, `CGEvent` works
+    /// in points, and a machine with a retina display and an external display has two different factors inside
+    /// the same coordinate space.
     func screenPoint(fromPixel pixel: CGPoint) -> CGPoint {
         CGPoint(x: frame.minX + pixel.x / scale, y: frame.minY + pixel.y / scale)
     }
@@ -28,9 +28,9 @@ enum ScreenCaptureError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .permissionDenied:
-            // SF-7: nếu người dùng vừa bật quyền mà vẫn hỏng thì gần như chắc chắn là bản build
-            // ký ad-hoc bị macOS coi là ứng dụng khác sau khi cập nhật. Cách sửa là khởi động
-            // lại app, và câu này phải nói ra — hệ thống không phân biệt được hai trường hợp.
+            // SF-7: if the user has just enabled the permission and it still fails, it is almost certainly an
+            // ad-hoc signed build that macOS treats as a different application after an update. The fix is to
+            // restart the app, and that has to be said — the system cannot tell the two cases apart.
             return "Hãy cấp quyền Screen Recording cho Auto Click rồi thử lại. "
                 + "Nếu đã cấp rồi, hãy thoát và mở lại Auto Click."
         case .noDisplays:
@@ -39,13 +39,13 @@ enum ScreenCaptureError: LocalizedError {
     }
 }
 
-/// Chụp màn hình bằng ScreenCaptureKit (RG-1, [ADR-0001]).
+/// Captures the screen with ScreenCaptureKit (RG-1, [ADR-0001]).
 @MainActor
 struct ScreenCapture {
-    /// Chụp phần màn hình giao với `rect` (point, gốc trên-trái toàn cục); `nil` là chụp tất cả.
+    /// Captures the part of the screen intersecting `rect` (points, origin at the global top-left); `nil` captures everything.
     ///
-    /// Trả về một ảnh cho **mỗi màn hình** thay vì ghép lại: mỗi màn hình có hệ số scale riêng,
-    /// ghép chung sẽ mất thông tin cần cho `RG-2`.
+    /// Returns one image **per display** rather than stitching them together: each display has its own scale
+    /// factor, and stitching would lose the information `RG-2` needs.
     func capture(within rect: CGRect? = nil) async throws -> [CapturedImage] {
         let content: SCShareableContent
         do {
@@ -59,8 +59,8 @@ struct ScreenCapture {
 
         guard !content.displays.isEmpty else { throw ScreenCaptureError.noDisplays }
 
-        // RG-20: bỏ chính Auto Click ra khỏi ảnh chụp. Bảng nổi lúc chạy nằm ở giữa trên màn hình
-        // và hoàn toàn có thể che mất mục tiêu cần tìm.
+        // RG-20: exclude Auto Click itself from the capture. The floating panel shown while running sits in the
+        // middle-top of the screen and can perfectly well cover the target being looked for.
         let ownApplications = content.applications.filter {
             $0.processID == ProcessInfo.processInfo.processIdentifier
         }

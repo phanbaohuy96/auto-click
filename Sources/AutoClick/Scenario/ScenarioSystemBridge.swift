@@ -3,15 +3,15 @@ import ApplicationServices
 import CoreGraphics
 import Foundation
 
-/// Mọi thứ bộ chạy cần hỏi hệ điều hành, gom vào một chỗ.
+/// Everything the runner needs to ask the operating system, gathered in one place.
 ///
-/// Tách ra để test kiểm chứng được `SF-4` (đưa Ứng dụng khoá lên trước khi gõ phím) và `EX-7`
-/// (thiếu Cửa sổ neo thì dừng) mà không phải mở ứng dụng thật.
+/// Split out so that tests can verify `SF-4` (bring the Locked application forward before typing)
+/// and `EX-7` (stop when there is no Anchor window) without launching a real application.
 @MainActor
 struct ScenarioSystemBridge {
     var isAccessibilityTrusted: () -> Bool
-    /// Tiến trình để nhắm tới. `preferredWindowTitle` là tiêu đề **Cửa sổ neo** lúc ghi: hai tiến
-    /// trình cùng bundle id (hai hồ sơ trình duyệt, hai bản game) thì phải có nó mới chọn đúng.
+    /// The process to aim at. `preferredWindowTitle` is the **Anchor window** title at recording
+    /// time: with two processes sharing a bundle id (two browser profiles, two copies of a game)
     var processIdentifier: (_ bundleIdentifier: String, _ preferredWindowTitle: String?) -> pid_t?
     var isRunning: (pid_t) -> Bool
     var activate: (pid_t) -> Void
@@ -26,8 +26,8 @@ struct ScenarioSystemBridge {
             let candidates = NSWorkspace.shared.runningApplications
                 .filter { $0.bundleIdentifier == bundleIdentifier && !$0.isTerminated }
                 .map(\.processIdentifier)
-            // Có tiêu đề thì chọn tiến trình thật sự đang mở cửa sổ ấy. Không có, hoặc không tiến
-            // trình nào khớp, thì giữ nguyên nết cũ — lấy cái đầu tiên.
+            // With a title, pick the process that actually has that window. Without one, or with no
+            // process matching, keep the old behaviour — take the first.
             if let title = preferredWindowTitle, !title.isEmpty,
                let owner = candidates.first(where: {
                    WindowAnchor.hasWindow(ofProcess: $0, titled: title)

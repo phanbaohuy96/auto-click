@@ -3,11 +3,11 @@ import CoreGraphics
 import Foundation
 
 struct RunProgress: Equatable, Sendable {
-    /// Vòng lặp Kịch bản hiện tại, đếm từ 1.
+    /// The current Scenario iteration, counted from 1.
     var iteration: Int
-    /// `nil` khi Kịch bản chạy không giới hạn (UI-14).
+    /// `nil` when the Scenario runs unlimited (UI-14).
     var totalIterations: Int?
-    /// Bước hiện tại, đếm từ 1.
+    /// The current Step, counted from 1.
     var stepIndex: Int
     var stepCount: Int
 }
@@ -30,9 +30,9 @@ enum ScenarioRunError: LocalizedError, Equatable {
         case .emptyScenario:
             return "Kịch bản chưa có bước nào."
         case .accessibilityDenied:
-            // SF-10: cập nhật app làm đổi chữ ký, macOS vô hiệu quyền cũ nhưng vẫn
-            // hiện toggle đang bật. Chỉ nói "hãy cấp quyền" thì người dùng mở ra,
-            // thấy đã bật sẵn, và kết luận app hỏng.
+            // SF-10: an app update changes the signature, macOS invalidates the old grant but still
+            // shows the toggle as on. Saying only "please grant the permission" makes the user open
+            // System Settings, see it already enabled, and conclude the app is broken.
             return "Hãy cấp quyền Accessibility cho Auto Click rồi thử lại. Nếu Auto Click đã có trong danh sách, hãy tắt rồi bật lại — bản cập nhật làm quyền cũ hết hiệu lực."
         case .missingLockedApplication:
             return "Kịch bản có bước neo theo cửa sổ nên phải chọn ứng dụng khoá."
@@ -43,8 +43,8 @@ enum ScenarioRunError: LocalizedError, Equatable {
         case .pointOutsideLockedApplication:
             return "Điểm thao tác không nằm trong ứng dụng đã khoá; Auto Click đã dừng."
         case let .anchorWindowUnavailable(name):
-            // EX-25: nguyên nhân hay gặp nhất là cửa sổ đang thu nhỏ dưới Dock. Không nói ra
-            // thì người dùng đi tìm nhầm chỗ.
+            // EX-25: the most common cause is the window being minimised under the Dock. Not saying so
+            // sends the user looking in the wrong place.
             return "Không lấy được cửa sổ nào của \(name) để làm gốc toạ độ — cửa sổ có thể đang thu nhỏ dưới Dock."
         case let .activationFailed(name):
             return "Không đưa được \(name) lên trước để gõ phím; Auto Click đã dừng."
@@ -58,11 +58,11 @@ enum ScenarioRunError: LocalizedError, Equatable {
     }
 }
 
-/// Bộ chạy Kịch bản duy nhất của ứng dụng.
+/// The application's one and only Scenario runner.
 ///
-/// Chế độ đơn giản không có bộ chạy riêng: nó dựng một Kịch bản một bước rồi gọi vào đây
-/// (ADR-0002, UI-6). Nhờ vậy phần dễ sai nhất — phát sự kiện, kiểm tra Ứng dụng khoá, nhả nút
-/// chuột khi dừng — chỉ tồn tại một bản.
+/// Simple mode has no runner of its own: it builds a one-step Scenario and calls in here
+/// (ADR-0002, UI-6). That way the most error-prone part — emitting events, checking the Locked application,
+/// releasing the mouse button on stop — exists in exactly one copy.
 @MainActor
 final class ScenarioRunner: ObservableObject {
     static let defaultCountdownSeconds = 3
@@ -73,8 +73,8 @@ final class ScenarioRunner: ObservableObject {
     @Published private(set) var countdown: Int?
     @Published private(set) var progress: RunProgress?
     @Published private(set) var message: String?
-    /// UI-16: `message` có phải là một lỗi không. Trước đây chỉ có chuỗi, nên giao diện không
-    /// phân biệt được "hoàn tất" với "hỏng" và vẽ cả hai bằng dấu tích.
+    /// UI-16: whether `message` is an error. It used to be just a string, so the interface could not tell
+    /// "finished" from "failed" and drew both with a checkmark.
     @Published private(set) var messageIsError = false
     @Published private(set) var runningScenarioName: String?
 
@@ -86,10 +86,10 @@ final class ScenarioRunner: ObservableObject {
     private let resolver: TargetResolver
     private let system: ScenarioSystemBridge
     private let recognizer: TargetRecognizing
-    /// Thoát khỏi mọi lần lặp còn lại của một Bước (EX-9).
+    /// Escapes every remaining repetition of a Step (EX-9).
     private struct SkipStep: Error {}
 
-    /// Số giây đếm ngược trước khi phát sự kiện đầu tiên (EX-1). Test đặt về 0.
+    /// How many seconds to count down before emitting the first event (EX-1). Tests set it to 0.
     let countdownSeconds: Int
 
     init(
@@ -108,7 +108,7 @@ final class ScenarioRunner: ObservableObject {
         self.countdownSeconds = countdownSeconds
     }
 
-    /// Thư mục Ảnh mẫu của Kịch bản sắp chạy; đặt trước khi gọi `start`.
+    /// The Templates directory of the Scenario about to run; set before calling `start`.
     var templatesDirectory: URL? {
         didSet { recognizer.prepare(templatesDirectory: templatesDirectory) }
     }
@@ -127,12 +127,12 @@ final class ScenarioRunner: ObservableObject {
         return message ?? "Sẵn sàng"
     }
 
-    /// Kiểm tra những gì phải đúng *trước khi* phát sự kiện đầu tiên (EX-2).
+    /// Checks everything that has to be true *before* the first event is emitted (EX-2).
     func validate(_ scenario: Scenario) -> ScenarioRunError? {
         guard !scenario.steps.isEmpty else { return .emptyScenario }
 
         guard let locked = scenario.lockedApplication else {
-            // DM-18: Vị trí tương đối cửa sổ không giải được nếu thiếu Ứng dụng khoá.
+            // DM-18: a window-relative Target cannot be resolved without a Locked application.
             return scenario.requiresLockedApplication ? .missingLockedApplication : nil
         }
         guard system.processIdentifier(locked.bundleIdentifier, locked.windowTitle) != nil else {
@@ -179,7 +179,7 @@ final class ScenarioRunner: ObservableObject {
         return true
     }
 
-    /// Mọi đường dừng đều đi qua đây (EX-13).
+    /// Every path that stops a run goes through here (EX-13).
     func stop() {
         task?.cancel()
         task = nil
@@ -187,7 +187,7 @@ final class ScenarioRunner: ObservableObject {
     }
 
     private func finish(with message: String?, isError: Bool = false) {
-        // Chạy vô điều kiện, kể cả khi tác vụ đã bị huỷ (SF-1, SF-2).
+        // Runs unconditionally, even once the task has been cancelled (SF-1, SF-2).
         mouse.releaseAllHeld()
         countdown = nil
         progress = nil
@@ -250,8 +250,8 @@ final class ScenarioRunner: ObservableObject {
     private struct RunContext {
         let lockedProcessIdentifier: pid_t?
         let lockedApplicationName: String
-        /// Tiêu đề **Cửa sổ neo** lúc ghi, nếu bản ghi có nhớ. Dùng để chọn đúng cửa sổ trong một
-        /// ứng dụng đang mở nhiều cửa sổ.
+        /// The **Anchor window** title at recording time, if the recording remembers one. Used to pick the right
+        /// window in an application with several open.
         let lockedWindowTitle: String?
     }
 
@@ -283,7 +283,7 @@ final class ScenarioRunner: ObservableObject {
                     try await applyPointer(step.action, step: step, in: context)
                 }
             } catch is SkipStep {
-                // EX-9: bỏ qua **toàn bộ** các lần lặp còn lại của Bước, không chỉ lần này.
+                // EX-9: skip **all** the remaining repetitions of the Step, not just this one.
                 return
             }
 
@@ -291,7 +291,7 @@ final class ScenarioRunner: ObservableObject {
         }
     }
 
-    // MARK: - Sự kiện có toạ độ
+    // MARK: - Events carrying coordinates
 
     private func applyPointer(
         _ action: StepAction,
@@ -331,15 +331,15 @@ final class ScenarioRunner: ObservableObject {
             try await drag(button, from: point, to: end)
 
         case .typeText, .pressKey:
-            // Đã tách ra nhánh bàn phím ở `perform`.
+            // The keyboard branch was split off in `perform`.
             break
         }
     }
 
-    /// EX-20: nhiều ứng dụng bỏ qua thao tác kéo nếu con trỏ nhảy thẳng từ đầu tới cuối.
+    /// EX-20: many applications ignore a drag if the cursor jumps straight from start to end.
     ///
-    /// EX-23: chỉ điểm đầu và điểm cuối được kiểm tra theo `EX-10`. Hỏi Accessibility ở từng
-    /// chặng sẽ làm thao tác kéo giật và có thể dừng giữa chừng.
+    /// EX-23: only the first and last points are checked against `EX-10`. Asking Accessibility at every
+    /// intermediate point would make the drag stutter and could stop it part-way.
     private func drag(_ button: MouseButton, from start: CGPoint, to end: CGPoint) async throws {
         mouse.press(button, at: start, clickState: 1)
         defer { mouse.releaseAllHeld() }
@@ -376,8 +376,8 @@ final class ScenarioRunner: ObservableObject {
         }
     }
 
-    /// EX-8: thử lại theo nhịp bằng khoảng chờ của Bước, tối thiểu 150 ms, cho tới khi hết thời
-    /// gian chờ. Đây là chỗ "đợi nút Lưu hiện ra rồi bấm" được diễn đạt — không cần luồng điều khiển.
+    /// EX-8: retry at a cadence equal to the Step's delay, at least 150 ms, until the timeout expires. This is
+    /// where "wait for the Save button to appear, then press it" is expressed — no control flow needed.
     private func locate(
         _ target: StepTarget,
         step: Step,
@@ -425,7 +425,7 @@ final class ScenarioRunner: ObservableObject {
         guard route != nil else { throw ScenarioRunError.pointOutsideLockedApplication }
     }
 
-    // MARK: - Sự kiện bàn phím
+    // MARK: - Keyboard events
 
     private func applyKeyboard(_ action: StepAction) async throws {
         switch action {
@@ -440,9 +440,9 @@ final class ScenarioRunner: ObservableObject {
         }
     }
 
-    /// SF-4: sự kiện bàn phím không mang toạ độ nên `EX-10` không bảo vệ được nó. Nếu một thông
-    /// báo cướp focus giữa chừng, kịch bản sẽ gõ vào nhầm ứng dụng — nên đưa Ứng dụng khoá lên
-    /// trước rồi mới gõ, và dừng hẳn nếu không đưa lên được.
+    /// SF-4: keyboard events carry no coordinates, so `EX-10` cannot protect them. If a notification steals
+    /// focus part-way through, the scenario types into the wrong application — so bring the Locked application
+    /// to the front first, and stop outright if it cannot be brought forward.
     private func bringLockedApplicationToFront(in context: RunContext) async throws {
         guard let processIdentifier = context.lockedProcessIdentifier else { return }
         if system.frontmostProcessIdentifier() == processIdentifier { return }
@@ -459,7 +459,7 @@ final class ScenarioRunner: ObservableObject {
         throw ScenarioRunError.activationFailed(context.lockedApplicationName)
     }
 
-    /// Nhường ít nhất `minimumEventGapMilliseconds` kể cả khi Bước không có khoảng chờ (SF-8).
+    /// Yield at least `minimumEventGapMilliseconds` even when the Step has no delay (SF-8).
     private func sleepBetweenEvents(_ milliseconds: Int) async throws {
         try await Task.sleep(
             for: .milliseconds(max(milliseconds, ScenarioLimits.minimumEventGapMilliseconds))

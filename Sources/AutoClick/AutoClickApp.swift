@@ -16,7 +16,7 @@ struct AutoClickApp: App {
         let recorder = ScenarioRecorder()
         let editorController = ScenarioEditorWindowController(store: store, runner: runner)
 
-        // RC-16: ghi xong thì lưu Kịch bản, chọn nó, rồi mở cửa sổ soạn thảo.
+        // RC-16: when recording finishes, save the Scenario, select it, then open the editor.
         recorder.onFinished = { result in
             store.addRecorded(result.scenario)
             editorController.show()

@@ -9,7 +9,7 @@ private func roundTrip(_ scenario: Scenario) throws -> Scenario {
 
 @Test func scenarioSurvivesARoundTrip() throws {
     let scenario = Scenario(
-        name: "Xoá hàng loạt",
+        name: "Bulk delete",
         steps: [
             Step(
                 action: .click(button: .right, count: 2, holdMilliseconds: 250),
@@ -28,14 +28,14 @@ private func roundTrip(_ scenario: Scenario) throws -> Scenario {
 }
 
 @Test func unlimitedRunCountIsWrittenAsAToken() throws {
-    let scenario = Scenario(name: "Vô hạn", steps: [], runCount: .untilStopped)
+    let scenario = Scenario(name: "Unlimited", steps: [], runCount: .untilStopped)
     let json = String(data: try JSONEncoder().encode(scenario), encoding: .utf8) ?? ""
 
     #expect(json.contains("\"until-stopped\""))
     #expect(try roundTrip(scenario).runCount == .untilStopped)
 }
 
-/// ST-7: toạ độ phải là `x`/`y` rời. `CGPoint` mặc định mã hoá thành `[1,2]`.
+/// ST-7: coordinates have to be separate `x`/`y` fields. `CGPoint` encodes as `[1,2]` by default.
 @Test func screenPointIsWrittenAsNamedFields() throws {
     let scenario = Scenario(
         name: "t",
@@ -47,13 +47,13 @@ private func roundTrip(_ scenario: Scenario) throws -> Scenario {
     #expect(json.contains("\"y\":410"))
 }
 
-/// DM-20 / ST-10: giá trị ngoài khoảng được kẹp lại khi đọc, không làm hỏng cả Kịch bản.
+/// DM-20 / ST-10: out-of-range values are clamped on read rather than breaking the whole Scenario.
 @Test func outOfRangeValuesAreClampedOnRead() throws {
     let json = """
     {
       "schemaVersion": 1,
       "id": "\(UUID().uuidString)",
-      "name": "Hỏng",
+      "name": "Corrupt",
       "repeat": 99999999,
       "steps": [
         {
@@ -79,7 +79,7 @@ private func roundTrip(_ scenario: Scenario) throws -> Scenario {
 
 @Test func missingOptionalFieldsFallBackToDefaults() throws {
     let json = """
-    { "schemaVersion": 1, "name": "Tối giản",
+    { "schemaVersion": 1, "name": "Minimal",
       "steps": [ { "action": { "kind": "move" }, "target": { "kind": "cursor" } } ] }
     """
     let scenario = try JSONDecoder().decode(Scenario.self, from: Data(json.utf8))
@@ -92,7 +92,7 @@ private func roundTrip(_ scenario: Scenario) throws -> Scenario {
 
 @Test func newerSchemaVersionsAreRejectedRatherThanMisread() {
     let json = """
-    { "schemaVersion": 99, "id": "\(UUID().uuidString)", "name": "Từ tương lai", "steps": [] }
+    { "schemaVersion": 99, "id": "\(UUID().uuidString)", "name": "From the future", "steps": [] }
     """
 
     #expect(throws: ScenarioDecodingError.unsupportedSchemaVersion(99)) {

@@ -3,10 +3,10 @@ import CoreGraphics
 import Foundation
 import os
 
-/// Ghi thao tác chuột thật của người dùng thành một **Kịch bản** (RC-1…RC-17).
+/// Records the user's real mouse operations into a **Scenario** (RC-1…RC-17).
 ///
-/// Chỉ quan sát chuột. Ghi bàn phím sẽ đòi quyền Input Monitoring và biến ứng dụng thành
-/// keylogger toàn hệ thống — xem [ADR-0003].
+/// Watches the mouse only. Recording the keyboard would require the Input Monitoring permission and turn the
+/// application into a system-wide keylogger — see [ADR-0003].
 @MainActor
 final class ScenarioRecorder: ObservableObject {
     @Published private(set) var isRecording = false {
@@ -14,14 +14,14 @@ final class ScenarioRecorder: ObservableObject {
     }
     @Published private(set) var recordedGestureCount = 0
     @Published private(set) var message: String?
-    /// Thông báo hiện tại có phải chuyện cần người dùng xử lý không.
+    /// Whether the current message is something the user has to act on.
     ///
-    /// `"Đã ghi 3 bước."` là **thành công**. Đổ chung một dòng với các lý do không chạy được thì
-    /// nó hiện kèm tam giác cam, trông y như hỏng — cùng lỗi với `UI-16` ở dòng trạng thái.
+    /// `"Đã ghi 3 bước."` is a **success**. Poured into the same line as the reasons a Scenario cannot run, it
+    /// appeared with an orange triangle and looked exactly like a failure — the same bug as `UI-16` on the status line.
     @Published private(set) var messageNeedsAttention = false
 
     var onRecordingStateChanged: ((Bool) -> Void)?
-    /// Gọi khi phiên ghi kết thúc và có ít nhất một Bước (RC-16, RC-17).
+    /// Called when a recording session ends with at least one Step (RC-16, RC-17).
     var onFinished: ((RecordingAssembler.Result) -> Void)?
 
     private static let logger = Logger(subsystem: "com.local.AutoClick", category: "Recorder")
@@ -30,14 +30,14 @@ final class ScenarioRecorder: ObservableObject {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var events: [RecordedEvent] = []
-    /// Đang bỏ qua cú thao tác hiện tại vì nó bấm vào chính Auto Click (`RC-2`).
+    /// Whether the current gesture is being skipped because it landed on Auto Click itself (`RC-2`).
     private var ignoringGesture = false
 
     init(environment: RecordingEnvironment = .live) {
         self.environment = environment
     }
 
-    // MARK: - Vòng đời
+    // MARK: - Lifecycle
 
     @discardableResult
     func start() -> Bool {
@@ -67,7 +67,7 @@ final class ScenarioRecorder: ObservableObject {
         }
 
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        // Gắn vào run loop chính để việc hỏi Accessibility ngay trong callback là hợp lệ (RC-18).
+        // Attached to the main run loop so that asking Accessibility inside the callback is legal (RC-18).
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
 
@@ -88,7 +88,7 @@ final class ScenarioRecorder: ObservableObject {
         finishSession()
     }
 
-    /// Tách khỏi `stop()` để test chạy được cả đường ghi mà không cần `CGEventTap` thật.
+    /// Split out of `stop()` so tests can exercise the whole recording path without a real `CGEventTap`.
     func finishSession() {
         let recorded = RecordingInterpreter.steps(
             from: events,
@@ -97,7 +97,7 @@ final class ScenarioRecorder: ObservableObject {
         events.removeAll()
 
         guard !recorded.isEmpty else {
-            // RC-17: không ghi được Bước nào thì không tạo Kịch bản.
+            // RC-17: no Step recorded means no Scenario is created.
             message = "Không ghi được thao tác nào."
             messageNeedsAttention = true
             return
@@ -124,17 +124,17 @@ final class ScenarioRecorder: ObservableObject {
         runLoopSource = nil
     }
 
-    // MARK: - Những gì được nghe
+    // MARK: - What is listened to
 
-    /// Loại sự kiện bộ ghi lắng nghe. **Chỉ chuột và cuộn.**
+    /// The event types the recorder listens to. **Mouse and scroll only.**
     ///
-    /// `SF-6` / [ADR-0003]: thêm `keyDown`, `keyUp` hay `flagsChanged` vào đây là biến Auto Click
-    /// thành keylogger toàn hệ thống — nó sẽ thấy mọi phím gõ ở **mọi** ứng dụng, kéo theo quyền
-    /// Input Monitoring, và mật khẩu người dùng gõ lúc đang ghi sẽ nằm nguyên văn trong
-    /// `scenario.json`. Phát ra phím thì được (chỉ cần Accessibility); **bắt** phím thì không.
+    /// `SF-6` / [ADR-0003]: adding `keyDown`, `keyUp` or `flagsChanged` here turns Auto Click into a system-wide
+    /// keylogger — it would see every key pressed in **every** application, drag in the Input Monitoring
+    /// permission, and a password the user types while recording would sit verbatim in `scenario.json`.
+    /// Emitting keys is fine (Accessibility alone); **capturing** them is not.
     ///
-    /// Tách thành hằng số để `theEventMaskContainsNoKeyboardEvent` canh được — trước đây nó nằm
-    /// trong thân `startSession`, chỉ `CGEventTap` thật mới chạm tới, tức là không test nào giữ.
+    /// Pulled out into a constant so `theEventMaskContainsNoKeyboardEvent` can guard it — it used to live inside
+    /// the body of `startSession`, where only a real `CGEventTap` reached it, which means no test held it.
     static let recordedEventTypes: [CGEventType] = [
         .leftMouseDown, .leftMouseUp, .leftMouseDragged,
         .rightMouseDown, .rightMouseUp, .rightMouseDragged,
@@ -145,13 +145,13 @@ final class ScenarioRecorder: ObservableObject {
     static let eventMask: CGEventMask = recordedEventTypes
         .reduce(into: CGEventMask(0)) { $0 |= 1 << $1.rawValue }
 
-    // MARK: - Bắt sự kiện
+    // MARK: - Event capture
 
     func handle(type: CGEventType, event: CGEvent) {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            // Hệ thống tắt tap khi callback chạy quá lâu; bật lại thay vì im lặng ngừng ghi.
+            // The system disables the tap when the callback runs too long; re-enable it rather than silently ceasing to record.
             if let eventTap { CGEvent.tapEnable(tap: eventTap, enable: true) }
-            Self.logger.warning("Event tap bị tắt, đã bật lại")
+            Self.logger.warning("Event tap was disabled; re-enabled")
             return
         }
 
@@ -167,14 +167,14 @@ final class ScenarioRecorder: ObservableObject {
         var windowFrame: CGRect?
         var windowTitle: String?
         if isGestureStart {
-            // RC-2: bỏ đúng những cú bấm **rơi vào cửa sổ của chính Auto Click**, và chỉ thế.
+            // RC-2: skip exactly the clicks that **land in Auto Click's own windows**, and only those.
             ignoringGesture = environment.pointIsInOwnWindow(event.location)
             if ignoringGesture { return }
 
-            // Ứng dụng sở hữu cú thao tác. Thường là ứng dụng đang ở trước — nhưng ngay sau khi
-            // người dùng bấm nút "Ghi thao tác", ứng dụng ở trước là **Auto Click**, nên phải hỏi
-            // theo toạ độ. Nếu không, cú đầu bị quy cho chính mình và cả phiên ghi bị coi là trải
-            // trên hai ứng dụng, mất luôn Vị trí tương đối cửa sổ.
+            // The application owning the gesture. Usually the frontmost one — but right after the user presses
+            // the "Record" button, the frontmost application is **Auto Click**, so it has to be asked by
+            // coordinate. Otherwise the first click is attributed to ourselves, the whole session looks like it
+            // spans two applications, and window-relative Targets are lost.
             let owner = environment.frontmostProcessIdentifier()
             processIdentifier = owner == environment.ownProcessIdentifier()
                 ? environment.processIdentifierAtPoint(event.location)
@@ -185,7 +185,7 @@ final class ScenarioRecorder: ObservableObject {
             }
             recordedGestureCount += 1
         } else if ignoringGesture {
-            // Bỏ nốt phần đuôi của cú thao tác đã bỏ, nếu không bản ghi dính một `mouseUp` mồ côi.
+            // Drop the tail of a skipped gesture too, otherwise the recording gets an orphan `mouseUp`.
             return
         }
 
@@ -222,20 +222,20 @@ final class ScenarioRecorder: ObservableObject {
         }
     }
 
-    // MARK: - Đặt tên và khoá ứng dụng
+    // MARK: - Naming and locking the application
 
     private func lockedApplication(for recorded: [RecordedStep]) -> LockedApplication? {
         guard let processIdentifier = RecordingAssembler.singleProcessIdentifier(in: recorded)
         else { return nil }
         guard var application = environment.application(processIdentifier) else { return nil }
-        // Nhớ luôn **cửa sổ** nào, không chỉ ứng dụng nào: bundle id một mình không chỉ ra được
-        // một cửa sổ. Lấy tiêu đề lúc cú thao tác đầu tiên xảy ra, không lấy lúc kết thúc — giữa
-        // chừng người dùng có thể đổi tab hay mở tệp khác.
+        // Remember which **window** too, not just which application: a bundle id alone cannot name a window.
+        // Take the title at the moment of the first gesture, not at the end — part-way through, the user may
+        // switch tabs or open a different file.
         application.windowTitle = recorded.first?.windowTitle
         return application
     }
 
-    /// RC-16: tên mặc định theo ứng dụng và thời điểm ghi.
+    /// RC-16: the default name comes from the application and the time of recording.
     private func defaultName(for recorded: [RecordedStep]) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd/MM HH:mm"

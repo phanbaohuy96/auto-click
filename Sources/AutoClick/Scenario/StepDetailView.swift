@@ -2,17 +2,17 @@ import AppKit
 import CoreGraphics
 import SwiftUI
 
-/// Chi tiết một Bước: hai picker tách bạch cho **Hành động** và **Vị trí**, đúng theo mô hình
-/// trực giao (UI-10, ADR-0002).
+/// One Step's detail: two separate pickers for **Action** and **Target**, matching the orthogonal model
+/// (UI-10, ADR-0002).
 struct StepDetailView: View {
     @Binding var step: Step
-    /// Tên Ứng dụng khoá, hoặc `nil` khi Kịch bản chưa khoá vào ứng dụng nào.
+    /// The Locked application's name, or `nil` when the Scenario is not locked to any application.
     let lockedApplicationName: String?
     let onPickScreenPoint: (@escaping (CGPoint) -> Void) -> Void
     let onPickWindowOffset: (@escaping (WindowAnchor.Offset) -> Void) -> Void
     let onCaptureTemplate: (@escaping (String, SearchRegion?) -> Void) -> Void
     let onPickSearchRegion: (@escaping (SearchRegion) -> Void) -> Void
-    /// Ảnh mẫu đã lưu, để bày thumbnail thay vì tên tệp — tên `3f2a91c0.png` không nói lên gì.
+    /// Saved Templates, so a thumbnail can be shown instead of a file name — `3f2a91c0.png` tells you nothing.
     let templateImage: (String) -> NSImage?
 
     var body: some View {
@@ -55,7 +55,7 @@ struct StepDetailView: View {
         .formStyle(.grouped)
     }
 
-    // MARK: - Tham số của Hành động
+    // MARK: - Action parameters
 
     @ViewBuilder
     private var actionParameters: some View {
@@ -116,7 +116,7 @@ struct StepDetailView: View {
         }
     }
 
-    // MARK: - Trình sửa Vị trí
+    // MARK: - Target editor
 
     @ViewBuilder
     private func targetEditor(_ target: Binding<StepTarget>) -> some View {
@@ -176,8 +176,8 @@ struct StepDetailView: View {
                             name: captured,
                             settings: RecognitionSettings(
                                 threshold: settings.threshold,
-                                // RG-23: vùng tìm bám theo chỗ vừa chụp. Chụp lại thì vùng đi
-                                // theo ảnh mới, vì vùng cũ vốn suy ra từ ảnh cũ.
+                                // RG-23: the search region hugs the area just captured. On a recapture the
+                                // region follows the new image, since the old one was derived from the old image.
                                 searchRegion: suggestedRegion ?? settings.searchRegion,
                                 waitMilliseconds: settings.waitMilliseconds,
                                 onTimeout: settings.onTimeout
@@ -200,7 +200,7 @@ struct StepDetailView: View {
         }
     }
 
-    /// Bày chính Ảnh mẫu thay cho tên tệp: tên là `3f2a91c0.png`, nhìn không biết là cái gì.
+    /// Shows the Template itself rather than its file name: the name is `3f2a91c0.png`, which tells you nothing.
     @ViewBuilder
     private func templateThumbnail(_ name: String) -> some View {
         if name.isEmpty {
@@ -217,7 +217,7 @@ struct StepDetailView: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 4).strokeBorder(.separator)
                 )
-                // Kích thước thật vẫn cần: nó quyết định vùng quét và tốc độ khớp.
+                // The real pixel size is still needed: it determines the scan area and the matching speed.
                 .help("\(name) — \(Int(image.size.width))×\(Int(image.size.height)) pixel")
         } else {
             Label("Thiếu tệp ảnh mẫu", systemImage: "exclamationmark.triangle.fill")
@@ -226,7 +226,7 @@ struct StepDetailView: View {
         }
     }
 
-    // MARK: - Cấu hình nhận dạng
+    // MARK: - Recognition settings
 
     @ViewBuilder
     private func thresholdField(
@@ -330,7 +330,7 @@ struct StepDetailView: View {
         }
     }
 
-    // MARK: - Cầu nối giữa picker và mô hình
+    // MARK: - Bridge between the pickers and the model
 
     private enum ActionKind: String, CaseIterable, Identifiable {
         case click, scroll, move, drag, typeText, pressKey
@@ -566,7 +566,7 @@ struct StepDetailView: View {
         )
     }
 
-    // MARK: - Thành phần dùng lại
+    // MARK: - Reusable components
 
     private func labelledField(
         _ title: String,

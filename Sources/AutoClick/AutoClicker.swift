@@ -1,11 +1,11 @@
 import AppKit
 import Foundation
 
-/// Trạng thái biểu mẫu của **Chế độ đơn giản**.
+/// The form state of **Simple mode**.
 ///
-/// Đây không phải một bộ chạy. Bấm Bắt đầu ở đây dựng ra một Kịch bản một bước rồi giao cho
-/// `ScenarioRunner` — cùng bộ chạy mà cửa sổ soạn thảo dùng (ADR-0002, UI-6). Kịch bản đó là
-/// vật thể tạm và không được lưu ra đĩa (UI-7).
+/// This is not a runner. Pressing Start here builds a one-step Scenario and hands it to `ScenarioRunner` — the
+/// same runner the editor window uses (ADR-0002, UI-6). That Scenario is a temporary object and is never saved
+/// to disk (UI-7).
 @MainActor
 final class AutoClicker: ObservableObject {
     @Published var intervalText: String {
@@ -31,7 +31,7 @@ final class AutoClicker: ObservableObject {
     @Published private(set) var fixedPoint: CGPoint?
     @Published private(set) var selectedApplicationName: String
     @Published private(set) var runningApplications: [RunningApplicationOption] = []
-    /// Phản hồi cho thao tác chọn điểm. Trạng thái *khi chạy* nằm ở `ScenarioRunner`.
+    /// Feedback for point picking. The *running* state lives in `ScenarioRunner`.
     @Published private(set) var message: String?
 
     private var pointSelector: ClickPointSelector?
@@ -99,7 +99,7 @@ final class AutoClicker: ObservableObject {
         runningApplications = RunningApplicationOption.current()
     }
 
-    /// Dựng Kịch bản một bước tương đương với biểu mẫu hiện tại (UI-6).
+    /// Builds the one-step Scenario equivalent to the current form (UI-6).
     func makeScenario() -> Scenario? {
         guard case let .success(settings) = SettingsValidator.validate(
             intervalText: intervalText,

@@ -36,7 +36,7 @@ final class AutoClickRuntimeController: ObservableObject {
             guard runner.isRunning else { return }
             runner.stop()
         case .toggleRecording:
-            // RC-1: kết thúc bằng phím tắt, vì click vào một nút sẽ tự lọt vào bản ghi.
+            // RC-1: finish with the shortcut, because clicking a button would land in the recording.
             guard !runner.isRunning else { return }
             if recorder.isRecording {
                 recorder.stop()
@@ -164,7 +164,7 @@ private struct RunningActivityView: View {
                 Text(title)
                     .font(.headline)
                     .lineLimit(1)
-                // Lối thoát duy nhất khi chuỗi click đang cướp con trỏ (UI-15).
+                // The only way out while a click sequence has taken over the cursor (UI-15).
                 Text(recorder.isRecording ? "Kết thúc bằng ⌥⌘R" : "Dừng nhanh bằng ⌥⌘S")
                     .font(.caption)
                     .foregroundStyle(.secondary)

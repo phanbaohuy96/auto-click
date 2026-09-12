@@ -57,7 +57,7 @@ import CoreGraphics
 
     #expect(try resolver.resolve(.cursor, anchorWindowFrame: nil) == CGPoint(x: 30, y: 40))
 
-    // DM-19: giải lại ở mỗi lần lặp, nên chuỗi thao tác đi theo tay người dùng.
+    // DM-19: resolved again on every repetition, so the sequence follows the user's hand.
     cursor = CGPoint(x: 11, y: 12)
     #expect(try resolver.resolve(.cursor, anchorWindowFrame: nil) == CGPoint(x: 11, y: 12))
 }

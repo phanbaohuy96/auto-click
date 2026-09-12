@@ -2,17 +2,17 @@ import CoreGraphics
 import Foundation
 
 enum RecordingLimits {
-    /// Giữ lâu hơn mức này thì là giữ nhấn, ngắn hơn là click thường (RC-5, RC-6).
+    /// Held longer than this is a long press, shorter is an ordinary click (RC-5, RC-6).
     static let longPressThresholdMilliseconds = 400
-    /// Xê dịch trong ngưỡng này vẫn coi như đứng yên — tay người không bao giờ thật sự bất động.
+    /// Movement within this tolerance still counts as standing still — a human hand is never truly motionless.
     static let movementTolerancePoints = 3.0
-    /// Hai click cách nhau xa hơn mức này thì không gộp thành double click (RC-7).
+    /// Two clicks further apart than this are not folded into a double click (RC-7).
     static let doubleClickTolerancePoints = 5.0
-    /// Hai sự kiện cuộn cách nhau dưới mức này thuộc cùng một tràng (RC-9).
+    /// Two scroll events less than this apart belong to the same burst (RC-9).
     static let scrollCoalesceGapMilliseconds = 150
 }
 
-/// Một sự kiện chuột thô lấy từ `CGEventTap`.
+/// One raw mouse event taken from `CGEventTap`.
 struct RecordedEvent: Equatable, Sendable {
     enum Kind: Equatable, Sendable {
         case mouseDown(MouseButton)
@@ -26,14 +26,14 @@ struct RecordedEvent: Equatable, Sendable {
     var timestamp: TimeInterval
     var processIdentifier: pid_t?
     var windowFrame: CGRect?
-    /// Tiêu đề cửa sổ lúc **cú thao tác này** xảy ra, để lúc chạy lại còn biết nhắm cửa sổ nào.
+    /// The window title at the moment of **this gesture**, so replay knows which window to aim at.
     var windowTitle: String?
 }
 
-/// Một Bước đã suy luận xong nhưng còn ở toạ độ tuyệt đối.
+/// A Step that has been inferred but is still in absolute coordinates.
 ///
-/// Việc nâng lên **Vị trí** tương đối **Cửa sổ neo** (RC-13) diễn ra sau, ở `ScenarioRecorder`,
-/// vì nó cần biết toàn bộ phiên ghi nằm trong một hay nhiều ứng dụng.
+/// Raising it to a **Target** relative to the **Anchor window** (RC-13) happens later, in `ScenarioRecorder`,
+/// because that needs to know whether the whole session lies inside one application or several.
 struct RecordedStep: Equatable, Sendable {
     var action: StepAction
     var location: CGPoint
@@ -41,14 +41,14 @@ struct RecordedStep: Equatable, Sendable {
     var delayMillisecondsAfter: Int
     var processIdentifier: pid_t?
     var windowFrame: CGRect?
-    /// Tiêu đề cửa sổ lúc **cú thao tác này** xảy ra, để lúc chạy lại còn biết nhắm cửa sổ nào.
+    /// The window title at the moment of **this gesture**, so replay knows which window to aim at.
     var windowTitle: String?
 }
 
-/// Biến chuỗi sự kiện thô thành các **Hành động** cấp cao (RC-5…RC-11).
+/// Turns a sequence of raw events into high-level **Action**s (RC-5…RC-11).
 ///
-/// Hàm thuần tuý: không đụng tới `CGEventTap`, không đụng tới đồng hồ hệ thống. Toàn bộ quy tắc
-/// nhận dạng double click / giữ nhấn / kéo thả nằm ở đây và kiểm chứng được bằng dữ liệu dựng sẵn.
+/// A pure function: it touches no `CGEventTap` and no system clock. All the rules for recognising a double
+/// click / long press / drag live here and can be verified against prebuilt data.
 enum RecordingInterpreter {
     static func steps(
         from events: [RecordedEvent],
@@ -58,7 +58,7 @@ enum RecordingInterpreter {
         return withDelays(merged)
     }
 
-    // MARK: - Gom sự kiện thành cử chỉ
+    // MARK: - Grouping events into gestures
 
     private struct Gesture {
         var action: StepAction
@@ -69,7 +69,7 @@ enum RecordingInterpreter {
         var processIdentifier: pid_t?
         var windowFrame: CGRect?
         var windowTitle: String?
-        /// Chỉ có ở cử chỉ click ngắn; dùng để gộp thành double click.
+        /// Only present on a short click gesture; used to fold into a double click.
         var clickButton: MouseButton?
     }
 
@@ -81,7 +81,7 @@ enum RecordingInterpreter {
             switch events[index].kind {
             case let .mouseDown(button):
                 guard let upIndex = indexOfMouseUp(for: button, in: events, after: index) else {
-                    // Nhấn xuống mà không có nhả — phiên ghi kết thúc giữa chừng. Bỏ qua.
+                    // A press with no release — the recording session ended part-way. Skip it.
                     index += 1
                     continue
                 }
@@ -94,7 +94,7 @@ enum RecordingInterpreter {
                 index = nextIndex
 
             case .mouseUp, .mouseDragged:
-                // Nhả hoặc kéo mồ côi: bắt đầu ghi giữa lúc người dùng đang giữ chuột.
+                // An orphan release or drag: recording started while the user was already holding the button.
                 index += 1
             }
         }
@@ -122,7 +122,7 @@ enum RecordingInterpreter {
         let travelled = distance(down.location, up.location) > RecordingLimits.movementTolerancePoints
 
         if travelled {
-            // RC-8: chỉ giữ điểm đầu và điểm cuối; đường đi được dựng lại khi chạy (EX-20).
+            // RC-8: keep only the start and end points; the path is reconstructed at run time (EX-20).
             return Gesture(
                 action: .drag(
                     button: button,
@@ -156,7 +156,7 @@ enum RecordingInterpreter {
         )
     }
 
-    /// RC-9: một lần cuộn trackpad phát khoảng 100 sự kiện. Không gộp thì bản ghi thành 100 Bước.
+    /// RC-9: one trackpad scroll emits about 100 events. Without folding, the recording becomes 100 Steps.
     private static func scrollGesture(
         _ events: [RecordedEvent],
         from startIndex: Int
@@ -192,7 +192,7 @@ enum RecordingInterpreter {
         )
     }
 
-    // MARK: - Gộp double click
+    // MARK: - Folding double clicks
 
     private static func merge(
         _ gestures: [Gesture],
@@ -220,10 +220,10 @@ enum RecordingInterpreter {
         return result
     }
 
-    // MARK: - Thời gian
+    // MARK: - Timing
 
-    /// RC-10: khoảng chờ là khoảng cách thật giữa hai cử chỉ, không cắt trần, không làm tròn
-    /// (ADR-0004). RC-11: Bước cuối cùng có khoảng chờ 0.
+    /// RC-10: the delay is the real gap between two gestures, uncapped and unrounded
+    /// (ADR-0004). RC-11: the last Step has a delay of 0.
     private static func withDelays(_ gestures: [Gesture]) -> [RecordedStep] {
         gestures.enumerated().map { index, gesture in
             let delay = index + 1 < gestures.count

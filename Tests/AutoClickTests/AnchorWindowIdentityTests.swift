@@ -3,19 +3,19 @@ import Foundation
 import Testing
 @testable import AutoClick
 
-/// Bản ghi phải chỉ ra được **cửa sổ**, không chỉ ứng dụng.
+/// A recording has to name a **window**, not just an application.
 ///
-/// Phát hiện lúc chuẩn bị `D10` của kiểm thử tay: máy đang mở hai tiến trình Chrome — Chrome
-/// thường ngày của người dùng và phiên Chrome cách ly của bộ đo. Hai tiến trình cùng
-/// `bundleIdentifier`, nên `runningApplications.first` trả về tiến trình của người dùng và bản
-/// ghi dựng trên cửa sổ nháp sẽ chạy lại lên cửa sổ đang đăng nhập. Cùng một lỗ hổng còn ở mức
-/// nhẹ hơn với **một** tiến trình nhiều cửa sổ: cửa sổ nào đang focus lúc chạy thì trúng cửa sổ ấy.
+/// Found while preparing `D10` of the manual tests: the machine had two Chrome processes open — the user's
+/// everyday Chrome and the measurement rig's isolated Chrome session. Both processes share a
+/// `bundleIdentifier`, so `runningApplications.first` returned the user's process and a recording made on the
+/// scratch window would replay onto the logged-in window. The same hole exists in a milder form with **one**
+/// process and several windows: whichever window is focused at run time is the one that gets hit.
 @MainActor
 @Suite struct AnchorWindowIdentityTests {
-    /// Bộ ghi phải nhớ tiêu đề cửa sổ, nếu không thì lúc chạy chẳng có gì để chọn đúng.
+    /// The recorder has to remember the window title, otherwise there is nothing to pick the right window with at run time.
     @Test func aRecordingRemembersWhichWindowItWasMadeOn() {
         let environment = FakeRecordingEnvironment()
-        environment.anchorWindowTitle = "Bản nháp — chưa lưu"
+        environment.anchorWindowTitle = "Draft — unsaved"
         var finished: RecordingAssembler.Result?
         let recorder = ScenarioRecorder(environment: environment.environment)
         recorder.onFinished = { finished = $0 }
@@ -26,27 +26,27 @@ import Testing
         recorder.handle(type: .leftMouseUp, event: TestEvent.mouse(.leftMouseUp, at: point))
         recorder.finishSession()
 
-        #expect(finished?.scenario.lockedApplication?.windowTitle == "Bản nháp — chưa lưu")
+        #expect(finished?.scenario.lockedApplication?.windowTitle == "Draft — unsaved")
     }
 
-    /// Giữa hai tiến trình cùng bundle id, phải chọn cái đang mở đúng cửa sổ đã ghi.
+    /// Between two processes sharing a bundle id, pick the one that has the recorded window open.
     @Test func theProcessOwningTheRecordedWindowWinsOverTheFirstOneListed() async {
         let events = EventRecorder()
         let system = FakeSystem()
-        let intruder: pid_t = 1          // khởi động trước, nên đứng đầu danh sách
+        let intruder: pid_t = 1          // started first, so it heads the list
         let recorded: pid_t = 2
         system.runningApplications = [FakeSystem.applicationBundleIdentifier: recorded]
-        system.windowTitles = [intruder: ["Hộp thư — đã đăng nhập"], recorded: ["Bản nháp"]]
-        system.frameForWindowTitle = ["Bản nháp": CGRect(x: 500, y: 400, width: 300, height: 200)]
-        // SF-3 đòi cú bấm phải rơi vào chính ứng dụng đã khoá, nên bia dưới con trỏ cũng là nó.
+        system.windowTitles = [intruder: ["Inbox — signed in"], recorded: ["Draft"]]
+        system.frameForWindowTitle = ["Draft": CGRect(x: 500, y: 400, width: 300, height: 200)]
+        // SF-3 requires the click to land in the locked application itself, so the target under the cursor is it too.
         system.processIdentifierAtPoint = recorded
 
         let runner = makeRunner(recorder: events, system: system)
         var locked = FakeSystem.lockedApplication
-        locked.windowTitle = "Bản nháp"
+        locked.windowTitle = "Draft"
 
         let scenario = Scenario(
-            name: "Neo theo cửa sổ",
+            name: "Anchored to a window",
             steps: [
                 Step(
                     action: .move,
@@ -60,12 +60,12 @@ import Testing
         #expect(runner.start(scenario))
         #expect(await waitUntil { !runner.isRunning })
 
-        // Khung phải lấy từ cửa sổ đã ghi, không phải từ cửa sổ đang focus.
+        // The frame has to come from the recorded window, not from the focused one.
         #expect(events.records.first?.location == CGPoint(x: 510, y: 420))
-        #expect(system.anchorLookups.contains { $0.title == "Bản nháp" })
+        #expect(system.anchorLookups.contains { $0.title == "Draft" })
     }
 
-    /// Bản ghi cũ không có tiêu đề thì vẫn chạy y như trước, không được từ chối.
+    /// An old recording with no title still runs exactly as before; it must not be refused.
     @Test func aRecordingWithoutAWindowTitleStillResolvesTheOldWay() async {
         let events = EventRecorder()
         let system = FakeSystem()
@@ -73,7 +73,7 @@ import Testing
         let runner = makeRunner(recorder: events, system: system)
 
         let scenario = Scenario(
-            name: "Bản ghi cũ",
+            name: "Old recording",
             steps: [
                 Step(
                     action: .move,
@@ -90,19 +90,19 @@ import Testing
         #expect(system.anchorLookups.allSatisfy { $0.title == nil })
     }
 
-    /// Tiêu đề chỉ là **ưu tiên**: cửa sổ đã đổi tên thì vẫn phải chạy, không được đứng im.
+    /// The title is only a **preference**: a window that has been renamed must still run, not stall.
     @Test func aTitleThatNoLongerMatchesFallsBackInsteadOfRefusingToRun() async {
         let events = EventRecorder()
         let system = FakeSystem()
         system.anchorWindowFrame = CGRect(x: 700, y: 300, width: 800, height: 600)
-        system.windowTitles = [FakeSystem.applicationProcessIdentifier: ["Tên mới hoàn toàn"]]
+        system.windowTitles = [FakeSystem.applicationProcessIdentifier: ["A completely new title"]]
         let runner = makeRunner(recorder: events, system: system)
 
         var locked = FakeSystem.lockedApplication
-        locked.windowTitle = "Tên lúc ghi"
+        locked.windowTitle = "Title at recording time"
 
         let scenario = Scenario(
-            name: "Tiêu đề đã đổi",
+            name: "Title changed",
             steps: [
                 Step(
                     action: .move,
@@ -118,28 +118,28 @@ import Testing
         #expect(events.records.first?.location == CGPoint(x: 820, y: 388))
     }
 
-    /// Tiêu đề phải đi qua được vòng mã hoá, nếu không thì lưu xong là mất.
+    /// The title has to survive the coding round trip, otherwise it is lost as soon as it is saved.
     @Test func theWindowTitleSurvivesASaveAndLoad() throws {
         var locked = FakeSystem.lockedApplication
-        locked.windowTitle = "Bản nháp — chưa lưu"
-        let scenario = Scenario(name: "Vòng tròn", steps: [], lockedApplication: locked)
+        locked.windowTitle = "Draft — unsaved"
+        let scenario = Scenario(name: "Round trip", steps: [], lockedApplication: locked)
 
         let data = try JSONEncoder().encode(scenario)
         let decoded = try JSONDecoder().decode(Scenario.self, from: data)
 
-        #expect(decoded.lockedApplication?.windowTitle == "Bản nháp — chưa lưu")
+        #expect(decoded.lockedApplication?.windowTitle == "Draft — unsaved")
     }
 
-    /// Tệp cũ **không có** khoá `windowTitle` vẫn phải đọc được (ST-10).
+    /// An old file **without** the `windowTitle` key still has to load (ST-10).
     @Test func aScenarioFileFromBeforeThisFieldStillLoads() throws {
         let json = """
         {
           "schemaVersion": 1,
           "id": "11111111-1111-4111-8111-111111111111",
-          "name": "Bản cũ",
+          "name": "Old file",
           "repeat": 1,
           "steps": [],
-          "lockedApplication": { "bundleIdentifier": "com.test.App", "name": "App Thử" }
+          "lockedApplication": { "bundleIdentifier": "com.test.App", "name": "Test App" }
         }
         """
         let decoded = try JSONDecoder().decode(Scenario.self, from: Data(json.utf8))

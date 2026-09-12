@@ -2,13 +2,13 @@ import Carbon.HIToolbox
 import CoreGraphics
 import Foundation
 
-/// Bảng phím dùng cho Hành động `pressKey`.
+/// The key table used by the `pressKey` Action.
 ///
-/// Kịch bản lưu **tên phím** chứ không lưu mã số (DM-21): `"c"` chứ không phải `8`. Mã số là
-/// vị trí vật lý trên bàn phím, đúng nhưng không ai đọc được khi mở `scenario.json` ra xem.
+/// A Scenario stores the **key name**, not the numeric code (DM-21): `"c"` rather than `8`. The
+/// code is the physical position on the keyboard — accurate, but unreadable in `scenario.json`.
 ///
-/// Bảng chỉ gồm những phím dùng được trong tổ hợp. Muốn nhập văn bản thì dùng `typeText`, vốn
-/// không phụ thuộc bố cục bàn phím.
+/// The table holds only keys usable in a combination. To enter text, use `typeText`, which does
+/// not depend on the keyboard layout.
 enum KeyCatalog {
     struct Entry: Identifiable, Sendable {
         let name: String

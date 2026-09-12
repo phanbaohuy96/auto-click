@@ -1,43 +1,43 @@
 import CoreGraphics
 import Foundation
 
-/// Tìm **Ảnh mẫu** trong một ảnh lớn bằng tương quan chéo chuẩn hoá theo kim tự tháp (RG-8).
+/// Finds a **Template** inside a larger image with pyramid normalised cross-correlation (RG-8).
 ///
-/// Apple không có API khớp mẫu — không có `matchTemplate`, MetalPerformanceShaders không có
-/// tương quan chéo, Vision chỉ localize được chữ (RG-12). Đã tra SDK, đừng đi tìm lại.
+/// Apple has no template-matching API — no `matchTemplate`, MetalPerformanceShaders has no
+/// cross-correlation, Vision can only localise text (RG-12). The SDK has been checked; do not go looking again.
 ///
-/// Vì sao phải kim tự tháp: mẫu 120×48 trên màn hình 3024×1964 là khoảng 5,56 triệu vị trí ×
-/// 5.760 điểm ảnh ≈ **32 tỉ phép so sánh** cho *một* lần giải Vị trí. Quét thô ở mức thu nhỏ rồi
-/// tinh chỉnh quanh chỗ tốt nhất đưa con số đó xuống khoảng 9,5 triệu.
+/// Why a pyramid is needed: a 120×48 template on a 3024×1964 screen is roughly 5.56 million positions ×
+/// 5,760 pixels ≈ **32 billion comparisons** for *one* Target resolution. Scanning coarsely at a
+/// downscaled level and then refining around the best spot brings that down to about 9.5 million.
 enum TemplateMatcher {
     struct Match: Equatable, Sendable {
-        /// Góc trên-trái của vùng khớp, tính bằng điểm ảnh của ảnh lớn.
+        /// Top-left corner of the matched area, in pixels of the larger image.
         var origin: CGPoint
-        /// `0…1`; 1 là trùng khít.
+        /// `0…1`; 1 is an exact match.
         var score: Double
     }
 
-    /// Bán kính tinh chỉnh quanh mỗi ứng viên thô, tính theo điểm ảnh ở độ phân giải gốc.
+    /// Refinement radius around each coarse candidate, in pixels at native resolution.
     static let refinementRadius = 8
 
-    /// Số ứng viên thô được giữ lại để tinh chỉnh.
+    /// How many coarse candidates are kept for refinement.
     ///
-    /// Giữ đúng một ứng viên là không đủ: giao diện thật đầy hoạ tiết lặp (một hàng nút giống
-    /// nhau, đường kẻ bảng), nên chỗ tốt nhất ở mức thô hay không phải chỗ đúng ở mức gốc.
+    /// Keeping exactly one candidate is not enough: real interfaces are full of repeated detail (a row of
+    /// identical buttons, table rules), so the best spot at the coarse level is often not the right one at native resolution.
     static let coarseCandidateLimit = 8
 
-    /// Mức tương phản tối thiểu mà mẫu thu nhỏ phải giữ lại được so với mẫu gốc.
+    /// The minimum contrast the downscaled template has to retain relative to the original.
     ///
-    /// Thu nhỏ quá tay sẽ **xoá sạch** hoạ tiết tần số cao — chữ, viền 1px, ô cờ nhỏ — biến mẫu
-    /// thô thành một mảng gần như phẳng. Khi đó quét thô chỉ vào chỗ ngẫu nhiên và vùng tinh chỉnh
-    /// còn không chứa vị trí đúng.
+    /// Downscaling too far **wipes out** high-frequency detail — text, 1px borders, small checker patterns — turning
+    /// a coarse template into a nearly flat array. The coarse scan then points at a random spot and the refinement
+    /// window does not even contain the right position.
     static let contrastRetention: Float = 0.5
 
-    /// Trần số phép so sánh cho một lần quét thô.
+    /// Ceiling on the number of comparisons for one coarse scan.
     ///
-    /// Đây là ràng buộc đối nghịch với `contrastRetention`: giữ tương phản thì muốn thu nhỏ ít,
-    /// còn quét thì muốn thu nhỏ nhiều. Không có trần này, một mẫu chi tiết trên màn hình đầy sẽ
-    /// rơi về quét toàn phần — khoảng 32 tỉ phép so sánh, đúng thứ kim tự tháp sinh ra để tránh.
+    /// This constraint pulls against `contrastRetention`: keeping contrast wants less downscaling,
+    /// while scanning wants more. Without this ceiling, a detailed template on a full screen would fall
+    /// back to a full scan — about 32 billion comparisons, the very thing the pyramid exists to avoid.
     static let coarseScanBudget = 40_000_000
 
     static func bestMatch(of template: GrayImage, in haystack: GrayImage) -> Match? {
@@ -80,19 +80,19 @@ enum TemplateMatcher {
         return best
     }
 
-    /// Mức thu nhỏ rẻ nhất vẫn giữ được tương phản của mẫu, trong giới hạn `coarseScanBudget`.
+    /// The cheapest downscale level that still keeps the template's contrast, within `coarseScanBudget`.
     ///
-    /// Không chọn theo kích thước như trực giác ban đầu: một mẫu 32×32 vẫn có thể là ô cờ 3px,
-    /// và thu nhỏ 8 lần sẽ trung bình hoá nó thành một mảng phẳng.
+    /// Not chosen by size as intuition first suggested: a 32×32 template can still be a 3px checker pattern,
+    /// and downscaling 8× would average it into a flat array.
     ///
-    /// RG-18: khi không mức nào vừa giữ được tương phản vừa nằm trong trần, trần thắng — thà khớp
-    /// kém chính xác còn hơn treo giao diện nhiều giây cho một Bước. Thu hẹp **Vùng tìm** là cách
-    /// người dùng lấy lại độ chính xác đó.
+    /// RG-18: when no level both keeps contrast and fits under the ceiling, the ceiling wins — a less accurate
+    /// match beats freezing the interface for seconds on one Step. Narrowing the **Search region** is how the
+    /// user buys that accuracy back.
     static func downsampleFactor(for template: GrayImage, in haystack: GrayImage) -> Int {
         let fullContrast = standardDeviation(template.pixels)
         guard fullContrast > 0 else { return 1 }
 
-        // Giảm dần: mức thu nhỏ lớn nhất là mức rẻ nhất.
+        // Descending: the largest downscale factor is the cheapest one.
         let usable = [8, 4, 2, 1].filter { factor in
             factor == 1
                 || (template.width / factor >= 4 && template.height / factor >= 4)
@@ -118,10 +118,10 @@ enum TemplateMatcher {
         return positions * perPosition
     }
 
-    /// Các đỉnh tương quan tách rời nhau ở mức thô.
+    /// Separated correlation peaks at the coarse level.
     ///
-    /// Triệt phi cực đại theo nửa kích thước mẫu, nếu không thì cả `limit` ứng viên sẽ nằm chồng
-    /// lên nhau quanh đúng một đỉnh và việc giữ nhiều ứng viên trở thành vô nghĩa.
+    /// Non-maximum suppression at half the template size; without it all `limit` candidates would pile up
+    /// around a single peak and keeping several of them would be pointless.
     private static func topCandidates(
         _ template: GrayImage,
         in haystack: GrayImage,
@@ -176,7 +176,7 @@ enum TemplateMatcher {
     ) -> Match? {
         let templateStatistics = statistics(of: template.pixels)
         guard templateStatistics.deviation > 0 else {
-            // Mẫu một màu phẳng không có gì để khớp; tương quan không xác định.
+            // A flat single-colour template has nothing to match; correlation is undefined.
             return nil
         }
 
@@ -198,8 +198,8 @@ enum TemplateMatcher {
                     originX: originX,
                     originY: originY
                 )
-                // RG-10: bằng điểm thì giữ chỗ tìm thấy trước — trên cùng, trái nhất — để kết quả
-                // tất định giữa các lần chạy.
+                // RG-10: on a tie keep the spot found first — topmost, leftmost — so the result is
+                // deterministic across runs.
                 if score > (best?.score ?? -.infinity) {
                     best = Match(origin: CGPoint(x: originX, y: originY), score: score)
                 }
@@ -224,17 +224,17 @@ enum TemplateMatcher {
         return Statistics(mean: mean, deviation: variance.squareRoot())
     }
 
-    /// Tương quan chéo chuẩn hoá tại một vị trí.
+    /// Normalised cross-correlation at one position.
     ///
-    /// Cộng dồn bằng `Double` chứ không `Float`, và đó **không** phải chuyện tinh chỉnh vi mô.
-    /// Dạng `Σh² − n·h̄²` bị **triệt tiêu chữ số**: hai số lớn gần bằng nhau trừ nhau, phần chênh
-    /// lệch nhỏ còn lại mất gần hết chữ số có nghĩa. Ở `Float` (23 bit định trị) với mẫu chừng
-    /// 15.000 điểm ảnh, sai số lên tới ~2·10⁻³ — đủ để điểm vượt quá 1,0, vốn là điều không thể
-    /// về mặt toán học.
+    /// Accumulating in `Double` rather than `Float` is **not** micro-tuning.
+    /// The form `Σh² − n·h̄²` suffers **catastrophic cancellation**: two large nearly equal numbers are
+    /// subtracted and the small remaining difference loses most of its significant digits. In `Float`
+    /// (23 bits of mantissa) with a template of some 15,000 pixels the error reaches ~2·10⁻³ — enough for
+    /// a score to exceed 1.0, which is mathematically impossible.
     ///
-    /// Vì sao quan trọng: hai nút gần giống nhau — chuyện thường ngày trong game — chênh nhau
-    /// thật sự khoảng 4·10⁻⁵. Nhiễu Float lớn gấp 40 lần khoảng đó, nên bộ khớp **chọn bừa** giữa
-    /// đúng và sai. Đo được khi chạy `I2` của kiểm thử tay: ảnh mẫu của ô A khớp vào ô B.
+    /// Why it matters: two nearly identical buttons — an everyday thing in games — really differ by about
+    /// 4·10⁻⁵. The Float noise is 40 times that gap, so the matcher **picks at random** between right and
+    /// wrong. Measured while running `I2` of the manual tests: the template of tile A matched tile B.
     private static func correlation(
         template: GrayImage,
         templateStatistics: Statistics,

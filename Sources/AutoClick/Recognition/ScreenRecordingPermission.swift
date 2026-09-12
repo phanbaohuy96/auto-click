@@ -1,18 +1,18 @@
 import AppKit
 import CoreGraphics
 
-/// Quyền Screen Recording, tách biệt hoàn toàn với Accessibility (SF-5, SF-7).
+/// The Screen Recording permission, entirely separate from Accessibility (SF-5, SF-7).
 ///
-/// App giờ cần hai quyền khác nhau và người dùng rất dễ cấp một rồi quên cái kia, nên trạng thái
-/// này phải hiển thị được chứ không chỉ nằm trong một thông báo lỗi lúc chạy.
+/// The app now needs two different permissions and it is very easy to grant one and forget the
+/// other, so this state has to be visible rather than living only in a run-time error message.
 @MainActor
 enum ScreenRecordingPermission {
     static var isGranted: Bool {
         CGPreflightScreenCaptureAccess()
     }
 
-    /// Bật hộp thoại xin quyền của hệ thống. Chỉ gọi khi người dùng thật sự dùng tới tính năng
-    /// nhận dạng — không xin lúc khởi động (SF-5).
+    /// Raise the system permission dialog. Only call this when the user actually reaches for the
+    /// recognition feature — never at launch (SF-5).
     @discardableResult
     static func request() -> Bool {
         CGRequestScreenCaptureAccess()

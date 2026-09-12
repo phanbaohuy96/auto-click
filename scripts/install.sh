@@ -13,9 +13,9 @@ usage() {
     printf '%s\n' "Usage: ./scripts/install.sh [--no-build] [--no-launch]"
     printf '%s\n' ""
     printf '%s\n' "Options:"
-    printf '%s\n' "  --no-build   Cài bundle hiện có trong dist/"
-    printf '%s\n' "  --no-launch  Không mở Auto Click sau khi cài"
-    printf '%s\n' "  -h, --help   Hiển thị hướng dẫn này"
+    printf '%s\n' "  --no-build   Install the bundle already in dist/"
+    printf '%s\n' "  --no-launch  Do not open Auto Click after installing"
+    printf '%s\n' "  -h, --help   Show this help"
 }
 
 while [ "$#" -gt 0 ]; do
@@ -31,7 +31,7 @@ while [ "$#" -gt 0 ]; do
             exit 0
             ;;
         *)
-            printf '%s\n' "Tùy chọn không hợp lệ: $1" >&2
+            printf '%s\n' "Unknown option: $1" >&2
             usage >&2
             exit 2
             ;;
@@ -42,13 +42,13 @@ done
 if [ "$should_build" -eq 1 ]; then
     "$project_dir/scripts/build-app.sh" release
 elif [ ! -d "$source_app" ]; then
-    printf '%s\n' "Không tìm thấy: ${source_app}" >&2
-    printf '%s\n' "Chạy lại không có --no-build để tạo bundle trước." >&2
+    printf '%s\n' "Not found: ${source_app}" >&2
+    printf '%s\n' "Run again without --no-build to create the bundle first." >&2
     exit 1
 fi
 
 if pgrep -f "$destination_app/Contents/MacOS/AutoClick" >/dev/null 2>&1; then
-    printf '%s\n' "Đang đóng Auto Click…"
+    printf '%s\n' "Closing Auto Click…"
     osascript -e 'tell application id "com.local.AutoClick" to quit' >/dev/null 2>&1 || true
 
     attempts=0
@@ -65,11 +65,11 @@ if [ ! -d "$install_root" ]; then
     mkdir -p "$install_root"
 fi
 
-printf '%s\n' "Đang cài vào ${destination_app}…"
+printf '%s\n' "Installing into ${destination_app}…"
 if [ -w "$install_root" ]; then
     ditto "$source_app" "$destination_app"
 else
-    printf '%s\n' "Cần quyền quản trị để ghi vào ${install_root}."
+    printf '%s\n' "Administrator rights are needed to write to ${install_root}."
     sudo ditto "$source_app" "$destination_app"
 fi
 
@@ -79,5 +79,5 @@ if [ "$should_launch" -eq 1 ]; then
     open "$destination_app"
 fi
 
-printf '%s\n' "Đã cài Auto Click thành công."
-printf '%s\n' "Nếu app không click sau khi cập nhật, hãy tắt/bật lại Auto Click trong Privacy & Security → Accessibility."
+printf '%s\n' "Auto Click installed successfully."
+printf '%s\n' "If the app does not click after an update, toggle Auto Click off and on in Privacy & Security → Accessibility."

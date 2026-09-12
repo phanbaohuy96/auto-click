@@ -3,15 +3,15 @@ import Foundation
 import Testing
 @testable import AutoClick
 
-/// Cổng gác của **Ứng dụng khoá** cho sự kiện có toạ độ (EX-10).
+/// The **Locked application** gate for events carrying coordinates (EX-10).
 ///
-/// Hai mươi dòng này là thứ duy nhất chặn một Kịch bản bắn vào cửa sổ lạ khi người dùng
-/// vô tình kéo cửa sổ khác lên trên, nên nó phải sai theo hướng an toàn.
+/// These twenty lines are the only thing stopping a Scenario from firing into a stranger's window when the user
+/// accidentally drags another window on top, so they have to fail on the safe side.
 struct ClickRoutingPolicyTests {
     private let target: pid_t = 1234
 
     @Test func withoutALockedApplicationEveryPointIsAllowed() {
-        // Chế độ đơn giản không khoá ứng dụng: không có gì để so, không được chặn.
+        // Simple mode locks no application: there is nothing to compare against, so nothing may be blocked.
         #expect(ClickRoutingPolicy.route(
             targetProcessIdentifier: nil,
             processIdentifierAtPoint: 999
@@ -37,8 +37,8 @@ struct ClickRoutingPolicyTests {
     }
 
     @Test func anUnidentifiablePointIsBlockedRatherThanAssumedSafe() {
-        // Hỏi được là ai thì mới bắn. Không biết dưới con trỏ là gì mà vẫn click là cách
-        // để Kịch bản bấm vào thứ người dùng không ngờ tới.
+        // Only fire when the owner can be determined. Clicking without knowing what is under the cursor is how
+        // a Scenario ends up pressing something the user never expected.
         #expect(ClickRoutingPolicy.route(
             targetProcessIdentifier: target,
             processIdentifierAtPoint: nil

@@ -3,8 +3,8 @@ import Foundation
 import Testing
 @testable import AutoClick
 
-/// DM-13: đây chính là tình huống đã dùng để chọn "neo theo góc gần nhất" thay vì luôn neo vào
-/// góc trên-trái. Nút ở góc phải-dưới phải đi theo góc phải-dưới khi cửa sổ phóng to.
+/// DM-13: this is exactly the situation that led to "anchor to the nearest corner" rather than always the
+/// top-left. A button in the bottom-right has to follow the bottom-right corner when the window is enlarged.
 @Test func aBottomRightPointStaysAtTheBottomRightWhenTheWindowGrows() {
     let small = CGRect(x: 0, y: 0, width: 800, height: 600)
     let point = CGPoint(x: 760, y: 560)
@@ -15,7 +15,7 @@ import Testing
     let grown = CGRect(x: 0, y: 0, width: 1200, height: 900)
     #expect(WindowAnchor.resolve(offset, in: grown) == CGPoint(x: 1160, y: 860))
 
-    // Neo cố định vào góc trên-trái sẽ giữ nguyên (760, 560) — trôi vào giữa cửa sổ.
+    // Anchored to the top-left it would stay at (760, 560) — drifting into the middle of the window.
     let topLeftOffset = WindowAnchor.Offset(corner: .topLeft, dx: 760, dy: 560)
     #expect(WindowAnchor.resolve(topLeftOffset, in: grown) == point)
 }

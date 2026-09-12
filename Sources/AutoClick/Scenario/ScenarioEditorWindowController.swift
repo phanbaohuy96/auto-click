@@ -1,10 +1,10 @@
 import AppKit
 import SwiftUI
 
-/// Sở hữu cửa sổ soạn thảo (UI-2).
+/// Owns the editor window (UI-2).
 ///
-/// Không dùng `Window` scene của SwiftUI vì `openWindow` chỉ gọi được từ trong một view đang
-/// hiển thị, mà **Phiên ghi** kết thúc lúc popover đã đóng (RC-16).
+/// SwiftUI's `Window` scene is not used because `openWindow` can only be called from inside a view that is on
+/// screen, whereas a **Recording session** ends once the popover has closed (RC-16).
 @MainActor
 final class ScenarioEditorWindowController: ObservableObject {
     private var window: NSWindow?
@@ -17,7 +17,7 @@ final class ScenarioEditorWindowController: ObservableObject {
     }
 
     func show() {
-        // App là agent (LSUIElement) nên cửa sổ mở ra sẽ không nhận bàn phím nếu thiếu dòng này (UI-3).
+        // The app is an agent (LSUIElement), so without this line the window opens but takes no keyboard input (UI-3).
         NSApp.activate(ignoringOtherApps: true)
 
         if window == nil {

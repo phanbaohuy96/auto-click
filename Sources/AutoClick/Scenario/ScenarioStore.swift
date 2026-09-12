@@ -2,14 +2,14 @@ import Foundation
 import SwiftUI
 import os
 
-/// Kho Kịch bản trên đĩa: mỗi Kịch bản một thư mục (ADR-0005, ST-1…ST-3).
+/// The Scenario store on disk: one directory per Scenario (ADR-0005, ST-1…ST-3).
 ///
-/// Không có bộ đếm tham chiếu ở đâu cả — xoá Kịch bản là xoá cả thư mục, kể cả Ảnh mẫu bên
-/// trong nó. Hai Kịch bản dùng chung một nút sẽ giữ hai bản sao của cùng một Ảnh mẫu, cố ý.
+/// There is no reference counting anywhere — deleting a Scenario deletes its whole directory, Templates
+/// included. Two Scenarios using the same button keep two copies of the same Template, deliberately.
 @MainActor
 final class ScenarioStore: ObservableObject {
     @Published private(set) var scenarios: [Scenario] = []
-    /// Kịch bản thuộc định dạng mới hơn: nạp được tên nhưng không sửa và không chạy (ST-12).
+    /// Scenarios in a newer format: the name loads, but they cannot be edited or run (ST-12).
     @Published private(set) var readOnlyScenarioIDs: Set<UUID> = []
     @Published private(set) var loadIssues: [String] = []
 
@@ -34,7 +34,7 @@ final class ScenarioStore: ObservableObject {
         reload()
     }
 
-    /// Chỉ dùng trong test: trỏ kho vào một thư mục tạm.
+    /// Test-only: point the store at a temporary directory.
     init(rootDirectory: URL, defaults: UserDefaults, fileManager: FileManager = .default) {
         self.defaults = defaults
         self.fileManager = fileManager
@@ -52,8 +52,8 @@ final class ScenarioStore: ObservableObject {
         readOnlyScenarioIDs.contains(scenario.id)
     }
 
-    /// Thư mục Ảnh mẫu của một Kịch bản (ST-2). Nằm trong chính thư mục Kịch bản nên xoá Kịch
-    /// bản là xoá luôn ảnh, không cần đếm tham chiếu ([ADR-0005]).
+    /// A Scenario's Templates directory (ST-2). It lives inside the Scenario directory, so deleting the
+    /// Scenario deletes the images too and no reference counting is needed ([ADR-0005]).
     func templatesDirectory(for scenarioID: UUID) -> URL {
         rootDirectory
             .appendingPathComponent(scenarioID.uuidString, isDirectory: true)
@@ -64,7 +64,7 @@ final class ScenarioStore: ObservableObject {
         TemplateLibrary(directory: templatesDirectory(for: scenarioID))
     }
 
-    /// Binding ghi thẳng xuống đĩa: trình soạn thảo không có nút Lưu (UI-11).
+    /// A binding that writes straight to disk: the editor has no Save button (UI-11).
     func binding(for id: UUID) -> Binding<Scenario> {
         Binding(
             get: { self.scenarios.first { $0.id == id } ?? Scenario(id: id, name: "") },
@@ -72,7 +72,7 @@ final class ScenarioStore: ObservableObject {
         )
     }
 
-    // MARK: - Đọc
+    // MARK: - Reading
 
     func reload() {
         var loaded: [Scenario] = []
@@ -91,7 +91,7 @@ final class ScenarioStore: ObservableObject {
             do {
                 loaded.append(try JSONDecoder().decode(Scenario.self, from: data))
             } catch {
-                // Một thư mục hỏng không được làm mất các Kịch bản còn lại (ST-9).
+                // One corrupt directory must not cost us the remaining Scenarios (ST-9).
                 if let header = try? JSONDecoder().decode(ScenarioHeader.self, from: data),
                    header.schemaVersion > ScenarioSchema.currentVersion {
                     loaded.append(Scenario(id: header.id, name: header.name))
@@ -99,7 +99,7 @@ final class ScenarioStore: ObservableObject {
                     issues.append("\(header.name): định dạng phiên bản \(header.schemaVersion), chỉ xem được.")
                 } else {
                     Self.logger.error(
-                        "Bỏ qua \(file.path, privacy: .public): \(error.localizedDescription, privacy: .public)"
+                        "Skipping \(file.path, privacy: .public): \(error.localizedDescription, privacy: .public)"
                     )
                     issues.append("\(directory.lastPathComponent): không đọc được scenario.json.")
                 }
@@ -136,20 +136,20 @@ final class ScenarioStore: ObservableObject {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes, .sortedKeys]
             let data = try encoder.encode(scenario)
-            // Ghi nguyên tử để tắt máy giữa chừng không để lại scenario.json cụt (ST-11).
+            // Written atomically so a mid-write shutdown cannot leave a truncated scenario.json (ST-11).
             try data.write(to: directory.appendingPathComponent("scenario.json"), options: .atomic)
         } catch {
-            Self.logger.error("Không lưu được kịch bản: \(error.localizedDescription, privacy: .public)")
+            Self.logger.error("Could not save scenario: \(error.localizedDescription, privacy: .public)")
             return
         }
 
-        // Ảnh mẫu không còn Bước nào dùng tới thì xoá, để thư mục Kịch bản không phình theo mỗi
-        // lần người dùng chụp lại.
+        // A Template no Step uses any more is deleted, so the Scenario directory does not grow with every
+        // recapture the user makes.
         templateLibrary(for: scenario.id).removeUnused(keeping: scenario.templateNames)
 
         if let index = scenarios.firstIndex(where: { $0.id == scenario.id }) {
-            // Không sắp xếp lại ở đây: đổi tên được lưu theo từng ký tự gõ, và sắp xếp lại mỗi
-            // lần sẽ làm dòng đang sửa nhảy khỏi chỗ. Thứ tự được chuẩn hoá lại ở `reload()`.
+            // Deliberately not re-sorted here: a rename is saved character by character, and re-sorting on
+            // each one makes the row being edited jump away. The order is normalised again in `reload()`.
             scenarios[index] = scenario
         } else {
             scenarios.append(scenario)
@@ -157,15 +157,11 @@ final class ScenarioStore: ObservableObject {
         }
     }
 
-    /// Trả `nil` khi Kịch bản chỉ đọc: bản nạp của nó **không có Bước nào** — các Bước nằm trong
-    /// phần JSON mà bản app này không giải mã được. Nhân bản sẽ ghi ra một Kịch bản rỗng mang tên
-    /// bản gốc và `schemaVersion` hiện tại, tức đúng thứ `ST-12` sinh ra để tránh: đọc sai thành
-    /// một Kịch bản trông như thật. Phát hiện ở `E2` của kiểm thử tay.
-    /// Lưu một **Kịch bản** vừa ghi, và chọn nó.
+    /// Saves a freshly recorded **Scenario** and selects it.
     ///
-    /// Khác `save`: tên được làm cho không trùng. `RC-16` đặt tên theo phút, nên hai lần ghi trong
-    /// cùng một phút ra **đúng cùng một tên** — trên trình chọn thì không phân biệt nổi cái nào là
-    /// cái nào. Đo được khi chạy phiên D: sáu bản ghi, ba cặp trùng tên.
+    /// Unlike `save`: the name is made unique. `RC-16` names by the minute, so two recordings in the same
+    /// minute produce **exactly the same name** — and the picker cannot tell one from the other. Measured
+    /// while running session D: six recordings, three colliding pairs.
     @discardableResult
     func addRecorded(_ scenario: Scenario) -> Scenario {
         var stored = scenario
@@ -175,6 +171,10 @@ final class ScenarioStore: ObservableObject {
         return stored
     }
 
+    /// Returns `nil` for a read-only Scenario: the copy that was loaded **has no Steps** — they live in the
+    /// part of the JSON this build cannot decode. Duplicating it would write out an empty Scenario carrying the
+    /// original's name and the current `schemaVersion`, which is exactly what `ST-12` exists to prevent: a bad
+    /// read turned into a Scenario that looks genuine. Found in `E2` of the manual tests.
     @discardableResult
     func duplicate(_ scenario: Scenario) -> Scenario? {
         guard !readOnlyScenarioIDs.contains(scenario.id) else { return nil }
@@ -186,9 +186,9 @@ final class ScenarioStore: ObservableObject {
             duplicated.id = UUID()
             return duplicated
         }
-        // ADR-0005 chọn "mỗi Kịch bản một thư mục, Ảnh mẫu được nhân bản" đúng để nhân bản là
-        // copy thư mục. Chỉ copy `scenario.json` thì bản sao trỏ vào những tệp không tồn tại và
-        // mọi Bước nhận dạng của nó hỏng ngay, dù trên giao diện trông vẫn bình thường.
+        // ADR-0005 chose "one directory per Scenario, Templates duplicated" precisely so that duplicating is a
+        // directory copy. Copying only `scenario.json` leaves the copy pointing at files that do not exist and
+        // every recognition Step in it broken, even though the interface looks perfectly normal.
         copyTemplates(from: scenario.id, to: copy.id, names: copy.templateNames)
         save(copy)
         selectedScenarioID = copy.id
@@ -208,7 +208,7 @@ final class ScenarioStore: ObservableObject {
                 )
             }
         } catch {
-            Self.logger.error("Không copy được ảnh mẫu khi nhân bản: \(error.localizedDescription, privacy: .public)")
+            Self.logger.error("Could not copy templates while duplicating: \(error.localizedDescription, privacy: .public)")
         }
     }
 

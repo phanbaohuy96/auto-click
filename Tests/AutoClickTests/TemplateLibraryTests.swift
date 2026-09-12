@@ -3,8 +3,8 @@ import Foundation
 import Testing
 @testable import AutoClick
 
-/// Kho **Ảnh mẫu**: ghi đĩa thật vào thư mục tạm. Đây là I/O nên hỏng được thật —
-/// mã hoá PNG, chuyển sang ảnh xám, và dọn tệp thừa (ST-12, RG-19).
+/// The **Template** library: real disk writes into a temporary directory. This is I/O, so it can really fail —
+/// PNG encoding, conversion to greyscale, and cleaning up unused files (ST-12, RG-19).
 @MainActor
 struct TemplateLibraryTests {
     private func makeDirectory() -> URL {
@@ -13,7 +13,7 @@ struct TemplateLibraryTests {
         return directory
     }
 
-    /// Ảnh ô cờ: giá trị điểm ảnh khác nhau rõ rệt nên vòng PNG có sai lệch là thấy ngay.
+    /// A checkerboard image: the pixel values differ sharply, so any distortion in the PNG round trip shows immediately.
     private func makeImage(width: Int, height: Int) -> CGImage {
         var bytes = [UInt8](repeating: 0, count: width * height)
         for y in 0..<height {
@@ -39,14 +39,14 @@ struct TemplateLibraryTests {
         let library = TemplateLibrary(directory: directory)
         let image = makeImage(width: 8, height: 6)
 
-        // Thư mục chưa tồn tại: `save` phải tự tạo chứ không ném lỗi.
+        // The directory does not exist yet: `save` has to create it rather than throw.
         let name = try library.save(image)
         let loaded = try #require(library.loadGray(name))
 
         #expect(loaded.width == 8)
         #expect(loaded.height == 6)
         let original = try #require(GrayImage(cgImage: image))
-        // PNG không mất dữ liệu; chênh lệch chỉ có thể đến từ chuyển đổi không gian màu.
+        // PNG is lossless; any difference could only come from a colour-space conversion.
         for index in original.pixels.indices {
             #expect(abs(loaded.pixels[index] - original.pixels[index]) < 0.02)
         }
@@ -57,9 +57,9 @@ struct TemplateLibraryTests {
         defer { try? FileManager.default.removeItem(at: directory) }
         let library = TemplateLibrary(directory: directory)
 
-        // Kịch bản chép tay thiếu tệp là chuyện thật; bộ chạy phải báo không thấy chứ không sập.
-        #expect(library.loadGray("khong-ton-tai.png") == nil)
-        #expect(library.loadImage("khong-ton-tai.png") == nil)
+        // A hand-copied Scenario missing a file is a real situation; the runner must report not-found, not crash.
+        #expect(library.loadGray("does-not-exist.png") == nil)
+        #expect(library.loadImage("does-not-exist.png") == nil)
     }
 
     @Test func cleaningUpRemovesOnlyTheTemplatesNoStepUsesAnyMore() throws {
@@ -82,11 +82,11 @@ struct TemplateLibraryTests {
         let library = TemplateLibrary(directory: directory)
 
         let name = try library.save(makeImage(width: 8, height: 6))
-        #expect(library.loadGray(name) != nil)  // nạp vào cache
+        #expect(library.loadGray(name) != nil)  // loads into the cache
 
         library.removeUnused(keeping: [])
 
-        // Không xoá cache thì bộ chạy vẫn khớp theo ảnh đã bị xoá — sai lặng lẽ, khó lần ra.
+        // Without clearing the cache the runner would keep matching against a deleted image — silently wrong and hard to track down.
         #expect(library.loadGray(name) == nil)
     }
 }

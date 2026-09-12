@@ -15,7 +15,7 @@ enum PopoverMode: String, CaseIterable, Identifiable {
     }
 }
 
-/// Bề mặt **chạy** (UI-1). Việc sửa Bước nằm ở cửa sổ soạn thảo, không ở đây.
+/// The **running** surface (UI-1). Editing Steps lives in the editor window, not here.
 struct AutoClickMenuView: View {
     @ObservedObject var clicker: AutoClicker
     @ObservedObject var runner: ScenarioRunner
@@ -67,7 +67,7 @@ struct AutoClickMenuView: View {
             Label(runner.statusText, systemImage: statusIcon)
                 .font(.callout)
                 .foregroundStyle(statusColour)
-                // UI-16: thông báo lỗi bị cắt cụt thì không lần ra được nguyên nhân.
+                // UI-16: a truncated error message makes the cause impossible to track down.
                 .fixedSize(horizontal: false, vertical: true)
 
             runButton
@@ -121,10 +121,10 @@ struct AutoClickMenuView: View {
         }
     }
 
-    // MARK: - Bắt đầu / Dừng
+    // MARK: - Start / Stop
 
-    /// Dòng dưới phần cấu hình. Phần lớn là lý do chưa chạy được, nhưng **không phải tất cả**:
-    /// bộ ghi cũng báo thành công qua đây, và một dòng thành công không được mang biểu tượng lỗi.
+    /// The line below the configuration. Mostly reasons a Scenario cannot run, but **not always**:
+    /// the recorder reports success through it too, and a success line must not carry the error icon.
     private struct Notice {
         let text: String
         let needsAttention: Bool
@@ -157,7 +157,7 @@ struct AutoClickMenuView: View {
         }
     }
 
-    /// Chỉ hỏi tới quyền thứ hai khi Kịch bản thật sự dùng nhận dạng (SF-5).
+    /// Only ask for the second permission when the Scenario actually uses recognition (SF-5).
     private var needsScreenRecording: Bool {
         guard let scenario = store.selectedScenario else { return false }
         let usesRecognition = scenario.steps
@@ -212,8 +212,8 @@ struct AutoClickMenuView: View {
         }
     }
 
-    /// RC-1: bắt đầu và kết thúc Phiên ghi bằng phím tắt toàn cục, không bằng nút — click vào
-    /// nút sẽ tự lọt vào bản ghi. Nút ở đây chỉ để bắt đầu; kết thúc thì phải dùng ⌥⌘R.
+    /// RC-1: a Recording session starts and ends with the global shortcut, not with a button — clicking a button
+    /// would land in the recording itself. The button here only starts it; finishing needs ⌥⌘R.
     @ViewBuilder
     private var recordButton: some View {
         if recorder.isRecording {
@@ -235,7 +235,7 @@ struct AutoClickMenuView: View {
         }
     }
 
-    // MARK: - Kịch bản
+    // MARK: - Scenario
 
     private var scenarioSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -285,7 +285,7 @@ struct AutoClickMenuView: View {
 
     private func openEditor() { onOpenEditor() }
 
-    // MARK: - Chế độ đơn giản
+    // MARK: - Simple mode
 
     private var simpleSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -352,8 +352,8 @@ struct AutoClickMenuView: View {
     private var statusIcon: String {
         if runner.countdown != nil { return "timer" }
         if runner.isRunning { return "cursorarrow.rays" }
-        // UI-16: trạng thái lỗi phải nhìn ra là lỗi. Trước đây mọi trạng thái không-đang-chạy
-        // đều mang dấu tích, nên dòng "Có lỗi: …" hiện kèm đúng biểu tượng của thành công.
+        // UI-16: an error state has to look like an error. Previously every non-running state carried a
+        // checkmark, so the line "Có lỗi: …" appeared with the success icon.
         if runner.messageIsError { return "exclamationmark.triangle.fill" }
         return "checkmark.circle"
     }

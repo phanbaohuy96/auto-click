@@ -22,7 +22,7 @@ struct RunningApplicationOption: Identifiable, Hashable, Sendable {
         }?.processIdentifier
     }
 
-    /// Ứng dụng đang chạy có giao diện, bỏ chính Auto Click ra.
+    /// Running applications with a user interface, excluding Auto Click itself.
     @MainActor
     static func current() -> [RunningApplicationOption] {
         var seenBundleIdentifiers = Set<String>()

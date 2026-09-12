@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Bề mặt **cấu hình** (UI-2). Popover trên menu bar không chứa trình sửa Bước.
+/// The **configuration** surface (UI-2). The menu-bar popover contains no Step editor.
 struct ScenarioEditorView: View {
     @ObservedObject var store: ScenarioStore
     @ObservedObject var runner: ScenarioRunner
@@ -55,7 +55,7 @@ struct ScenarioEditorView: View {
         }
     }
 
-    // MARK: - Panel trái: toàn bộ Kịch bản
+    // MARK: - Left pane: every Scenario
 
     private var scenarioSidebar: some View {
         VStack(spacing: 0) {
@@ -118,10 +118,10 @@ struct ScenarioEditorView: View {
         .padding(.vertical, 2)
     }
 
-    /// UI-17: các nút icon trên cùng một hàng phải bằng nhau.
+    /// UI-17: icon buttons sharing a row must be the same size.
     ///
-    /// Mỗi ký hiệu SF có bề rộng tự nhiên riêng, nên để mặc định thì `plus`, `doc.on.doc` và
-    /// `trash` ra ba cỡ khác nhau đứng cạnh nhau — đo được trên cây AX: 37×20, 40×26, 38×24.
+    /// Each SF Symbol has its own natural width, so at default sizing `plus`, `doc.on.doc` and `trash` came out
+    /// at three different sizes standing next to each other — measured on the AX tree: 37×20, 40×26, 38×24.
     private func iconButton(
         _ symbol: String,
         help: String,
@@ -177,7 +177,7 @@ struct ScenarioEditorView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Trình soạn thảo
+    // MARK: - Editor
 
     private func scenarioPane(for scenario: Binding<Scenario>) -> some View {
         VStack(spacing: 0) {
@@ -188,8 +188,8 @@ struct ScenarioEditorView: View {
         }
     }
 
-    /// Cấu hình cấp Kịch bản. Xếp dọc chứ không phải một hàng ngang dài: cột giữa chỉ rộng
-    /// khoảng 380 point, nhồi ngang thì nhãn bị bóp còn 0 point và ô tick kéo cao thành sọc.
+    /// Scenario-level configuration. Laid out vertically rather than in one long horizontal row: the middle column
+    /// is only about 380 points wide, and packing it horizontally squeezed a label to 0 points and stretched a checkbox into a stripe.
     private func scenarioSettings(_ scenario: Binding<Scenario>) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             TextField("Tên kịch bản", text: scenario.name)
@@ -314,7 +314,7 @@ struct ScenarioEditorView: View {
         }
     }
 
-    /// Tóm tắt một Bước trên đúng một dòng (UI-8).
+    /// Summarises a Step on exactly one line (UI-8).
     private func stepRow(index: Int, step: Step) -> some View {
         HStack(spacing: 10) {
             Text("\(index + 1)")
@@ -374,7 +374,7 @@ struct ScenarioEditorView: View {
         }
     }
 
-    // MARK: - Thao tác
+    // MARK: - Operations
 
     private func selectedStepIndex(in scenario: Scenario) -> Int? {
         guard let selectedStepID else { return nil }
@@ -415,7 +415,7 @@ struct ScenarioEditorView: View {
         return locked.name
     }
 
-    /// Lớp phủ chọn điểm phải chạy từ cửa sổ này, không phải từ popover (UI-4).
+    /// The point-picking overlay has to run from this window, not from the popover (UI-4).
     private func pickPoint(_ completion: @escaping (CGPoint, NSWindow?) -> Void) {
         let window = NSApp.keyWindow
         window?.orderOut(nil)
@@ -432,7 +432,7 @@ struct ScenarioEditorView: View {
         }
     }
 
-    /// Quy điểm vừa chọn về độ lệch so với góc gần nhất của Cửa sổ neo (DM-13).
+    /// Converts the point just picked into an offset from the nearest corner of the Anchor window (DM-13).
     private func pickWindowOffset(
         in scenario: Scenario,
         apply: @escaping (WindowAnchor.Offset) -> Void
@@ -457,8 +457,8 @@ struct ScenarioEditorView: View {
         }
     }
 
-    /// RG-4: chụp Ảnh mẫu độc lập hoàn toàn với Ứng dụng khoá.
-    /// RG-23: chụp xong thì kèm luôn Vùng tìm mặc định bám quanh chỗ vừa khoanh.
+    /// RG-4: cropping a Template is entirely independent of the Locked application.
+    /// RG-23: after cropping, attach a default Search region hugging the area just drawn.
     private func captureTemplate(
         for scenario: Scenario,
         apply: @escaping (String, SearchRegion?) -> Void
@@ -491,8 +491,8 @@ struct ScenarioEditorView: View {
         }
     }
 
-    /// RG-6: vùng tìm lưu tương đối Cửa sổ neo khi có sẵn, ngược lại lưu tuyệt đối. Dùng chung
-    /// cho cả khoanh tay lẫn vùng gợi ý sau khi chụp, để hai đường không trôi khỏi nhau.
+    /// RG-6: the search region is stored relative to the Anchor window when one is available, absolute otherwise.
+    /// Shared between hand-drawn regions and the one suggested after cropping, so the two paths cannot drift apart.
     private func searchRegion(for rect: CGRect, in scenario: Scenario) -> SearchRegion {
         if let locked = scenario.lockedApplication,
            let processIdentifier = RunningApplicationOption.processIdentifier(
@@ -511,8 +511,8 @@ struct ScenarioEditorView: View {
         return .screenRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height)
     }
 
-    /// RG-6: vùng tìm lưu tương đối Cửa sổ neo khi có sẵn, ngược lại lưu tuyệt đối — và nói rõ
-    /// điều đó trên giao diện. Không bao giờ bắt buộc phải khoá ứng dụng ([ADR-0006]).
+    /// RG-6: the search region is stored relative to the Anchor window when one is available, absolute otherwise —
+    /// and the interface says so plainly. Locking an application is never a requirement ([ADR-0006]).
     private func pickSearchRegion(in scenario: Scenario, apply: @escaping (SearchRegion) -> Void) {
         let window = NSApp.keyWindow
         window?.orderOut(nil)
@@ -546,7 +546,7 @@ struct ScenarioEditorView: View {
     }
 }
 
-/// Chuỗi tóm tắt dùng chung giữa danh sách Bước và các thông báo.
+/// Summary strings shared between the Step list and the messages.
 enum StepSummary {
     static func action(_ action: StepAction) -> String {
         switch action {

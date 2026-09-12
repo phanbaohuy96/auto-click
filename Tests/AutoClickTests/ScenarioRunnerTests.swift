@@ -3,14 +3,14 @@ import Foundation
 import Testing
 @testable import AutoClick
 
-/// SF-1 / EX-14: đây là hành vi duy nhất trong Auto Click có thể khoá máy người dùng — dừng
-/// giữa lúc đang giữ nút mà không nhả thì hệ điều hành tin rằng nút chuột vẫn đang bị giữ.
+/// SF-1 / EX-14: this is the one behaviour in Auto Click that can lock the user's machine — stopping while a
+/// button is held without releasing it makes the operating system believe the mouse button is still down.
 @MainActor
 @Test func stoppingDuringAHoldStillReleasesTheMouseButton() async throws {
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
-        name: "Giữ lâu",
+        name: "Long press",
         steps: [
             Step(
                 action: .click(button: .left, count: 1, holdMilliseconds: 30_000),
@@ -31,7 +31,7 @@ import Testing
     #expect(!runner.isRunning)
 }
 
-/// EX-16: thiếu `mouseEventClickState` thì AppKit coi đó là hai click rời, không phải double click.
+/// EX-16: without `mouseEventClickState` AppKit treats it as two separate clicks, not a double click.
 @MainActor
 @Test func doubleClickNumbersItsClickState() async throws {
     let recorder = EventRecorder()
@@ -54,13 +54,13 @@ import Testing
     #expect(recorder.records.map(\.clickState) == [1, 1, 2, 2])
 }
 
-/// EX-4: hai bộ đếm lồng nhau — vòng lặp Kịch bản bọc ngoài vòng lặp Bước.
+/// EX-4: two nested counters — the Scenario loop wrapping the Step loop.
 @MainActor
 @Test func stepsRunInOrderInsideEachScenarioIteration() async throws {
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
-        name: "Lồng nhau",
+        name: "Nested",
         steps: [
             Step(action: .move, target: .screenPoint(x: 1, y: 1), delayMillisecondsAfter: 0),
             Step(
@@ -79,13 +79,13 @@ import Testing
     #expect(recorder.records.map(\.location.x) == [1, 2, 2, 1, 2, 2])
 }
 
-/// DM-19 / EX-6: Vị trí theo con trỏ được giải lại ở từng lần lặp.
+/// DM-19 / EX-6: an at-cursor Target is resolved again on every repetition.
 @MainActor
 @Test func cursorTargetIsResolvedForEveryRepeat() async throws {
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
-        name: "Con trỏ",
+        name: "Cursor",
         steps: [
             Step(action: .move, target: .cursor, repeatCount: 3, delayMillisecondsAfter: 0)
         ]
@@ -103,19 +103,19 @@ import Testing
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder)
 
-    #expect(runner.validate(Scenario(name: "Rỗng")) == .emptyScenario)
-    #expect(!runner.start(Scenario(name: "Rỗng")))
+    #expect(runner.validate(Scenario(name: "Empty")) == .emptyScenario)
+    #expect(!runner.start(Scenario(name: "Empty")))
     #expect(recorder.records.isEmpty)
     #expect(!runner.isRunning)
 }
 
-/// EX-3: huỷ trong lúc đếm ngược thì không phát sự kiện nào.
+/// EX-3: cancelling during the countdown emits no event at all.
 @MainActor
 @Test func stoppingDuringTheCountdownPostsNothing() async throws {
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder, countdownSeconds: 3)
     let scenario = Scenario(
-        name: "Đếm ngược",
+        name: "Countdown",
         steps: [Step(action: .move, target: .cursor, delayMillisecondsAfter: 0)]
     )
 
@@ -127,13 +127,13 @@ import Testing
     #expect(recorder.records.isEmpty)
 }
 
-/// SF-9: Kịch bản không giới hạn vẫn phải kiểm tra huỷ ở mỗi Bước, để ⌥⌘S có tác dụng.
+/// SF-9: an unlimited Scenario must still check for cancellation at every Step, so that ⌥⌘S takes effect.
 @MainActor
 @Test func anUnlimitedScenarioStopsWithinOneStep() async throws {
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder)
     let scenario = Scenario(
-        name: "Không giới hạn",
+        name: "Unlimited",
         steps: [Step(action: .move, target: .cursor, delayMillisecondsAfter: 0)],
         runCount: .untilStopped
     )

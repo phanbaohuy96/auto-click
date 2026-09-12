@@ -1,18 +1,18 @@
 import CoreGraphics
 import Foundation
 
-/// Ảnh xám một kênh, dùng làm đầu vào cho việc khớp mẫu.
+/// A single-channel greyscale image, used as the input to template matching.
 ///
-/// Kiểu riêng thay vì dùng thẳng `CGImage`: thuật toán khớp cần truy cập điểm ảnh hàng triệu lần
-/// nên phải là mảng phẳng liên tục, và tách khỏi Core Graphics thì test dựng được ảnh bằng tay.
+/// A type of its own rather than a `CGImage` directly: the matching algorithm accesses pixels millions of times
+/// so it has to be a flat contiguous array, and keeping it out of Core Graphics lets tests build images by hand.
 struct GrayImage: Equatable, Sendable {
     let width: Int
     let height: Int
-    /// Độ sáng `0…1`, sắp theo hàng.
+    /// Brightness `0…1`, laid out row by row.
     var pixels: [Float]
 
     init(width: Int, height: Int, pixels: [Float]) {
-        precondition(pixels.count == width * height, "Số điểm ảnh không khớp kích thước")
+        precondition(pixels.count == width * height, "Pixel count does not match the dimensions")
         self.width = width
         self.height = height
         self.pixels = pixels
@@ -24,7 +24,7 @@ struct GrayImage: Equatable, Sendable {
 
     var isEmpty: Bool { width <= 0 || height <= 0 }
 
-    /// Thu nhỏ bằng lấy trung bình từng ô `factor × factor`.
+    /// Downscales by averaging each `factor × factor` cell.
     func downsampled(by factor: Int) -> GrayImage {
         guard factor > 1 else { return self }
         let newWidth = width / factor
@@ -50,7 +50,7 @@ struct GrayImage: Equatable, Sendable {
         return GrayImage(width: newWidth, height: newHeight, pixels: result)
     }
 
-    /// Chuyển một `CGImage` bất kỳ về ảnh xám, không phụ thuộc không gian màu nguồn.
+    /// Converts any `CGImage` to greyscale, independent of the source colour space.
     init?(cgImage: CGImage) {
         let width = cgImage.width
         let height = cgImage.height

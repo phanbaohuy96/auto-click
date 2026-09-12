@@ -12,7 +12,7 @@ private func templateStep(
     Step(
         action: .move,
         target: .template(
-            name: "nut-ok.png",
+            name: "ok-button.png",
             settings: RecognitionSettings(
                 threshold: 0.9,
                 searchRegion: region,
@@ -32,14 +32,14 @@ private func templateStep(
     recognizer.point = CGPoint(x: 640, y: 480)
     let runner = makeRunner(recorder: recorder, recognizer: recognizer)
 
-    #expect(runner.start(Scenario(name: "Ảnh", steps: [templateStep(wait: 0, onTimeout: .stopScenario)])))
+    #expect(runner.start(Scenario(name: "Image", steps: [templateStep(wait: 0, onTimeout: .stopScenario)])))
     #expect(await waitUntil { !runner.isRunning })
 
     #expect(recorder.records.map(\.location) == [CGPoint(x: 640, y: 480)])
 }
 
-/// EX-8: đây là chỗ "đợi nút Lưu hiện ra rồi bấm" được diễn đạt — bằng thời gian chờ, không phải
-/// bằng vòng lặp có điều kiện.
+/// EX-8: this is where "wait for the Save button to appear, then press it" is expressed — as a timeout, not as
+/// a conditional loop.
 @MainActor
 @Test func aTemplateTargetRetriesUntilTheTargetAppears() async {
     let recorder = EventRecorder()
@@ -47,7 +47,7 @@ private func templateStep(
     recognizer.foundOnAttempt = 3
     let runner = makeRunner(recorder: recorder, recognizer: recognizer)
 
-    #expect(runner.start(Scenario(name: "Đợi", steps: [templateStep(wait: 5_000, onTimeout: .stopScenario)])))
+    #expect(runner.start(Scenario(name: "Waiting", steps: [templateStep(wait: 5_000, onTimeout: .stopScenario)])))
     #expect(await waitUntil(timeout: .seconds(5)) { !runner.isRunning })
 
     #expect(recognizer.attempts == 3)
@@ -61,7 +61,7 @@ private func templateStep(
     recognizer.foundOnAttempt = nil
     let runner = makeRunner(recorder: recorder, recognizer: recognizer)
 
-    #expect(runner.start(Scenario(name: "Không đợi", steps: [templateStep(wait: 0, onTimeout: .skipStep)])))
+    #expect(runner.start(Scenario(name: "No wait", steps: [templateStep(wait: 0, onTimeout: .skipStep)])))
     #expect(await waitUntil { !runner.isRunning })
 
     #expect(recognizer.attempts == 1)
@@ -75,7 +75,7 @@ private func templateStep(
     let runner = makeRunner(recorder: recorder, recognizer: recognizer)
 
     let scenario = Scenario(
-        name: "Dừng",
+        name: "Stop",
         steps: [
             templateStep(wait: 0, onTimeout: .stopScenario),
             Step(action: .move, target: .screenPoint(x: 1, y: 1), delayMillisecondsAfter: 0)
@@ -86,10 +86,10 @@ private func templateStep(
     #expect(await waitUntil { !runner.isRunning })
 
     #expect(recorder.records.isEmpty)
-    #expect(runner.statusText.contains("nut-ok.png"))
+    #expect(runner.statusText.contains("ok-button.png"))
 }
 
-/// EX-9: "bỏ qua bước" bỏ **toàn bộ** các lần lặp còn lại của Bước đó, không phải chỉ lần này.
+/// EX-9: "skip the step" skips **all** the remaining repetitions of that Step, not just this one.
 @MainActor
 @Test func skipOnTimeoutAbandonsEveryRemainingRepeatOfThatStep() async {
     let recorder = EventRecorder()
@@ -98,7 +98,7 @@ private func templateStep(
     let runner = makeRunner(recorder: recorder, recognizer: recognizer)
 
     let scenario = Scenario(
-        name: "Bỏ qua",
+        name: "Skip",
         steps: [
             templateStep(wait: 0, onTimeout: .skipStep, repeatCount: 5),
             Step(action: .move, target: .screenPoint(x: 9, y: 9), delayMillisecondsAfter: 0)
@@ -108,14 +108,14 @@ private func templateStep(
     #expect(runner.start(scenario))
     #expect(await waitUntil { !runner.isRunning })
 
-    // Thử đúng một lần rồi bỏ cả 5 lần lặp, nhưng Bước sau vẫn chạy.
+    // Exactly one attempt, then all 5 repetitions are skipped — but the next Step still runs.
     #expect(recognizer.attempts == 1)
     #expect(recorder.records.map(\.location) == [CGPoint(x: 9, y: 9)])
 }
 
-// MARK: - Vùng tìm
+// MARK: - Search region
 
-/// RG-7: không khoanh vùng thì thu hẹp về Cửa sổ neo khi có Ứng dụng khoá.
+/// RG-7: with no region drawn, the scope narrows to the Anchor window when there is a Locked application.
 @MainActor
 @Test func withoutASearchRegionTheAnchorWindowIsUsed() async {
     let recorder = EventRecorder()
@@ -125,7 +125,7 @@ private func templateStep(
     let runner = makeRunner(recorder: recorder, system: system, recognizer: recognizer)
 
     let scenario = Scenario(
-        name: "Thu hẹp",
+        name: "Narrowed",
         steps: [templateStep(wait: 0, onTimeout: .stopScenario)],
         lockedApplication: FakeSystem.lockedApplication
     )
@@ -136,14 +136,14 @@ private func templateStep(
     #expect(recognizer.regions == [CGRect(x: 100, y: 100, width: 800, height: 600)])
 }
 
-/// [ADR-0006]: Vị trí theo ảnh dùng được mà không cần Ứng dụng khoá — phạm vi khi đó là mọi màn hình.
+/// [ADR-0006]: image Targets work without a Locked application — the scope is then all displays.
 @MainActor
 @Test func aTemplateTargetWorksWithNoLockedApplication() async {
     let recorder = EventRecorder()
     let recognizer = FakeRecognizer()
     let runner = makeRunner(recorder: recorder, recognizer: recognizer)
 
-    let scenario = Scenario(name: "Không khoá", steps: [templateStep(wait: 0, onTimeout: .stopScenario)])
+    let scenario = Scenario(name: "Unlocked", steps: [templateStep(wait: 0, onTimeout: .stopScenario)])
 
     #expect(runner.validate(scenario) == nil)
     #expect(runner.start(scenario))
@@ -165,8 +165,8 @@ private func templateStep(
     #expect(region == CGRect(x: 720, y: 330, width: 400, height: 120))
 }
 
-/// [ADR-0006]: vùng tương đối cửa sổ mà không giải được thì lùi về phạm vi mặc định chứ không
-/// báo lỗi — Vùng tìm không bao giờ ràng buộc Kịch bản phải có Ứng dụng khoá.
+/// [ADR-0006]: a window-relative region that cannot be resolved falls back to the default scope rather than
+/// reporting an error — a Search region never forces a Scenario to have a Locked application.
 @Test func aWindowRelativeSearchRegionFallsBackInsteadOfFailing() {
     let resolver = TargetResolver(currentCursorPoint: { .zero })
 
@@ -178,16 +178,16 @@ private func templateStep(
     #expect(region == nil)
 }
 
-// MARK: - Lưu trữ
+// MARK: - Storage
 
 @Test func recognitionTargetsSurviveARoundTrip() throws {
     let scenario = Scenario(
-        name: "Nhận dạng",
+        name: "Recognition",
         steps: [
             Step(
                 action: .click(button: .left, count: 1, holdMilliseconds: 0),
                 target: .template(
-                    name: "nut-ok.png",
+                    name: "ok-button.png",
                     settings: RecognitionSettings(
                         threshold: 0.85,
                         searchRegion: .windowRelative(
@@ -201,7 +201,7 @@ private func templateStep(
             Step(
                 action: .move,
                 target: .text(
-                    "Đồng ý",
+                    "Confirm",
                     settings: RecognitionSettings(
                         searchRegion: .screenRect(x: 10, y: 20, width: 300, height: 200)
                     )
@@ -232,7 +232,7 @@ private func templateStep(
     #expect(scenario.templateNames == ["a.png", "b.png"])
 }
 
-/// RG-23: chụp Ảnh mẫu xong thì Vùng tìm mặc định bám quanh chỗ vừa chụp, không phải cả màn hình.
+/// RG-23: after cropping a Template, the default Search region hugs the area just captured, not the whole screen.
 @MainActor
 struct SuggestedSearchRegionTests {
     private let screen = CGRect(x: 0, y: 0, width: 1512, height: 982)
@@ -241,13 +241,13 @@ struct SuggestedSearchRegionTests {
         let captured = CGRect(x: 400, y: 300, width: 200, height: 100)
         let suggested = TemplateCaptureCoordinator.suggestedSearchRect(around: captured, within: screen)
 
-        // Phải trùm hẳn Ảnh mẫu, nếu không lần chạy đầu đã trượt.
+        // It has to cover the Template completely, otherwise the very first run misses.
         #expect(suggested.contains(captured))
-        // Và phải nhỏ hơn hẳn cả màn hình, nếu không thì chẳng gợi ý gì cả.
+        // And it has to be well smaller than the whole screen, otherwise it suggests nothing at all.
         #expect(suggested.width * suggested.height < screen.width * screen.height / 4)
     }
 
-    /// Ảnh mẫu bé xíu — biểu tượng trong game — vẫn phải có chỗ thở, không dính sát mép.
+    /// A tiny Template — a game icon — still needs room to breathe, not a region hugging its edges.
     @Test func aTinyTemplateStillGetsRoomToMove() {
         let tiny = CGRect(x: 700, y: 500, width: 26, height: 26)
         let suggested = TemplateCaptureCoordinator.suggestedSearchRect(around: tiny, within: screen)
@@ -256,7 +256,7 @@ struct SuggestedSearchRegionTests {
         #expect(suggested.height >= tiny.height + 96)
     }
 
-    /// Chụp sát mép màn hình thì vùng gợi ý bị cắt lại, không tràn ra toạ độ âm.
+    /// A capture at the screen edge has its suggested region clipped rather than spilling into negative coordinates.
     @Test func aCaptureAtTheEdgeIsClampedToTheScreen() {
         let corner = CGRect(x: 0, y: 0, width: 120, height: 60)
         let suggested = TemplateCaptureCoordinator.suggestedSearchRect(around: corner, within: screen)
@@ -267,7 +267,7 @@ struct SuggestedSearchRegionTests {
         #expect(suggested.contains(corner))
     }
 
-    /// Đệm có trần: ảnh mẫu rất to không kéo vùng tìm thành cả màn hình.
+    /// The padding is capped: a very large template must not stretch the search region to the whole screen.
     @Test func thePaddingIsCappedSoALargeTemplateDoesNotSelectTheWholeScreen() {
         let large = CGRect(x: 300, y: 200, width: 800, height: 500)
         let suggested = TemplateCaptureCoordinator.suggestedSearchRect(around: large, within: screen)

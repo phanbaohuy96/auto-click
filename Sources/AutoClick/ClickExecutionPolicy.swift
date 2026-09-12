@@ -5,10 +5,10 @@ enum ClickEventRoute: Equatable {
     case systemEventTap
 }
 
-/// Quyết định một sự kiện có toạ độ có được phép phát hay không, dựa trên Ứng dụng khoá (EX-10).
+/// Decides whether an event with coordinates may be emitted, based on the Locked application (EX-10).
 ///
-/// Chỉ áp dụng cho sự kiện **có toạ độ**. Sự kiện bàn phím không có toạ độ nên phải bảo vệ bằng
-/// cách khác, xem `SF-4`.
+/// Applies only to events **with coordinates**. Keyboard events have none, so they are protected
+/// another way; see `SF-4`.
 enum ClickRoutingPolicy {
     static func route(
         targetProcessIdentifier: pid_t?,

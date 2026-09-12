@@ -2,27 +2,27 @@ import AppKit
 import CoreGraphics
 import Foundation
 
-/// Chạy lớp phủ khoanh vùng rồi chụp vùng đó thành **Ảnh mẫu** (RG-4, RG-5).
+/// Runs the region-drawing overlay, then captures that region into a **Template** (RG-4, RG-5).
 @MainActor
 final class TemplateCaptureCoordinator {
-    /// Thời gian chờ cho window server thật sự gỡ lớp phủ khỏi màn hình trước khi chụp.
+    /// How long to wait for the window server to actually take the overlay off the screen before capturing.
     ///
-    /// RG-5: lớp phủ đang tô một lớp đen mờ lên toàn màn hình. Chụp lúc nó còn hiện sẽ cho ra
-    /// Ảnh mẫu bị ám và không bao giờ khớp lại được lúc chạy. Ảnh chụp đã loại cửa sổ của chính
-    /// Auto Click (RG-20), nhưng `orderOut` chỉ là yêu cầu — khoảng chờ này mới là thứ bảo đảm.
+    /// RG-5: the overlay paints a translucent black layer over the whole screen. Capturing while it is still up
+    /// produces a darkened Template that can never match again at run time. The capture already excludes Auto
+    /// Click's own windows (RG-20), but `orderOut` is only a request — this delay is what actually guarantees it.
     static let overlayDismissDelayMilliseconds = 120
 
     private var selector: ScreenRegionSelector?
 
-    /// Vùng tìm gợi ý quanh vùng vừa khoanh làm **Ảnh mẫu** (`RG-23`).
+    /// The Search region suggested around the area just cropped as a **Template** (`RG-23`).
     ///
-    /// Mặc định cũ là tìm cả màn hình, và đó là mặc định tệ cho ca dùng chính: trong game, thứ
-    /// cần nhắm gần như luôn nằm lại đúng chỗ vừa chụp, còn quét cả màn hình vừa chậm hơn vừa dễ
-    /// vớ phải một mảnh giống hệt ở nơi khác.
+    /// The old default was to search the whole screen, and that is a bad default for the primary use case: in
+    /// games, what you need to aim at almost always stays where it was cropped, while scanning the whole screen
+    /// is both slower and more likely to grab an identical patch somewhere else.
     ///
-    /// Đệm lấy **nửa cạnh dài** của Ảnh mẫu — đủ cho mục tiêu xê dịch cỡ nửa chính nó — nhưng
-    /// không dưới 48 point (ảnh mẫu bé xíu vẫn cần chỗ thở) và không quá 160 point (đệm to quá
-    /// thì chẳng khác gì tìm cả màn hình).
+    /// The padding is **half the Template's longer side** — enough for a target that shifts by about half its own
+    /// size — but never below 48 points (a tiny template still needs room to breathe) and never above 160 points
+    /// (too much padding is no different from searching the whole screen).
     static func suggestedSearchRect(around rect: CGRect, within bounds: CGRect) -> CGRect {
         let padding = min(160, max(48, max(rect.width, rect.height) / 2))
         return rect.insetBy(dx: -padding, dy: -padding).intersection(bounds)
@@ -40,13 +40,13 @@ final class TemplateCaptureCoordinator {
         }
     }
 
-    /// Kết quả một lần chụp: tên tệp Ảnh mẫu, và **vùng đã khoanh** để suy ra Vùng tìm mặc định.
+    /// The result of one capture: the Template file name, and **the area drawn**, to derive the default Search region from.
     struct Capture {
         let templateName: String
         let rect: CGRect
     }
 
-    /// Khoanh một vùng, chụp nó, lưu vào kho và trả về tên tệp cùng vùng đã khoanh.
+    /// Draws a region, captures it, saves it to the library and returns the file name together with the area drawn.
     func captureTemplate(into library: TemplateLibrary) async throws -> Capture? {
         guard let rect = await selectRegion(
             prompt: "Kéo để chọn vùng làm ảnh mẫu  •  Esc để hủy"

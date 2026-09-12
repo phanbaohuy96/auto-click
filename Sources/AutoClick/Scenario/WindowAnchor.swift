@@ -2,14 +2,14 @@ import ApplicationServices
 import CoreGraphics
 import Foundation
 
-/// Neo một điểm vào **Cửa sổ neo** (DM-13, EX-7).
+/// Anchors a point to the **Anchor window** (DM-13, EX-7).
 ///
-/// Góc bám được chọn tự động lúc ghi điểm — góc gần điểm nhất — chứ không phải luôn là góc
-/// trên-trái. Nhờ vậy nút ở góc phải-dưới vẫn đúng khi người dùng phóng to cửa sổ; neo cố định
-/// vào góc trên-trái thì điểm đó sẽ trôi vào giữa màn hình.
+/// The corner it hangs off is chosen automatically when the point is recorded — the corner nearest the point —
+/// rather than always the top-left. That way a button in the bottom-right still lands correctly when the user
+/// enlarges the window; anchored to the top-left it would drift into the middle of the screen.
 ///
-/// Mọi toạ độ ở đây nằm trong không gian của `CGEvent`: gốc ở góc trên-trái, đơn vị point.
-/// Accessibility dùng đúng không gian đó nên không cần quy đổi.
+/// Every coordinate here is in `CGEvent` space: origin at the top-left, measured in points.
+/// Accessibility uses that same space, so no conversion is needed.
 enum WindowAnchor {
     struct Offset: Equatable, Sendable {
         var corner: WindowCorner
@@ -17,7 +17,7 @@ enum WindowAnchor {
         var dy: Double
     }
 
-    /// Toạ độ của một góc cửa sổ.
+    /// The coordinates of one corner of a window.
     static func cornerPoint(_ corner: WindowCorner, in frame: CGRect) -> CGPoint {
         switch corner {
         case .topLeft: return CGPoint(x: frame.minX, y: frame.minY)
@@ -27,7 +27,7 @@ enum WindowAnchor {
         }
     }
 
-    /// Chọn góc gần `point` nhất và trả về độ lệch so với chính góc đó.
+    /// Picks the corner nearest `point` and returns the offset from that corner.
     static func offset(for point: CGPoint, in frame: CGRect) -> Offset {
         let nearest = WindowCorner.allCases.min { lhs, rhs in
             squaredDistance(from: point, to: cornerPoint(lhs, in: frame))
@@ -38,7 +38,7 @@ enum WindowAnchor {
         return Offset(corner: nearest, dx: point.x - origin.x, dy: point.y - origin.y)
     }
 
-    /// Giải một độ lệch trở lại thành toạ độ thật.
+    /// Resolves an offset back into real coordinates.
     static func resolve(_ offset: Offset, in frame: CGRect) -> CGPoint {
         let origin = cornerPoint(offset.corner, in: frame)
         return CGPoint(x: origin.x + offset.dx, y: origin.y + offset.dy)
@@ -50,23 +50,23 @@ enum WindowAnchor {
         return dx * dx + dy * dy
     }
 
-    /// Khung của cửa sổ trước nhất thuộc tiến trình đã cho.
+    /// The frame of the frontmost window belonging to the given process.
     ///
-    /// Ưu tiên `AXFocusedWindow`; nếu ứng dụng không khai báo cửa sổ nào đang focus thì lấy cửa
-    /// sổ đầu trong danh sách, vốn là cửa sổ trên cùng.
+    /// Prefers `AXFocusedWindow`; if the application declares no focused window, take the first in the list,
+    /// which is the topmost one.
     ///
-    /// EX-25: **cửa sổ đang thu nhỏ dưới Dock bị bỏ qua**. Accessibility vẫn trả về vị trí và
-    /// kích thước cũ của nó như thể nó còn trên màn hình, nên nếu tin vào đó thì Kịch bản sẽ
-    /// giải Vị trí ra một toạ độ trỏ vào chỗ trống — hoặc tệ hơn, vào cửa sổ của ứng dụng khác.
+    /// EX-25: **a window minimised under the Dock is skipped**. Accessibility still reports its old position
+    /// and size as though it were on screen, so trusting that would have the Scenario resolve a Target to
+    /// coordinates pointing at empty space — or worse, at another application's window.
     static func focusedWindowFrame(ofProcess processIdentifier: pid_t) -> CGRect? {
         frame(ofProcess: processIdentifier, preferringTitle: nil)
     }
 
-    /// Như trên, nhưng **ưu tiên cửa sổ có tiêu đề khớp** `title`.
+    /// As above, but **preferring the window whose title matches** `title`.
     ///
-    /// Bản ghi chỉ nhớ được ứng dụng, không nhớ được cửa sổ, nên trước đây Kịch bản bám vào cửa
-    /// sổ nào tình cờ đang focus. Có tiêu đề thì chọn đúng cửa sổ ấy. Tiêu đề hay đổi nên không
-    /// khớp cũng **không** từ chối: lùi về cửa sổ đang focus như cũ.
+    /// A recording could only remember the application, not the window, so the Scenario used to bind to whichever
+    /// window happened to be focused. With a title it picks that exact window. Titles change often, so a title
+    /// that no longer matches does **not** refuse: it falls back to the focused window as before.
     static func frame(ofProcess processIdentifier: pid_t, preferringTitle title: String?) -> CGRect? {
         let application = AXUIElementCreateApplication(processIdentifier)
         let preferred = title.flatMap { window(of: application, titled: $0) }
@@ -80,7 +80,7 @@ enum WindowAnchor {
         return CGRect(origin: position, size: size)
     }
 
-    /// Tiêu đề cửa sổ đang focus của một tiến trình. Đây là thứ bộ ghi lưu lại.
+    /// The title of a process's focused window. This is what the recorder stores.
     static func focusedWindowTitle(ofProcess processIdentifier: pid_t) -> String? {
         let application = AXUIElementCreateApplication(processIdentifier)
         let focused = copyElement(application, attribute: kAXFocusedWindowAttribute)
@@ -89,7 +89,7 @@ enum WindowAnchor {
         return copyString(window, attribute: kAXTitleAttribute)
     }
 
-    /// Tiến trình này có cửa sổ nào mang đúng tiêu đề ấy không.
+    /// Whether this process has a window with exactly that title.
     static func hasWindow(ofProcess processIdentifier: pid_t, titled title: String) -> Bool {
         window(of: AXUIElementCreateApplication(processIdentifier), titled: title) != nil
     }

@@ -63,8 +63,8 @@
 
   <div id="text-targets">
     <div id="menu-row">Save     ⌘S</div>
-    <!-- Mỗi từ được bọc riêng để trang tự khai toạ độ CỦA TỪNG TỪ, không chỉ của cả dòng.
-         Đó đúng là chỗ RG-15 hỏng: click vào tâm dòng thay vì tâm từ cần nhắm. -->
+    <!-- Each word is wrapped separately so the page reports the coordinates OF EACH WORD, not just of the line.
+         That is exactly where RG-15 broke: clicking the centre of the line instead of the centre of the target word. -->
     <div id="word-row"><span id="word-zukami">ZUKAMI</span> <span id="word-qwerty">QWERTY</span></div>
   </div>
 
@@ -193,7 +193,7 @@ document.getElementById('move-btn').onclick = () => {
   canvas.style.position = 'absolute';
   const ctx = canvas.getContext('2d');
   const img = ctx.createImageData(150, 90);
-  let seed = 12345;  // cố định để ảnh nhiễu giống hệt nhau giữa các lần chạy
+  let seed = 12345;  // fixed so the noise image is identical between runs
   for (let i = 0; i < img.data.length; i += 4) {
     seed = (seed * 1103515245 + 12345) & 0x7fffffff;
     const v = 140 + (seed % 90);

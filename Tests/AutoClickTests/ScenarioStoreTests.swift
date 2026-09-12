@@ -34,7 +34,7 @@ private struct Fixture {
     defer { fixture.cleanUp() }
 
     let store = fixture.makeStore()
-    var scenario = store.create(name: "Xoá hàng loạt")
+    var scenario = store.create(name: "Bulk delete")
     scenario.steps = [Step(action: .move, target: .screenPoint(x: 3, y: 4))]
     scenario.runCount = .untilStopped
     store.save(scenario)
@@ -42,21 +42,21 @@ private struct Fixture {
     let reopened = fixture.makeStore()
 
     #expect(reopened.scenarios.count == 1)
-    #expect(reopened.scenarios[0].name == "Xoá hàng loạt")
+    #expect(reopened.scenarios[0].name == "Bulk delete")
     #expect(reopened.scenarios[0].runCount == .untilStopped)
     #expect(reopened.scenarios[0].steps.count == 1)
-    // ST-4: lựa chọn đang hoạt động sống trong UserDefaults, không phải trong file kịch bản.
+    // ST-4: the active selection lives in UserDefaults, not in the scenario file.
     #expect(reopened.selectedScenarioID == scenario.id)
 }
 
-/// ST-3: xoá Kịch bản là xoá cả thư mục, kể cả những gì nằm trong nó.
+/// ST-3: deleting a Scenario deletes the whole directory, everything inside it included.
 @MainActor
 @Test func deletingAScenarioRemovesItsWholeFolder() throws {
     let fixture = Fixture()
     defer { fixture.cleanUp() }
 
     let store = fixture.makeStore()
-    let scenario = store.create(name: "Tạm")
+    let scenario = store.create(name: "Temporary")
     let folder = fixture.root.appendingPathComponent(scenario.id.uuidString)
     let template = folder.appendingPathComponent("templates", isDirectory: true)
     try FileManager.default.createDirectory(at: template, withIntermediateDirectories: true)
@@ -73,7 +73,7 @@ private struct Fixture {
     defer { fixture.cleanUp() }
 
     let store = fixture.makeStore()
-    var original = store.create(name: "Gốc")
+    var original = store.create(name: "Original")
     original.steps = [
         Step(action: .move, target: .cursor),
         Step(action: .click(button: .left, count: 1, holdMilliseconds: 0), target: .cursor)
@@ -83,12 +83,12 @@ private struct Fixture {
     let copy = try #require(store.duplicate(original))
 
     #expect(copy.id != original.id)
-    #expect(copy.name == "Gốc (bản sao)")
+    #expect(copy.name == "Original (bản sao)")
     #expect(Set(copy.steps.map(\.id)).isDisjoint(with: Set(original.steps.map(\.id))))
     #expect(copy.steps.map(\.action) == original.steps.map(\.action))
 }
 
-/// ST-9: một thư mục hỏng không được làm mất các Kịch bản còn lại.
+/// ST-9: one corrupt directory must not cost us the remaining Scenarios.
 @MainActor
 @Test func aCorruptFolderDoesNotHideTheHealthyOnes() throws {
     let fixture = Fixture()
@@ -97,18 +97,18 @@ private struct Fixture {
     try fixture.write("{ not json at all", into: "broken")
     try fixture.write(
         """
-        { "schemaVersion": 1, "id": "\(UUID().uuidString)", "name": "Lành lặn", "repeat": 1, "steps": [] }
+        { "schemaVersion": 1, "id": "\(UUID().uuidString)", "name": "Intact", "repeat": 1, "steps": [] }
         """,
         into: "healthy"
     )
 
     let store = fixture.makeStore()
 
-    #expect(store.scenarios.map(\.name) == ["Lành lặn"])
+    #expect(store.scenarios.map(\.name) == ["Intact"])
     #expect(store.loadIssues.count == 1)
 }
 
-/// ST-12: định dạng mới hơn thì nạp tên để hiển thị, nhưng không sửa và không ghi đè.
+/// ST-12: a newer format loads its name for display, but cannot be edited or overwritten.
 @MainActor
 @Test func aNewerSchemaLoadsReadOnlyInsteadOfBeingMisread() throws {
     let fixture = Fixture()
@@ -117,7 +117,7 @@ private struct Fixture {
     let id = UUID()
     try fixture.write(
         """
-        { "schemaVersion": 99, "id": "\(id.uuidString)", "name": "Từ tương lai", "steps": [] }
+        { "schemaVersion": 99, "id": "\(id.uuidString)", "name": "From the future", "steps": [] }
         """,
         into: id.uuidString
     )
@@ -125,22 +125,22 @@ private struct Fixture {
     let store = fixture.makeStore()
     let scenario = try #require(store.scenarios.first)
 
-    #expect(scenario.name == "Từ tương lai")
+    #expect(scenario.name == "From the future")
     #expect(store.isReadOnly(scenario))
 
     var edited = scenario
-    edited.name = "Đã sửa"
+    edited.name = "Edited"
     store.save(edited)
 
-    #expect(fixture.makeStore().scenarios.first?.name == "Từ tương lai")
+    #expect(fixture.makeStore().scenarios.first?.name == "From the future")
 }
 
-/// ST-12: nhân bản một Kịch bản chỉ đọc phải **không làm gì**, chứ không đẻ ra một bản rỗng.
+/// ST-12: duplicating a read-only Scenario must **do nothing**, rather than produce an empty copy.
 ///
-/// Bản nạp của Kịch bản chỉ đọc chỉ có `id` và `name` — các Bước nằm trong phần JSON app này
-/// không giải mã được. Nhân bản nó từng ghi ra đĩa một Kịch bản mang tên bản gốc, `schemaVersion`
-/// hiện tại và **không Bước nào**, trông y như thật. Người dùng tưởng đã cứu được dữ liệu rồi xoá
-/// bản gốc là mất sạch. Tìm ra ở `E2` của kiểm thử tay.
+/// A read-only Scenario loads with only its `id` and `name` — the Steps live in the part of the JSON this app
+/// cannot decode. Duplicating it used to write a Scenario to disk carrying the original's name, the current
+/// `schemaVersion` and **no Steps at all**, looking entirely genuine. A user who believed the data had been
+/// rescued and then deleted the original would lose everything. Found in `E2` of the manual tests.
 @MainActor
 @Test func aReadOnlyScenarioCannotBeDuplicatedIntoAnEmptyOne() throws {
     let fixture = Fixture()
@@ -149,7 +149,7 @@ private struct Fixture {
     let id = UUID()
     try fixture.write(
         """
-        { "schemaVersion": 99, "id": "\(id.uuidString)", "name": "Từ tương lai", "steps": [] }
+        { "schemaVersion": 99, "id": "\(id.uuidString)", "name": "From the future", "steps": [] }
         """,
         into: id.uuidString
     )
@@ -159,50 +159,50 @@ private struct Fixture {
 
     #expect(store.duplicate(scenario) == nil)
     #expect(store.scenarios.count == 1)
-    // Và không có thư mục thứ hai nào xuất hiện trên đĩa.
+    // And no second directory appeared on disk.
     let folders = try FileManager.default.contentsOfDirectory(atPath: fixture.root.path)
     #expect(folders == [id.uuidString])
 }
 
-/// ST-3 / ADR-0005: nhân bản Kịch bản phải copy cả `templates/`, không chỉ `scenario.json`.
+/// ST-3 / ADR-0005: duplicating a Scenario has to copy `templates/` too, not just `scenario.json`.
 ///
-/// ADR-0005 chọn "mỗi Kịch bản một thư mục, Ảnh mẫu được nhân bản" đúng để nhân bản = copy thư
-/// mục. Nếu chỉ copy `scenario.json` thì bản sao trỏ vào những tệp không tồn tại: các Bước nhận
-/// dạng của nó hỏng ngay, mà trên giao diện vẫn hiện ra như một Kịch bản bình thường.
+/// ADR-0005 chose "one directory per Scenario, Templates duplicated" precisely so that duplicating is a directory
+/// copy. Copying only `scenario.json` leaves the copy pointing at files that do not exist: its recognition Steps
+/// are broken immediately, while the interface still shows it as a perfectly ordinary Scenario.
 @MainActor
 @Test func duplicatingAScenarioAlsoCopiesItsTemplateFiles() throws {
     let fixture = Fixture()
     defer { fixture.cleanUp() }
 
     let store = fixture.makeStore()
-    var original = store.create(name: "Có ảnh mẫu")
+    var original = store.create(name: "With templates")
 
     let library = store.templateLibrary(for: original.id)
     try FileManager.default.createDirectory(at: library.url(for: "x").deletingLastPathComponent(), withIntermediateDirectories: true)
-    try Data("gia-lam-anh".utf8).write(to: library.url(for: "nut.png"))
+    try Data("pretend-image".utf8).write(to: library.url(for: "button.png"))
 
     original.steps = [
         Step(
             action: .click(button: .left, count: 1, holdMilliseconds: 0),
-            target: .template(name: "nut.png", settings: RecognitionSettings())
+            target: .template(name: "button.png", settings: RecognitionSettings())
         )
     ]
     store.save(original)
-    #expect(FileManager.default.fileExists(atPath: library.url(for: "nut.png").path))
+    #expect(FileManager.default.fileExists(atPath: library.url(for: "button.png").path))
 
     let copy = try #require(store.duplicate(original))
 
-    let copiedFile = store.templateLibrary(for: copy.id).url(for: "nut.png")
+    let copiedFile = store.templateLibrary(for: copy.id).url(for: "button.png")
     #expect(FileManager.default.fileExists(atPath: copiedFile.path))
-    #expect(try Data(contentsOf: copiedFile) == Data("gia-lam-anh".utf8))
-    // Và bản gốc không bị đụng vào.
-    #expect(FileManager.default.fileExists(atPath: library.url(for: "nut.png").path))
+    #expect(try Data(contentsOf: copiedFile) == Data("pretend-image".utf8))
+    // And the original is left untouched.
+    #expect(FileManager.default.fileExists(atPath: library.url(for: "button.png").path))
 }
 
-/// RC-16: hai lần ghi trong cùng một phút ra cùng một tên, nên tên phải được làm cho khác nhau.
+/// RC-16: two recordings in the same minute produce the same name, so the name has to be made unique.
 ///
-/// `save` không đụng tới tên — đúng, vì nó cũng là đường lưu mỗi ký tự người dùng gõ khi đổi tên.
-/// Nhưng đường **ghi thao tác** thì cần, nếu không trình chọn bày ra hai dòng y hệt nhau.
+/// `save` leaves the name alone — rightly, since it is also the path that saves every character the user types
+/// while renaming. But the **recording** path needs this, otherwise the picker shows two identical rows.
 @MainActor
 @Test func twoRecordingsInTheSameMinuteDoNotEndUpWithTheSameName() throws {
     let fixture = Fixture()
@@ -215,6 +215,6 @@ private struct Fixture {
     #expect(first.name == "Google Chrome 12/09 01:09")
     #expect(second.name == "Google Chrome 12/09 01:09 2")
     #expect(store.scenarios.count == 2)
-    // Và cái vừa ghi là cái đang được chọn.
+    // And the one just recorded is the one selected.
     #expect(store.selectedScenarioID == second.id)
 }

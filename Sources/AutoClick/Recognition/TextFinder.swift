@@ -2,14 +2,14 @@ import CoreGraphics
 import Foundation
 import Vision
 
-/// Tìm một đoạn chữ trên ảnh bằng Vision OCR (RG-13…RG-16).
+/// Finds a piece of text in an image with Vision OCR (RG-13…RG-16).
 ///
-/// Khác hẳn khớp **Ảnh mẫu** về độ bền: đổi giao diện sáng/tối, đổi cỡ chữ hệ thống, hay cắm màn
-/// hình khác độ phân giải đều làm ảnh mẫu trượt nhưng không ảnh hưởng tới việc đọc chữ. Đổi lại,
-/// nó chỉ nhắm được thứ **có chữ** — icon, ô vuông, phần tử game thì chịu.
+/// Quite unlike **Template** matching in robustness: switching between light and dark appearance, changing the
+/// system font size, or plugging in a display of a different resolution all throw a template off but leave
+/// reading text untouched. In exchange, it can only aim at things that **have text** — icons, plain squares and game elements are out of reach.
 enum TextFinder {
     struct Match: Equatable, Sendable {
-        /// Hộp bao của đoạn chữ, tính bằng điểm ảnh của ảnh đầu vào, gốc trên-trái.
+        /// The bounding box of the piece of text, in pixels of the input image, origin at the top-left.
         var boundingBox: CGRect
         var confidence: Double
     }
@@ -36,13 +36,13 @@ enum TextFinder {
                   let range = candidate.string.range(of: target, options: .caseInsensitive)
             else { continue }
 
-            // RG-15: hộp bao của **đoạn chữ khớp**, không phải của cả dòng Vision đọc được.
-            // Vision gộp cả dòng thành một observation, nên lấy `observation.boundingBox` sẽ
-            // click vào giữa dòng: tìm "Lưu" trong dòng "Lưu   ⌘S" là bắn vào khoảng trống.
+            // RG-15: the bounding box of the **matched piece of text**, not of the whole line Vision read.
+            // Vision folds a whole line into one observation, so taking `observation.boundingBox` clicks the
+            // middle of the line: looking for "Lưu" in the line "Lưu   ⌘S" fires into the gap.
             let matchBox = (try? candidate.boundingBox(for: range))??.boundingBox
 
-            // Vision trả về toạ độ chuẩn hoá với gốc ở **dưới-trái**; ảnh và `CGEvent` dùng
-            // gốc **trên-trái**, nên phải lật trục dọc.
+            // Vision returns normalised coordinates with the origin at the **bottom-left**; images and `CGEvent`
+            // use a **top-left** origin, so the vertical axis has to be flipped.
             let box = matchBox ?? observation.boundingBox
             let match = Match(
                 boundingBox: CGRect(
@@ -54,7 +54,7 @@ enum TextFinder {
                 confidence: Double(candidate.confidence)
             )
 
-            // RG-16: điểm cao nhất thắng; bằng nhau thì giữ đoạn tìm thấy trước (RG-10).
+            // RG-16: highest confidence wins; on a tie keep the piece found first (RG-10).
             if match.confidence > (best?.confidence ?? -.infinity) {
                 best = match
             }
@@ -63,9 +63,9 @@ enum TextFinder {
         return best
     }
 
-    /// RG-14: bỏ khoảng trắng thừa hai đầu. Việc không phân biệt hoa thường do
-    /// `String.range(of:options:.caseInsensitive)` lo — cách đó cho luôn **vị trí** của đoạn
-    /// khớp, thứ mà so sánh bằng `contains` trên chuỗi đã hạ chữ thường không cho.
+    /// RG-14: trim leading and trailing whitespace. Case-insensitivity is handled by
+    /// `String.range(of:options:.caseInsensitive)`, which also gives the **position** of the matched piece —
+    /// something a `contains` comparison on a lowercased string does not.
     static func normalise(_ text: String) -> String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
