@@ -286,7 +286,7 @@ bản ghi không phân biệt được.
 Với trường hợp dùng chính — game — thường chỉ có một tiến trình và một cửa sổ, nên chỗ này im
 lặng. Với trình duyệt và trình soạn thảo thì không.
 
-**Đã sửa** (`DM-21`): bản ghi nhớ thêm **tiêu đề Cửa sổ neo**, lấy đúng lúc cú thao tác đầu tiên
+**Đã sửa** (`DM-23`): bản ghi nhớ thêm **tiêu đề Cửa sổ neo**, lấy đúng lúc cú thao tác đầu tiên
 xảy ra chứ không lúc kết thúc. Lúc chạy, ưu tiên tiến trình đang mở cửa sổ mang tiêu đề đó, rồi
 trong tiến trình ấy ưu tiên đúng cửa sổ đó; không khớp thì lùi về cách cũ. Sáu test hồi quy, ba
 trong số đó đã kiểm mutation (bỏ việc lưu tiêu đề, bỏ việc truyền tiêu đề xuống bộ giải neo, và
@@ -308,7 +308,7 @@ trước. Ghi hai cú bấm trong cửa sổ **A**:
 | cùng bản ghi, **xoá** `windowTitle` khỏi tệp | *(không gì)* | `T2@(560,235)`, `T4@(260,355)` |
 
 Hàng dưới chính là hành vi trước khi sửa, và cũng là hành vi còn lại cho **bản ghi cũ**: không có
-tiêu đề thì không có gì để chọn đúng. Bản ghi cũ muốn hưởng `DM-21` thì phải ghi lại.
+tiêu đề thì không có gì để chọn đúng. Bản ghi cũ muốn hưởng `DM-23` thì phải ghi lại.
 
 #### Bảng nổi lúc ghi và ruột popover đều **không đọc được bằng Accessibility**
 
