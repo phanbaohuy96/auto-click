@@ -246,19 +246,19 @@ không phải chỉ là chuyện của bộ đo.
 
 | # | Làm | Chờ thấy | Chứng minh | Kết quả |
 |---|---|---|---|---|
-| D1 | Bấm `⌥⌘R`, click vài chỗ trong TextEdit, bấm `⌥⌘R` lần nữa | Kịch bản mới xuất hiện, tên theo ứng dụng và thời điểm | `RC-1` `RC-16` | |
-| D2 | Trong lúc ghi, quan sát bảng nổi | Hiện số Bước đã ghi và nhắc `⌥⌘R` | `RC-3` | |
-| D3 | Bấm `⌥⌘R`, **chỉ click vào chính cửa sổ Auto Click**, kết thúc | Không tạo Kịch bản nào; báo "không ghi được thao tác nào" | `RC-2` `RC-17` | |
-| D4 | Ghi một lần double click | Ra **một** Bước `sốLần = 2`, không phải hai Bước | `RC-7` | |
-| D5 | Ghi một lần giữ nhấn ~2 giây | Ra `giữMs ≈ 2000` | `RC-6` | |
-| D6 | Ghi một lần bôi đen bằng kéo thả | Ra một Bước `kéoThả`, không phải một tràng click | `RC-8` | |
+| D1 | Bấm `⌥⌘R`, click vài chỗ trong TextEdit, bấm `⌥⌘R` lần nữa | Kịch bản mới xuất hiện, tên theo ứng dụng và thời điểm | `RC-1` `RC-16` | **Đạt** — Kịch bản mới hiện ra ngay, tên theo ứng dụng bia và thời điểm (`BiaKiemThuA 12/09 09:58`), và cửa sổ soạn thảo tự mở vào đúng nó |
+| D2 | Trong lúc ghi, quan sát bảng nổi | Hiện số Bước đã ghi và nhắc `⌥⌘R` | `RC-3` | **Đạt** — bảng nổi hiện *"Đang ghi thao tác"*, số thao tác đếm lên theo từng cú bấm, và dòng nhắc *"Kết thúc bằng ⌥⌘R"*. Đọc bằng **ảnh chụp**: ruột bảng nổi không lộ ra cây Accessibility (xem phần phát hiện bên dưới) |
+| D3 | Bấm `⌥⌘R`, **chỉ click vào chính cửa sổ Auto Click**, kết thúc | Không tạo Kịch bản nào; báo "không ghi được thao tác nào" | `RC-2` `RC-17` | **Đạt** — không Kịch bản nào được tạo, popover báo đúng là không ghi được thao tác nào |
+| D4 | Ghi một lần double click | Ra **một** Bước `sốLần = 2`, không phải hai Bước | `RC-7` | **Đạt** — một Bước duy nhất với `count=2` |
+| D5 | Ghi một lần giữ nhấn ~2 giây | Ra `giữMs ≈ 2000` | `RC-6` | **Đạt** — `holdMilliseconds=2967`, khớp với quãng giữ thật ~2,87 s của công cụ đo (không phải 2000 tròn: con số đối chiếu là cái công cụ thật sự giữ, không phải cái đặt hàng) |
+| D6 | Ghi một lần bôi đen bằng kéo thả | Ra một Bước `kéoThả`, không phải một tràng click | `RC-8` | **Đạt** — một Bước `kéoThả`, đo hai đầu khớp chính xác `(800,430) → (990,510)` |
 | D7 | Ghi một tràng cuộn bằng trackpad, **cuộn tới cuối rồi thả cho quán tính chạy** | Ra **một** Bước cuộn, không bị cắt làm đôi lúc quán tính đổi dấu | `RC-9` | **Đạt** — dựng lại đúng hình dạng sự kiện của một cú vuốt trackpad (pha chạm `began/changed/ended`, rồi pha quán tính `begin/continue/end`, đuôi **đổi dấu** `-1 -2 -1`, 17 sự kiện cách nhau 16 ms) và bắn vào dòng sự kiện của phiên. Bộ ghi ra **1 Bước** `cuộn deltaY=11`. Con số 11 là **dòng**, không phải 92 điểm ảnh đã phát: bộ ghi đọc `scrollWheelEventDeltaAxis1`, còn `MouseEventEmitter.scroll` phát lại bằng `units: .line` — hai đầu cùng đơn vị nên đi vòng tròn không lệch |
-| D8 | Ghi: click, **đợi 5 giây**, click | Bước đầu có khoảng chờ ≈ 5000 ms | `RC-10` (ADR-0004) | |
-| D9 | Xem Bước cuối của mọi bản ghi | Khoảng chờ = 0 | `RC-11` | |
+| D8 | Ghi: click, **đợi 5 giây**, click | Bước đầu có khoảng chờ ≈ 5000 ms | `RC-10` (ADR-0004) | **Đạt** — khoảng chờ của Bước đầu là `5330 ms` |
+| D9 | Xem Bước cuối của mọi bản ghi | Khoảng chờ = 0 | `RC-11` | **Đạt** — Bước cuối của mọi bản ghi trong phiên này đều có khoảng chờ `0 ms` |
 | D10 | **Chạy lại** bản ghi D1 | Lặp đúng thao tác vừa ghi | `RC-13` | **Đạt** — đo hai đầu, khớp từng điểm: Auto Click phát `(270,220) (720,420) (870,220)`, bia nhận đúng `T1 T6 T3` tại đúng ba toạ độ đó |
 | D11 | Ghi một phiên chạm vào **hai** ứng dụng (TextEdit rồi Finder) | Có cảnh báo nói bản ghi trải trên 2 ứng dụng; Vị trí là toạ độ tuyệt đối | `RC-14` | **Đạt** — ghi 3 cú bấm trải trên hai bia. Kịch bản: khoá ứng dụng = *không có*, cả 3 Bước là `screenPoint` tuyệt đối, tên rơi về `Bản ghi 12/09 10:00` thay vì tên ứng dụng. Popover hiện đúng một dòng cam: *"Bản ghi trải trên 2 ứng dụng nên dùng toạ độ tuyệt đối; các bước sẽ trượt nếu cửa sổ dịch chuyển."* |
 | D12 | Ghi xong, di chuyển cửa sổ TextEdit, chạy lại bản ghi một-ứng-dụng | Thao tác **đi theo cửa sổ** | `RC-13` | **Đạt** — dời cửa sổ bia từ `(120,88)` sang `(300,240)`, tức `+180/+152`, rồi chạy lại đúng Kịch bản của D10. Mọi cú bấm dịch đúng chừng ấy: `(450,372) (900,572) (1050,372)`, và bia vẫn nhận đúng `T1 T6 T3`. Ba Bước neo vào **ba góc khác nhau** (`topLeft`, `bottomRight`, `topRight`) nên đây cũng là phép thử cho `WindowAnchor.offset` chọn góc gần nhất |
-| D13 | Gõ bàn phím trong lúc đang ghi | Phím **không** lọt vào Kịch bản | `RC-4` `SF-6` (ADR-0003) | |
+| D13 | Gõ bàn phím trong lúc đang ghi | Phím **không** lọt vào Kịch bản | `RC-4` `SF-6` (ADR-0003) | **Đạt** — gõ hẳn chuỗi `matkhau` trong lúc ghi: Kịch bản ra **0** Bước bàn phím, và chuỗi `matkhau` **không có mặt** ở bất kỳ đâu trong tệp trên đĩa |
 | D14 | Mở System Settings → Privacy → **Input Monitoring** | Auto Click **không** có trong danh sách | `SF-6` | **Đạt** — `CGEvent.tapCreate` duy nhất của app đăng ký mặt nạ **chỉ có chuột và cuộn**; hai chỗ còn lại dùng `keyDown` là `addLocalMonitorForEvents` (chỉ thấy phím gửi tới cửa sổ của chính app, không cần quyền, để bắt Esc). `Info.plist` **không có** khoá xin Input Monitoring; binary đã cài **không tham chiếu** `IOHIDRequestAccess`/`IOHIDCheckAccess`. **Đã nhìn tận mắt**: sau trọn một phiên kiểm thử với hàng chục lần ghi thao tác, danh sách Input Monitoring vẫn là **`No Items`** — macOS chưa từng ghi nhận Auto Click là thứ theo dõi bàn phím |
 
 ### Phát hiện ngoài checklist — phiên D
