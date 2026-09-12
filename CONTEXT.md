@@ -34,8 +34,8 @@ Phần màn hình được thu hẹp để tìm **Ảnh mẫu**; tuỳ chọn, v
 _Avoid_: khung tìm, scope, bounds
 
 **Cửa sổ neo (Anchor window)**:
-Cửa sổ trước nhất của **Ứng dụng khoá** tại thời điểm chạy một **Bước**, dùng làm gốc cho **Vị trí** tương đối.
-_Avoid_: cửa sổ chính, main window
+Cửa sổ của **Ứng dụng khoá** mà **Vị trí** tương đối lấy làm gốc. Là **cửa sổ đã ghi** — nhận ra qua tiêu đề của nó — chứ không phải cửa sổ nào tình cờ ở trước lúc chạy; không nhận ra được thì mới lùi về cửa sổ trước nhất.
+_Avoid_: cửa sổ chính, main window, cửa sổ đang focus
 
 **Phiên ghi (Recording session)**:
 Khoảng thời gian Auto Click lắng nghe thao tác chuột thật của người dùng để dựng ra một **Kịch bản**.
