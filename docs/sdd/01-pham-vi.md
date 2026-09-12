@@ -6,6 +6,21 @@ Auto Click hiện chỉ phát được **một** loại thao tác (click trái) 
 Mục tiêu là nâng nó thành công cụ chạy **Kịch bản** — chuỗi thao tác đa dạng có thứ tự — và
 cho phép tạo Kịch bản bằng cách **ghi lại** thao tác thật của người dùng.
 
+### Ca dùng chính: game
+
+Chủ dự án dùng Auto Click chủ yếu để chơi game. Điều đó không đọc ra được từ mã nguồn nhưng
+quyết định khá nhiều chỗ trong đặc tả, nên ghi lại ở đây:
+
+- Thứ cần nhắm trong game **gần như không có chữ nào** — là biểu tượng, nút vẽ sẵn, ô vật phẩm.
+  Nhận dạng **chữ** (`DM-15`) do đó là phụ; **khớp ảnh** (`DM-14`) mới là thứ gánh tính năng.
+  Cũng vì vậy bia tập bắn `I1`…`I8` của [kiểm thử tay](../kiem-thu-e2e.md) cố ý không có chữ.
+- Giao diện game hay có nhiều thứ **gần giống nhau** — năm ô vật phẩm cùng khung, hai nút chỉ
+  khác sắc độ. Khớp ảnh phải phân biệt được, không được "gần đúng là xong".
+- Cửa sổ game thường chỉ có **một**, và hay **đổi tiêu đề** theo màn chơi. Nên `DM-21` dùng tiêu
+  đề cửa sổ làm **ưu tiên** chứ không làm điều kiện cứng.
+- Thứ cần nhắm gần như luôn nằm lại đúng chỗ vừa chụp, nên vùng tìm mặc định bám quanh chỗ ấy
+  (`RG-23`) thay vì quét cả màn hình.
+
 ## Lát cắt
 
 Mỗi lát để lại một ứng dụng chạy được và cài được. Thứ tự đã chốt, xem [ADR-0001](../adr/0001-screencapturekit-va-min-macos-14.md)
