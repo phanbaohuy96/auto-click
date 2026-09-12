@@ -1,154 +1,169 @@
-# Auto Click cho macOS
+# Auto Click for macOS
 
-Ứng dụng native nằm trên menu bar. Có hai mặt giao diện, nhưng chỉ **một** bộ chạy bên dưới:
+A native menu-bar app. Two interface surfaces, but only **one** runner underneath:
 
-- **Đơn giản** — một thao tác lặp lại, đúng như các phiên bản trước.
-- **Kịch bản** — chuỗi thao tác có thứ tự, mỗi bước có hành động, vị trí, số lần lặp và
-  khoảng chờ riêng.
+- **Simple** — one repeated operation, exactly as in earlier versions.
+- **Scenario** — an ordered sequence of operations, each step with its own action, target,
+  repeat count and delay.
 
-## Kịch bản
+## Scenarios
 
-Một **Bước** là một cặp **Hành động** × **Vị trí**, hai trục độc lập nhau:
+A **Step** is an **Action** × **Target** pair, two independent axes:
 
-| Hành động | Vị trí |
+| Action | Target |
 |---|---|
-| Click (trái/phải/giữa, n lần, giữ N ms) | Theo con trỏ |
-| Cuộn (ngang, dọc) | Điểm cố định trên màn hình |
-| Di chuột | Lệch theo góc gần nhất của cửa sổ ứng dụng |
-| Kéo thả | |
-| Gõ chuỗi ký tự | |
-| Nhấn tổ hợp phím | Tâm ảnh mẫu tìm thấy trên màn hình |
-| | Tâm đoạn chữ tìm thấy trên màn hình |
+| Click (left/right/middle, n times, hold N ms) | At the cursor |
+| Scroll (horizontal, vertical) | A fixed point on screen |
+| Move | An offset from the nearest corner of the app's window |
+| Drag | |
+| Type a string | |
+| Press a key combination | The centre of a template found on screen |
+| | The centre of a piece of text found on screen |
 
-Nhờ tách hai trục, "double-click theo ảnh mẫu" hay "cuộn tại chỗ có chữ Đồng ý" không phải là
-loại bước mới nào cả — chúng có sẵn từ 6 hành động × 5 vị trí.
+Splitting the two axes is what keeps "double-click on a template" or "scroll where it says OK"
+from being new kinds of step — they already exist, out of 6 actions × 5 targets.
 
-Neo theo cửa sổ bám vào **góc gần điểm nhất**, không phải luôn góc trên-trái: nút ở góc phải-dưới
-nhờ vậy vẫn đúng khi bạn phóng to cửa sổ.
+Window anchoring attaches to the **corner nearest the point**, not always the top-left: that is
+what keeps a button in the bottom-right corner correct when you enlarge the window.
 
-Kịch bản lưu ở `~/Library/Application Support/AutoClick/Scenarios/<id>/scenario.json`,
-mỗi kịch bản một thư mục. Xoá kịch bản là xoá cả thư mục.
+Scenarios live in `~/Library/Application Support/AutoClick/Scenarios/<id>/scenario.json`,
+one directory per scenario. Deleting a scenario deletes the whole directory.
 
-## Nhận dạng ảnh và chữ
+## Image and text recognition
 
-Một Bước có thể nhắm vào **ảnh mẫu** hoặc **đoạn chữ** thay vì toạ độ cố định.
+A step can aim at a **template** or a **piece of text** instead of fixed coordinates.
 
-Khoanh một vùng bất kỳ trên màn hình để cắt ảnh mẫu. Không cần khoá ứng dụng, và **không cần mục
-tiêu đang hiển thị**: nút bạn muốn bấm thường chỉ xuất hiện sau khi trang tải, nên cứ mở một ảnh
-chụp màn hình cũ trong Preview rồi cắt từ chính ảnh đó.
+Drag out any region of the screen to crop a template. No locked application is needed, and **the
+target does not have to be on screen**: the button you want to press usually only appears after
+the page loads, so open an old screenshot in Preview and crop from that instead.
 
-Mỗi bước theo ảnh có **thời gian chờ** và **việc phải làm khi hết giờ**:
+Every template step has a **timeout** and a **what to do when it expires**:
 
 ```
-Bước 2  click @ ảnh "nút Lưu"     chờ tối đa 10s  → hết giờ: Dừng kịch bản
-Bước 5  click @ ảnh "đóng quảng cáo"  chờ tối đa 0s  → hết giờ: Bỏ qua bước
+Step 2  click @ template "Save button"   wait up to 10s  → on timeout: stop the scenario
+Step 5  click @ template "close advert"  wait up to 0s   → on timeout: skip the step
 ```
 
-Bước 2 là "đợi nút hiện ra rồi bấm". Bước 5 là "có thì đóng, không có thì chạy tiếp". Cả hai chỉ
-là hai con số — kịch bản không có `if`, không có rẽ nhánh.
+Step 2 is "wait for the button to appear, then press it". Step 5 is "close it if it is there,
+otherwise carry on". Both are just two numbers — a scenario has no `if` and no branches.
 
-**Tìm theo chữ** bền hơn ảnh mẫu khi đổi giao diện sáng/tối hay cỡ chữ hệ thống, nhưng chỉ nhắm
-được thứ có chữ. Ảnh mẫu nhắm được icon và phần tử đồ hoạ.
+**Finding by text** survives light/dark switches and system font-size changes better than a
+template does, but it can only aim at things that have text. Templates can aim at icons and
+graphics.
 
-Tính năng này cần thêm quyền **Screen Recording**, chỉ hỏi khi bạn thật sự dùng tới.
+This feature needs the extra **Screen Recording** permission, and only asks when you actually
+use it.
 
-## Ghi thao tác
+## Recording
 
-Nhấn `⌥⌘R` để bắt đầu và kết thúc một phiên ghi. Auto Click quan sát chuột của bạn rồi dựng
-thành Kịch bản: nhận ra double click, giữ nhấn, kéo thả, và gộp cả tràng cuộn trackpad thành
-một bước.
+Press `⌥⌘R` to start and end a recording session. Auto Click watches your mouse and builds a
+scenario from it: it recognises double clicks, long presses and drags, and folds a whole
+trackpad scroll burst into a single step.
 
-Hai điều cố ý:
+Two things are deliberate:
 
-- **Không ghi bàn phím.** Ghi phím buộc phải xin quyền Input Monitoring và biến app thành
-  keylogger toàn hệ thống. Bước gõ phím thêm tay sau khi ghi.
-- **Không cắt trần thời gian chết.** Bạn chờ 8 giây thì bản ghi chờ 8 giây. Recorder không phân
-  biệt được "đợi trang tải" với "đi pha cà phê", nên cắt trần sẽ hỏng đúng lúc quan trọng nhất.
+- **No keyboard capture.** Recording keys would force Auto Click to request Input Monitoring and
+  would turn it into a system-wide keylogger. Typing steps are added by hand after recording.
+- **No cap on idle time.** If you wait 8 seconds, the recording waits 8 seconds. The recorder
+  cannot tell "waiting for a page to load" from "gone to make coffee", so a cap would break
+  exactly when it matters most.
 
-Nếu cả phiên ghi nằm trong một ứng dụng, Auto Click tự khoá vào ứng dụng đó và neo mọi bước theo
-cửa sổ — bản ghi dùng lại được cả khi cửa sổ đã dịch chuyển. Trải trên nhiều ứng dụng thì giữ
-toạ độ tuyệt đối và nói rõ điều đó.
+If a whole recording session stays inside one application, Auto Click locks onto that
+application and anchors every step to its window — the recording still works after the window
+has moved. Spanning several applications keeps absolute coordinates and says so plainly.
 
-## Các tính năng khác
+## Other features
 
-- Chọn khoảng thời gian giữa hai lần click (10–3.600.000 ms).
-- Chọn số lần lặp (1–1.000.000), ở cấp bước và cấp kịch bản.
-- Kịch bản lặp đến khi bấm Dừng.
-- Click theo vị trí con trỏ hoặc một điểm cố định đã lưu.
-- Chọn điểm trực tiếp trên bất kỳ màn hình nào; nhấn `Esc` để hủy chọn.
-- Khóa click vào một ứng dụng đang chạy và xác minh ứng dụng sở hữu điểm click.
-- Tự dừng nếu ứng dụng đích bị đóng để không click nhầm ứng dụng khác.
-- Đếm ngược 3 giây để đặt con trỏ vào đúng vị trí.
-- Dừng nhanh từ icon trên menu bar.
-- Hiện live activity nổi khi chạy, với nút **Dừng** luôn nhìn thấy.
-- Phím tắt toàn cục `⌥⌘S` để dừng ngay cả khi đang dùng ứng dụng khác.
-- Ghi nhớ cấu hình và tự khởi động khi đăng nhập macOS.
-- Luôn nhả nút chuột khi dừng, kể cả đang giữa một thao tác giữ nhấn hay kéo thả.
-- Trước mỗi bước gõ phím, đưa ứng dụng đã khoá lên trước; không đưa lên được thì dừng.
+- Choose the interval between clicks (10–3,600,000 ms).
+- Choose the repeat count (1–1,000,000), per step and per scenario.
+- Run a scenario until you press Stop.
+- Click at the cursor position or at a saved fixed point.
+- Pick a point directly on any display; press `Esc` to cancel.
+- Lock clicking to one running application and verify which app owns the click point.
+- Stop automatically if the destination app quits, so clicks never land on another app.
+- A 3-second countdown to get the cursor into place.
+- Quick stop from the menu-bar icon.
+- A floating live activity while running, with a **Stop** button always visible.
+- Global `⌥⌘S` shortcut to stop even while using another application.
+- Remembers its configuration and can start at macOS login.
+- Always releases the mouse button on stop, even mid long-press or mid-drag.
+- Brings the locked application to the front before every typing step; stops if it cannot.
 
-## Build và cài đặt
+## Building and installing
 
-Yêu cầu macOS 14 trở lên và Xcode Command Line Tools.
+Requires macOS 14 or later and the Xcode Command Line Tools.
 
 ```bash
 ./scripts/install.sh
-# Hoặc:
+# or:
 sh ./scripts/install.sh
 ```
 
-Script sẽ build bản release, đóng phiên bản cũ, cài vào `/Applications`, kiểm tra chữ ký và mở lại app. Để cài bundle đã build sẵn hoặc không tự mở app:
+The script builds a release, quits the old version, installs into `/Applications`, checks the
+signature and relaunches the app. To install a pre-built bundle, or not to launch the app:
 
 ```bash
 ./scripts/install.sh --no-build
 ./scripts/install.sh --no-launch
 ```
 
-Chỉ build bundle mà không cài đặt:
+To build the bundle without installing it:
 
 ```bash
 ./scripts/build-app.sh
 ```
 
-Lần đầu bấm **Bắt đầu**, macOS sẽ yêu cầu quyền Accessibility. Mở:
+The first time you press **Start**, macOS asks for the Accessibility permission. Open:
 
 `System Settings → Privacy & Security → Accessibility`
 
-Sau đó bật quyền cho **Auto Click**. Kịch bản dùng nhận dạng ảnh hoặc chữ cần thêm quyền
-**Screen Recording** ở cùng màn hình đó — hai quyền tách biệt, cấp một cái không tự có cái kia. Nên chạy app từ `/Applications` trước khi bật “Khởi động cùng MacBook” để macOS đăng ký đúng vị trí ứng dụng.
+and enable it for **Auto Click**. Scenarios that use image or text recognition need the extra
+**Screen Recording** permission on the same screen — two separate permissions, and granting one
+does not grant the other. Run the app from `/Applications` before enabling "Start with MacBook"
+so macOS registers the right location.
 
-Bản build local mặc định dùng chữ ký ad-hoc, vì vậy macOS có thể yêu cầu bật lại quyền Accessibility sau khi cập nhật. Nếu có certificate macOS ổn định, có thể chỉ định khi build/cài:
+A local build is ad-hoc signed by default, so macOS may ask you to re-enable the Accessibility
+permission after an update. With a stable macOS certificate you can name it when building or
+installing:
 
 ```bash
 AUTO_CLICK_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)" ./scripts/install.sh
 ```
 
-Để giới hạn click, bật **Chỉ click trong ứng dụng** và chọn một app đang chạy. Nút làm mới bên cạnh danh sách sẽ nhận các app vừa được mở. Auto Click đưa app đó lên trước khi chạy, kiểm tra UI tại tọa độ thuộc đúng PID đã chọn rồi mới phát click toàn hệ thống. App tự dừng nếu ứng dụng bị đóng hoặc điểm click nằm ngoài ứng dụng đó.
+To restrict clicking, turn on **Only click in this application** and pick a running app. The
+refresh button beside the list picks up apps opened since. Auto Click brings that app to the
+front, checks that the UI at the coordinates belongs to the chosen PID, and only then emits a
+system-wide click. It stops on its own if the app quits or the click point falls outside it.
 
-Ở chế độ **Theo con trỏ**, mỗi lần click sử dụng vị trí con trỏ tại đúng thời điểm đó. Ở chế độ **Điểm cố định**, app luôn click vào tọa độ đã lưu. Sau khi chọn một điểm mới, cửa sổ cấu hình sẽ tự hiện lại.
+In **At the cursor** mode every click uses the cursor position at that moment. In **Fixed point**
+mode the app always clicks the saved coordinates. After picking a new point the configuration
+window reappears on its own.
 
-## Tài liệu
+## Documentation
 
-| Tài liệu | Trả lời câu hỏi |
+| Document | Answers |
 |---|---|
-| [`CONTEXT.md`](CONTEXT.md) | Các khái niệm tên là gì và nghĩa là gì |
-| [`docs/adr/`](docs/adr/) | Vì sao chọn phương án này thay vì phương án kia |
-| [`docs/sdd/`](docs/sdd/) | Hệ thống phải làm gì, chính xác đến mức kiểm chứng được |
-| [`docs/kiem-thu-e2e.md`](docs/kiem-thu-e2e.md) | Phần nào chỉ kiểm chứng được bằng tay, và làm thế nào |
+| [`CONTEXT.md`](CONTEXT.md) | What the concepts are called and what they mean |
+| [`docs/adr/`](docs/adr/) | Why this option was chosen over that one |
+| [`docs/sdd/`](docs/sdd/) | What the system must do, precise enough to check |
+| [`docs/manual-e2e-tests.md`](docs/manual-e2e-tests.md) | What can only be checked by hand, and how |
 
-Mọi hành vi quan sát được đều có một mã yêu cầu trong `docs/sdd/` (`DM-`, `EX-`, `ST-`, `UI-`,
-`SF-`, `RC-`, `RG-`). Code trích dẫn mã đó ở những chỗ hành vi không hiển nhiên. Sửa hành vi thì
-sửa đặc tả trước.
+Every observable behaviour has a requirement identifier in `docs/sdd/` (`DM-`, `EX-`, `ST-`,
+`UI-`, `SF-`, `RC-`, `RG-`). The code cites those identifiers wherever the behaviour is not
+obvious. Change a behaviour and you change the spec first.
 
-## Phát triển
+## Development
 
 ```bash
 swift test
 swift run AutoClick
 ```
 
-Khi chạy bằng `swift run`, tính năng click có thể cần cấp quyền cho Terminal. Bản `.app` trong `/Applications` là cách chạy khuyến nghị.
+Under `swift run`, clicking may require granting the permission to Terminal. The `.app` in
+`/Applications` is the recommended way to run it.
 
-`swift test` chứng minh logic, **không** chứng minh ứng dụng click đúng chỗ trên màn hình thật:
-quyền Accessibility và Screen Recording chỉ cấp được cho bundle đã ký, không cấp cho binary test
-của SwiftPM. Mọi seam chạm hệ điều hành đều bị thay bằng giả trong `TestSupport.swift`. Phần còn
-lại nằm ở [`docs/kiem-thu-e2e.md`](docs/kiem-thu-e2e.md) và phải chạy bằng tay.
+`swift test` proves the logic; it does **not** prove the app clicks the right place on a real
+screen. Accessibility and Screen Recording can only be granted to a signed bundle, never to
+SwiftPM's test binary, so every seam that touches the operating system is replaced by a fake in
+`TestSupport.swift`. The rest lives in [`docs/manual-e2e-tests.md`](docs/manual-e2e-tests.md) and
+has to be run by hand.

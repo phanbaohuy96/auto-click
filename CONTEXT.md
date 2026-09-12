@@ -1,82 +1,82 @@
 # Auto Click
 
-Ứng dụng menu bar trên macOS phát sự kiện chuột giả lập để tự động hoá thao tác lặp lại.
-Tài liệu này là **từ điển thuật ngữ** của dự án, không phải spec.
+A macOS menu-bar app that emits synthetic mouse events to automate repetitive work.
+This document is the project's **glossary**, not a spec.
 
 ## Language
 
-**Kịch bản (Scenario)**:
-Một chuỗi thao tác có thứ tự mà người dùng đã đặt tên, chạy từ đầu đến cuối như một đơn vị.
+**Scenario**:
+An ordered, user-named sequence of operations that runs start to finish as one unit.
 _Avoid_: macro, workflow, script, profile
 
-**Chế độ đơn giản (Simple mode)**:
-Mặt giao diện rút gọn cho phép cấu hình nhanh một thao tác lặp lại, mà bên dưới vẫn dựng thành một **Kịch bản** một bước.
-_Avoid_: chế độ cũ, basic mode, legacy mode
+**Simple mode**:
+The cut-down surface for quickly configuring one repeated operation, which underneath still builds a one-step **Scenario**.
+_Avoid_: old mode, basic mode, legacy mode
 
-**Bước (Step)**:
-Một đơn vị trong **Kịch bản**, gồm đúng một **Hành động** và đúng một **Vị trí**.
-_Avoid_: action (khi đang nói về cả cặp), command, task
+**Step**:
+One unit inside a **Scenario**, made of exactly one **Action** and exactly one **Target**.
+_Avoid_: action (when you mean the pair), command, task
 
-**Hành động (Action)**:
-Thứ mà một **Bước** làm — click, giữ nhấn, cuộn, di chuột, kéo thả, gõ phím — tách rời khỏi việc làm ở đâu.
-_Avoid_: event, thao tác, loại bước
+**Action**:
+What a **Step** does — click, long press, scroll, move, drag, type — kept separate from where it does it.
+_Avoid_: event, operation, step kind
 
-**Vị trí (Target)**:
-Nơi một **Hành động** diễn ra, chỉ được giải ra toạ độ cụ thể tại thời điểm chạy bước đó.
-_Avoid_: đích, toạ độ, point, anchor
+**Target**:
+Where an **Action** happens, resolved to concrete coordinates only at the moment that step runs.
+_Avoid_: destination, coordinates, point, anchor
 
-**Ảnh mẫu (Template)**:
-Mảnh ảnh người dùng cắt từ màn hình, dùng để tìm lại mục tiêu lúc chạy khi toạ độ không đáng tin.
-_Avoid_: hình mẫu, snapshot, pattern
+**Template**:
+A patch of screen the user cropped, used to find the target again at run time when coordinates cannot be trusted.
+_Avoid_: sample image, snapshot, pattern
 
-**Vùng tìm (Search region)**:
-Phần màn hình được thu hẹp để tìm **Ảnh mẫu**; tuỳ chọn, và không ràng buộc **Kịch bản** phải có **Ứng dụng khoá**.
-_Avoid_: khung tìm, scope, bounds
+**Search region**:
+The part of the screen narrowed down to look for a **Template**; optional, and it never forces a **Scenario** to have a **Locked application**.
+_Avoid_: search frame, scope, bounds
 
-**Cửa sổ neo (Anchor window)**:
-Cửa sổ của **Ứng dụng khoá** mà **Vị trí** tương đối lấy làm gốc. Là **cửa sổ đã ghi** — nhận ra qua tiêu đề của nó — chứ không phải cửa sổ nào tình cờ ở trước lúc chạy; không nhận ra được thì mới lùi về cửa sổ trước nhất.
-_Avoid_: cửa sổ chính, main window, cửa sổ đang focus
+**Anchor window**:
+The window of the **Locked application** that relative **Target**s are measured from. It is the **recorded window** — recognised by its title — not whichever window happens to be in front at run time; only when that fails does it fall back to the frontmost one.
+_Avoid_: main window, focused window
 
-**Phiên ghi (Recording session)**:
-Khoảng thời gian Auto Click lắng nghe thao tác chuột thật của người dùng để dựng ra một **Kịch bản**.
-_Avoid_: record, quay, capture
+**Recording session**:
+The span of time Auto Click listens to the user's real mouse work in order to build a **Scenario**.
+_Avoid_: record, capture
 
-**Ứng dụng khoá (Locked application)**:
-Ứng dụng duy nhất được phép nhận sự kiện khi người dùng bật giới hạn; khác hoàn toàn với **Vị trí**.
-_Avoid_: ứng dụng đích, target app
+**Locked application**:
+The only application allowed to receive events when the user turns the restriction on; entirely distinct from **Target**.
+_Avoid_: destination app, target app
 
 ## Relationships
 
-- **Chế độ đơn giản** tạo ra đúng một **Kịch bản** một bước; nó không phải một cách chạy riêng.
-- Mọi thao tác tự động, dù đến từ mặt giao diện nào, đều được thực thi qua cùng một bộ chạy **Kịch bản**.
-- Một **Kịch bản** chứa một hay nhiều **Bước** có thứ tự.
-- Một **Bước** kết hợp đúng một **Hành động** với đúng một **Vị trí**; hai trục này độc lập với nhau.
-- Khoảng chờ là thuộc tính của **Bước**, không phải một **Hành động**. Không tồn tại **Hành động** "chờ".
-- **Ứng dụng khoá** ràng buộc toàn bộ **Kịch bản**, không ràng buộc từng **Bước**.
-- **Vị trí** có bốn dạng: theo con trỏ, điểm tuyệt đối trên màn hình, lệch so với một góc của **Cửa sổ neo**, và tâm của **Ảnh mẫu** tìm thấy.
-- **Vị trí** tương đối cửa sổ chỉ giải được khi **Ứng dụng khoá** đang bật; thiếu nó thì **Kịch bản** không hợp lệ.
-- **Vị trí** theo **Ảnh mẫu** thì ngược lại: không cần **Ứng dụng khoá**, và **Ảnh mẫu** cắt được từ bất cứ đâu trên màn hình, kể cả từ một ảnh chụp màn hình đang mở trong ứng dụng khác.
-- Một **Phiên ghi** sinh ra đúng một **Kịch bản**; nó chỉ quan sát chuột, không quan sát bàn phím.
-- **Vị trí** theo **Ảnh mẫu** hoặc theo chữ có thể **không giải được**; khi đó **Bước** thử lại đến hết thời gian chờ rồi hoặc dừng **Kịch bản** hoặc bị bỏ qua, do chính **Bước** đó quy định.
+- **Simple mode** produces exactly one one-step **Scenario**; it is not a separate way of running.
+- Every automated operation, whichever surface it came from, executes through the same **Scenario** runner.
+- A **Scenario** holds one or more ordered **Step**s.
+- A **Step** pairs exactly one **Action** with exactly one **Target**; the two axes are independent.
+- A delay is a property of a **Step**, not an **Action**. There is no "wait" **Action**.
+- A **Locked application** constrains the whole **Scenario**, not individual **Step**s.
+- A **Target** comes in four forms: at the cursor, an absolute screen point, an offset from a corner of the **Anchor window**, and the centre of a located **Template**.
+- A window-relative **Target** can only be resolved when a **Locked application** is set; without one the **Scenario** is invalid.
+- A **Template** **Target** is the opposite: it needs no **Locked application**, and a **Template** can be cropped from anywhere on screen, including from a screenshot open in another application.
+- One **Recording session** produces exactly one **Scenario**; it watches the mouse only, never the keyboard.
+- A **Template** or text **Target** may fail to resolve; the **Step** then retries until its timeout expires and either stops the **Scenario** or is skipped, as that **Step** itself specifies.
 
 ## Example dialogue
 
-> **Dev:** "Giữ tab Đơn giản thì có phải viết vòng lặp click thứ hai không?"
-> **Domain expert:** "Không. **Chế độ đơn giản** chỉ là cái phễu nhập liệu; nó dựng một **Kịch bản** một bước rồi đưa cho cùng bộ chạy."
+> **Dev:** "If we keep the Simple tab, do we have to write a second click loop?"
+> **Domain expert:** "No. **Simple mode** is just an input funnel; it builds a one-step **Scenario** and hands it to the same runner."
 >
-> **Dev:** "Vậy 'click theo ảnh' là một **Hành động** mới chứ?"
-> **Domain expert:** "Không, 'theo ảnh' là một **Vị trí**. **Hành động** vẫn là click. Nhờ vậy 'cuộn tại ảnh' hay 'double-click theo ảnh' không phải khái niệm mới nào cả."
+> **Dev:** "So 'click on an image' is a new **Action**?"
+> **Domain expert:** "No, 'on an image' is a **Target**. The **Action** is still a click. That is what keeps 'scroll at an image' or 'double-click on an image' from being new concepts at all."
 >
-> **Dev:** "Vậy 'đợi nút Lưu hiện ra rồi bấm' cần thêm vòng lặp có điều kiện chứ?"
-> **Domain expert:** "Không. Đó là **Bước** click vào **Vị trí** theo **Ảnh mẫu** với thời gian chờ 10 giây. **Kịch bản** không có nhánh, không có điều kiện — chỉ có bộ đếm và thời gian chờ."
+> **Dev:** "Then 'wait for the Save button to appear, then click it' needs a conditional loop?"
+> **Domain expert:** "No. That is a **Step** clicking a **Template** **Target** with a 10-second timeout. A **Scenario** has no branches and no conditions — only counters and timeouts."
 
 ## Flagged ambiguities
 
-- "hai chế độ song song" ban đầu hàm ý hai bộ chạy độc lập — đã chốt: hai mặt **giao diện**, một bộ chạy duy nhất.
-- "target" trong code hiện tại mang hai nghĩa: `targetMode` (nơi click) và `targetProcessIdentifier` (ứng dụng được phép nhận click) — đã tách thành **Vị trí** và **Ứng dụng khoá**.
-- "record" từng hàm ý ghi mọi thứ người dùng làm — đã thu hẹp: **Phiên ghi** chỉ ghi chuột; bước gõ phím do người dùng thêm tay.
-- "vùng tìm luôn neo theo cửa sổ" là quyết định đã bị đảo: neo cửa sổ nay chỉ là lựa chọn ưu tiên khi có sẵn, vì bắt buộc nó sẽ chặn việc cắt **Ảnh mẫu** từ ảnh chụp màn hình.
-- "chờ" từng được liệt kê như một **Hành động** — đã sửa: nó là thuộc tính của **Bước**.
-- "long press" đã chốt là giữ nhấn tại chỗ; **kéo thả** là **Hành động** riêng.
-- "chờ đến khi nút xuất hiện" không phải luồng điều khiển — nó là thời gian chờ khi giải **Vị trí** theo **Ảnh mẫu**.
-- "điểm cố định" từng chỉ có nghĩa toạ độ tuyệt đối; nay là hai dạng **Vị trí** khác nhau — tuyệt đối và tương đối **Cửa sổ neo**.
+- "two modes side by side" originally implied two independent runners — settled: two **interface** surfaces, one runner.
+- "target" in the existing code carried two meanings: `targetMode` (where to click) and `targetProcessIdentifier` (which app may receive the click) — split into **Target** and **Locked application**.
+- "record" once implied capturing everything the user does — narrowed: a **Recording session** captures the mouse only; typing steps are added by hand.
+- "the search region is always anchored to the window" was reversed: window anchoring is now a preference used when available, because requiring it would block cropping a **Template** from a screenshot.
+- "wait" was once listed as an **Action** — corrected: it is a property of a **Step**.
+- "long press" is settled as holding in place; **drag** is its own **Action**.
+- "wait until the button appears" is not control flow — it is the timeout on resolving a **Template** **Target**.
+- "fixed point" once meant only absolute coordinates; it is now two distinct **Target** forms — absolute, and relative to the **Anchor window**.
