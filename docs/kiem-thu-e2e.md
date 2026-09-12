@@ -213,6 +213,26 @@ không có cơ hội vớ phải mảnh giống hệt ở góc màn hình khác.
 
 ## Phiên D — Ghi thao tác
 
+### Bia riêng thay cho Chrome, và vì sao phải đổi
+
+`D10`…`D12` là những mục **chạy lại** một bản ghi. Trước khi chạy mục nào, phải biết bản ghi sẽ
+bấm vào đâu — và hoá ra không biết được nếu bia là Chrome.
+
+Bản ghi chỉ giữ **bundle id** của Ứng dụng khoá. Lúc chạy,
+`ScenarioSystemBridge.processIdentifier` lấy `runningApplications.first { $0.bundleIdentifier == … }`,
+rồi `WindowAnchor.focusedWindowFrame` lấy **cửa sổ đang focus** của tiến trình đó. Máy đang chạy
+hai tiến trình Chrome — Chrome thường ngày của người dùng và phiên Chrome cách ly của bộ đo — nên
+`first` trả về tiến trình của **người dùng**, và bản ghi sẽ bấm vào cửa sổ đang đăng nhập của họ.
+Checklist cấm đúng điều đó, nên `D10` không được chạy như đang có.
+
+Thay vào đó bộ đo dựng **bia riêng**: một ứng dụng AppKit nhỏ, đóng gói hai bản `com.local.biaA`
+và `com.local.biaB`, mỗi cửa sổ là lưới 3×3 ô `T1`…`T9`, ghi mọi cú chuột nhận được ra tệp TSV
+kèm toạ độ màn hình. Bia này vừa **chỉ đích danh được** bằng bundle id, vừa cho đo hai đầu chính
+xác tới từng điểm, vừa dời cửa sổ được theo ý muốn cho `D12`.
+
+Xem thêm `Phát hiện ngoài checklist — phiên D` bên dưới: chuyện hai tiến trình cùng bundle id
+không phải chỉ là chuyện của bộ đo.
+
 | # | Làm | Chờ thấy | Chứng minh | Kết quả |
 |---|---|---|---|---|
 | D1 | Bấm `⌥⌘R`, click vài chỗ trong TextEdit, bấm `⌥⌘R` lần nữa | Kịch bản mới xuất hiện, tên theo ứng dụng và thời điểm | `RC-1` `RC-16` | |
@@ -221,14 +241,57 @@ không có cơ hội vớ phải mảnh giống hệt ở góc màn hình khác.
 | D4 | Ghi một lần double click | Ra **một** Bước `sốLần = 2`, không phải hai Bước | `RC-7` | |
 | D5 | Ghi một lần giữ nhấn ~2 giây | Ra `giữMs ≈ 2000` | `RC-6` | |
 | D6 | Ghi một lần bôi đen bằng kéo thả | Ra một Bước `kéoThả`, không phải một tràng click | `RC-8` | |
-| D7 | Ghi một tràng cuộn bằng trackpad, **cuộn tới cuối rồi thả cho quán tính chạy** | Ra **một** Bước cuộn, không bị cắt làm đôi lúc quán tính đổi dấu | `RC-9` | |
+| D7 | Ghi một tràng cuộn bằng trackpad, **cuộn tới cuối rồi thả cho quán tính chạy** | Ra **một** Bước cuộn, không bị cắt làm đôi lúc quán tính đổi dấu | `RC-9` | **Đạt** — dựng lại đúng hình dạng sự kiện của một cú vuốt trackpad (pha chạm `began/changed/ended`, rồi pha quán tính `begin/continue/end`, đuôi **đổi dấu** `-1 -2 -1`, 17 sự kiện cách nhau 16 ms) và bắn vào dòng sự kiện của phiên. Bộ ghi ra **1 Bước** `cuộn deltaY=11`. Con số 11 là **dòng**, không phải 92 điểm ảnh đã phát: bộ ghi đọc `scrollWheelEventDeltaAxis1`, còn `MouseEventEmitter.scroll` phát lại bằng `units: .line` — hai đầu cùng đơn vị nên đi vòng tròn không lệch |
 | D8 | Ghi: click, **đợi 5 giây**, click | Bước đầu có khoảng chờ ≈ 5000 ms | `RC-10` (ADR-0004) | |
 | D9 | Xem Bước cuối của mọi bản ghi | Khoảng chờ = 0 | `RC-11` | |
-| D10 | **Chạy lại** bản ghi D1 | Lặp đúng thao tác vừa ghi | `RC-13` | |
-| D11 | Ghi một phiên chạm vào **hai** ứng dụng (TextEdit rồi Finder) | Có cảnh báo nói bản ghi trải trên 2 ứng dụng; Vị trí là toạ độ tuyệt đối | `RC-14` | |
-| D12 | Ghi xong, di chuyển cửa sổ TextEdit, chạy lại bản ghi một-ứng-dụng | Thao tác **đi theo cửa sổ** | `RC-13` | |
+| D10 | **Chạy lại** bản ghi D1 | Lặp đúng thao tác vừa ghi | `RC-13` | **Đạt** — đo hai đầu, khớp từng điểm: Auto Click phát `(270,220) (720,420) (870,220)`, bia nhận đúng `T1 T6 T3` tại đúng ba toạ độ đó |
+| D11 | Ghi một phiên chạm vào **hai** ứng dụng (TextEdit rồi Finder) | Có cảnh báo nói bản ghi trải trên 2 ứng dụng; Vị trí là toạ độ tuyệt đối | `RC-14` | **Đạt** — ghi 3 cú bấm trải trên hai bia. Kịch bản: khoá ứng dụng = *không có*, cả 3 Bước là `screenPoint` tuyệt đối, tên rơi về `Bản ghi 12/09 10:00` thay vì tên ứng dụng. Popover hiện đúng một dòng cam: *"Bản ghi trải trên 2 ứng dụng nên dùng toạ độ tuyệt đối; các bước sẽ trượt nếu cửa sổ dịch chuyển."* |
+| D12 | Ghi xong, di chuyển cửa sổ TextEdit, chạy lại bản ghi một-ứng-dụng | Thao tác **đi theo cửa sổ** | `RC-13` | **Đạt** — dời cửa sổ bia từ `(120,88)` sang `(300,240)`, tức `+180/+152`, rồi chạy lại đúng Kịch bản của D10. Mọi cú bấm dịch đúng chừng ấy: `(450,372) (900,572) (1050,372)`, và bia vẫn nhận đúng `T1 T6 T3`. Ba Bước neo vào **ba góc khác nhau** (`topLeft`, `bottomRight`, `topRight`) nên đây cũng là phép thử cho `WindowAnchor.offset` chọn góc gần nhất |
 | D13 | Gõ bàn phím trong lúc đang ghi | Phím **không** lọt vào Kịch bản | `RC-4` `SF-6` (ADR-0003) | |
-| D14 | Mở System Settings → Privacy → **Input Monitoring** | Auto Click **không** có trong danh sách | `SF-6` | **Đạt phần tĩnh, còn chờ mắt người** — `CGEvent.tapCreate` duy nhất của app đăng ký mặt nạ **chỉ có chuột và cuộn**; hai chỗ còn lại dùng `keyDown` là `addLocalMonitorForEvents` (chỉ thấy phím gửi tới cửa sổ của chính app, không cần quyền, để bắt Esc). `Info.plist` **không có** khoá xin Input Monitoring; binary đã cài **không tham chiếu** `IOHIDRequestAccess`/`IOHIDCheckAccess`. Còn lại: nhìn tận mắt danh sách trong System Settings |
+| D14 | Mở System Settings → Privacy → **Input Monitoring** | Auto Click **không** có trong danh sách | `SF-6` | **Đạt** — `CGEvent.tapCreate` duy nhất của app đăng ký mặt nạ **chỉ có chuột và cuộn**; hai chỗ còn lại dùng `keyDown` là `addLocalMonitorForEvents` (chỉ thấy phím gửi tới cửa sổ của chính app, không cần quyền, để bắt Esc). `Info.plist` **không có** khoá xin Input Monitoring; binary đã cài **không tham chiếu** `IOHIDRequestAccess`/`IOHIDCheckAccess`. **Đã nhìn tận mắt**: sau trọn một phiên kiểm thử với hàng chục lần ghi thao tác, danh sách Input Monitoring vẫn là **`No Items`** — macOS chưa từng ghi nhận Auto Click là thứ theo dõi bàn phím |
+
+### Phát hiện ngoài checklist — phiên D
+
+#### Bản ghi chỉ gọi tên **ứng dụng**, không bao giờ gọi tên **cửa sổ**
+
+Phát hiện lúc chuẩn bị `D10`, chưa sửa.
+
+`Scenario.applicationBundleIdentifier` là toàn bộ những gì bản ghi biết về nơi nó sẽ bấm. Lúc
+chạy có hai chỗ thu hẹp, và cả hai đều không đủ hẹp:
+
+1. `ScenarioSystemBridge.processIdentifier` lấy `runningApplications.first` khớp bundle id. Hai
+   tiến trình cùng bundle id — hai hồ sơ Chrome, hai bản game mở song song — thì lấy phải bản
+   nào là chuyện may rủi theo thứ tự khởi động.
+2. `WindowAnchor.focusedWindowFrame` lấy cửa sổ **đang focus** của tiến trình ấy. Một tiến trình
+   mười cửa sổ thì Kịch bản bấm vào cửa sổ nào đang ở trước lúc chạy, không phải cửa sổ lúc ghi.
+
+Hậu quả không nhẹ: một Kịch bản ghi trên cửa sổ nháp có thể chạy lại trên cửa sổ đang đăng nhập,
+đúng các toạ độ ấy, với bất kỳ thứ gì đang nằm ở đó. `RC-14` đã cảnh báo khi bản ghi trải trên
+**hai ứng dụng**; trải trên **hai cửa sổ của cùng một ứng dụng** thì không có gì cảnh báo, vì
+bản ghi không phân biệt được.
+
+Đây chính là lý do `D10` không chạy được với bia là Chrome (xem đầu phiên D).
+
+Với trường hợp dùng chính — game — thường chỉ có một tiến trình và một cửa sổ, nên chỗ này im
+lặng. Với trình duyệt và trình soạn thảo thì không.
+
+Hướng sửa còn để ngỏ: ghi thêm **tiêu đề cửa sổ neo** lúc ghi, lúc chạy ưu tiên cửa sổ có tiêu đề
+khớp (và ưu tiên tiến trình sở hữu cửa sổ ấy), không khớp thì lùi về cửa sổ đang focus như hiện
+nay. Tiêu đề đổi theo thời gian nên không thể là điều kiện cứng.
+
+#### Bảng nổi lúc ghi và ruột popover đều **không đọc được bằng Accessibility**
+
+Không phải lỗi, nhưng là thứ làm chậm mọi phiên đo. `entire contents` của cả hai cửa sổ trả về
+rỗng — nội dung SwiftUI trong `MenuBarExtra` và trong `NSPanel` không lộ ra cây AX. Mọi khẳng
+định về chữ hiện trên hai bề mặt ấy trong tài liệu này đều dựa vào **ảnh chụp màn hình**, không
+dựa vào cây AX.
+
+#### Sự kiện cuộn đi theo **toạ độ ghi trong sự kiện**, không theo con trỏ thật
+
+Đo trong `D7`, xác nhận chú thích trong `MouseEventEmitter.scroll` là đúng. Đặt con trỏ thật ra
+chỗ không có cửa sổ nào, phát một sự kiện cuộn mang toạ độ nằm trong bia A: **bia A** nhận được,
+bia B — ứng dụng vừa được đưa lên trước — không nhận gì. Nhờ vậy Bước cuộn chạy lại không cần
+dời con trỏ của người dùng.
 
 ## Phiên E — Lưu trữ và hỏng dữ liệu
 
