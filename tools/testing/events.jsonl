@@ -1,3 +1,3 @@
-{"n": 31, "type": "mousedown", "t": 429710, "target": "G4", "screenX": 289, "screenY": 449, "pageX": 229, "pageY": 375, "button": 0, "clickCount": 1}
-{"n": 32, "type": "mouseup", "t": 429713, "target": "G4", "screenX": 289, "screenY": 449, "pageX": 229, "pageY": 375, "button": 0, "clickCount": 1, "heldMs": 3}
-{"n": 33, "type": "click", "t": 429713, "target": "G4", "screenX": 289, "screenY": 449, "pageX": 229, "pageY": 375, "button": 0, "clickCount": 1}
+{"n": 7, "type": "mousedown", "t": 154026, "target": "word-zukami", "screenX": 138, "screenY": 716, "pageX": 78, "pageY": 642, "button": 0, "clickCount": 1}
+{"n": 8, "type": "mouseup", "t": 154031, "target": "word-zukami", "screenX": 138, "screenY": 716, "pageX": 78, "pageY": 642, "button": 0, "clickCount": 1, "heldMs": 5}
+{"n": 9, "type": "click", "t": 154031, "target": "word-zukami", "screenX": 138, "screenY": 716, "pageX": 78, "pageY": 642, "button": 0, "clickCount": 1}

@@ -63,7 +63,9 @@
 
   <div id="text-targets">
     <div id="menu-row">Save     ⌘S</div>
-    <div id="word-row">ZUKAMI QWERTY</div>
+    <!-- Mỗi từ được bọc riêng để trang tự khai toạ độ CỦA TỪNG TỪ, không chỉ của cả dòng.
+         Đó đúng là chỗ RG-15 hỏng: click vào tâm dòng thay vì tâm từ cần nhắm. -->
+    <div id="word-row"><span id="word-zukami">ZUKAMI</span> <span id="word-qwerty">QWERTY</span></div>
   </div>
 
   <input id="type-box" placeholder="typing target">
@@ -221,8 +223,8 @@ let calibrated = false;
 
 function allTargets() {
   return Array.from(document.querySelectorAll('.tile, .icon'))
-    .concat(['menu-row', 'word-row', 'type-box', 'scroll-box', 'drag-surface', 'NOISY-ICON',
-             'move-btn', 'delay-btn', 'clear-btn']
+    .concat(['menu-row', 'word-row', 'word-zukami', 'word-qwerty', 'type-box', 'scroll-box',
+             'drag-surface', 'NOISY-ICON', 'move-btn', 'delay-btn', 'clear-btn']
       .map(id => document.getElementById(id)).filter(Boolean));
 }
 function describeTargets() {
