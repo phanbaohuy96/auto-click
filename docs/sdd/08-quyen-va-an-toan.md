@@ -51,6 +51,15 @@
   một chứng chỉ tự ký như vậy, và `build-app.sh` tự dùng nó khi có.
 
   Việc này **không** làm `SF-10` hết cần thiết: người dùng thật vẫn nhận bản build ad-hoc.
+
+  **Đo lại, và một khẳng định phải rút bớt:** sau lần cài đầu tiên bằng chứng chỉ cố định,
+  **Accessibility** đúng là còn nguyên — bấm `⌥⌘R` là bảng ghi hiện ra ngay, không phải cấp lại.
+  Nhưng **Screen Recording thì không**: lần đầu dùng tới nhận dạng sau khi cài,
+  `CGPreflightScreenCaptureAccess()` trả `false` và macOS bật lại hộp thoại xin quyền, **trong khi
+  System Settings vẫn hiển thị Auto Click đang bật** — đúng cái bẫy mà `SF-10` mô tả, chỉ là ở
+  quyền còn lại. Vậy chứng chỉ cố định giúp được Accessibility, chưa chứng minh được gì cho Screen
+  Recording. `SF-7` vẫn là thứ duy nhất cứu người dùng ở tình huống ấy, và nó đã làm đúng việc
+  (xem `C14` của [kiểm thử tay](../kiem-thu-e2e.md)).
 - **SF-7** `[Lát 4]` `[đã làm]` Thông báo lỗi khi chụp màn hình thất bại phải nêu **cả hai** khả
   năng: chưa cấp quyền, và đã cấp nhưng cần thoát rồi mở lại app.
 

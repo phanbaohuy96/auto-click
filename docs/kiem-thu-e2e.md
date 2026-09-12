@@ -146,7 +146,7 @@ màn hình.
 | C11 | **Khoanh vùng tìm** vào nửa trái màn hình, đặt mẫu ở nửa phải, chạy | **Không** tìm thấy — vùng tìm thật sự có tác dụng | `RG-4` `RG-6` | **Đạt cả hai chiều** — mục tiêu ngoài vùng tìm: báo *"Không tìm thấy Ảnh mẫu zukami.png (ngưỡng 0.90)"*; dời vào trong vùng: click đúng `(873,551)` |
 | C12 | Bước `theoẢnh` **không** đặt Ứng dụng khoá | Vẫn chạy được, không bị chặn | `RG-17` (ADR-0006) | **Đạt** — Kịch bản không có Ứng dụng khoá vẫn chạy nhận dạng bình thường |
 | C13 | Đo bằng mắt: một Bước `theoẢnh` mất bao lâu từ lúc bắt đầu tới lúc click | Ghi lại con số. Trên 1 giây là cần xem lại `RG-18` | `RG-18` `RG-21` | **Đạt** — 560–710 ms mỗi lần nhận dạng toàn màn hình. Dưới ngưỡng 1 giây |
-| C14 | **Thu hồi** quyền Screen Recording trong System Settings rồi chạy Bước `theoẢnh` | Báo lỗi nêu **cả hai** khả năng (chưa cấp / cần khởi động lại), không sập | `SF-7` | |
+| C14 | **Thu hồi** quyền Screen Recording trong System Settings rồi chạy Bước `theoẢnh` | Báo lỗi nêu **cả hai** khả năng (chưa cấp / cần khởi động lại), không sập | `SF-7` | **Đạt** — không phải thu hồi tay: sau lần cài bằng chứng chỉ cố định, quyền Screen Recording tự nó mất hiệu lực dù toggle trong System Settings vẫn bật, nên máy rơi sẵn vào đúng trạng thái cần thử. Chạy Kịch bản có Bước `theoẢnh`: app **không sập**, popover hiện đúng một dòng cam *"Có lỗi: Hãy cấp quyền Screen Recording cho Auto Click rồi thử lại. Nếu đã cấp rồi, hãy thoát và mở lại Auto Click."* — nêu cả hai khả năng như `SF-7` đòi. Trước đó popover đã sẵn cảnh báo *"Kịch bản dùng nhận dạng ảnh/chữ nên cần thêm quyền Screen Recording"* và hiện liên kết cấp quyền, đúng `SF-5`: chỉ hỏi khi Kịch bản đang chọn thật sự dùng nhận dạng |
 
 ### Phát hiện ngoài checklist — phiên C
 
