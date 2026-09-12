@@ -135,7 +135,7 @@ final class ScenarioRunner: ObservableObject {
             // DM-18: Vị trí tương đối cửa sổ không giải được nếu thiếu Ứng dụng khoá.
             return scenario.requiresLockedApplication ? .missingLockedApplication : nil
         }
-        guard system.processIdentifier(locked.bundleIdentifier) != nil else {
+        guard system.processIdentifier(locked.bundleIdentifier, locked.windowTitle) != nil else {
             return .lockedApplicationNotRunning(locked.name)
         }
         return nil
@@ -159,7 +159,10 @@ final class ScenarioRunner: ObservableObject {
 
         var lockedProcessIdentifier: pid_t?
         if let locked = scenario.lockedApplication,
-           let processIdentifier = system.processIdentifier(locked.bundleIdentifier) {
+           let processIdentifier = system.processIdentifier(
+               locked.bundleIdentifier,
+               locked.windowTitle
+           ) {
             system.activate(processIdentifier)
             lockedProcessIdentifier = processIdentifier
         }
@@ -206,7 +209,8 @@ final class ScenarioRunner: ObservableObject {
 
         let context = RunContext(
             lockedProcessIdentifier: lockedProcessIdentifier,
-            lockedApplicationName: scenario.lockedApplication?.name ?? "ứng dụng đã khoá"
+            lockedApplicationName: scenario.lockedApplication?.name ?? "ứng dụng đã khoá",
+            lockedWindowTitle: scenario.lockedApplication?.windowTitle
         )
 
         do {
@@ -246,6 +250,9 @@ final class ScenarioRunner: ObservableObject {
     private struct RunContext {
         let lockedProcessIdentifier: pid_t?
         let lockedApplicationName: String
+        /// Tiêu đề **Cửa sổ neo** lúc ghi, nếu bản ghi có nhớ. Dùng để chọn đúng cửa sổ trong một
+        /// ứng dụng đang mở nhiều cửa sổ.
+        let lockedWindowTitle: String?
     }
 
     private func completionMessage(for scenario: Scenario) -> String {
@@ -291,7 +298,9 @@ final class ScenarioRunner: ObservableObject {
         step: Step,
         in context: RunContext
     ) async throws {
-        let anchorFrame = context.lockedProcessIdentifier.flatMap(system.anchorWindowFrame)
+        let anchorFrame = context.lockedProcessIdentifier.flatMap {
+            system.anchorWindowFrame($0, context.lockedWindowTitle)
+        }
         let point = try await resolve(step.target, step: step, anchorFrame: anchorFrame, in: context)
         try authorize(point, in: context)
 

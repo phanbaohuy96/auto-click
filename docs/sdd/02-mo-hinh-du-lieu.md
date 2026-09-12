@@ -49,6 +49,27 @@ Hình dạng cốt lõi và lý do chọn nó: [ADR-0002](../adr/0002-buoc-la-ha
   **Cửa sổ neo** nếu **Kịch bản** có **Ứng dụng khoá** và lấy được cửa sổ, ngược lại là toạ độ
   tuyệt đối trên màn hình. Xem `RG-6`.
 
+- **DM-21** `[đã làm]` **Ứng dụng khoá** nhớ thêm **tiêu đề Cửa sổ neo** lúc ghi.
+
+  Chỉ nhớ bundle id thì không chỉ ra được một cửa sổ. Lúc chạy lại, `Ứng dụng khoá` được giải
+  theo hai bước và trước đây cả hai đều quá rộng: lấy **tiến trình đầu tiên** khớp bundle id, rồi
+  lấy **cửa sổ đang focus** của nó. Hai hồ sơ trình duyệt, hay hai bản game mở song song, là hai
+  tiến trình cùng bundle id; và một tiến trình thì mở bao nhiêu cửa sổ tuỳ thích. Hậu quả: Kịch
+  bản ghi trên cửa sổ nháp chạy lại trên cửa sổ đang đăng nhập, đúng những toạ độ ấy.
+
+  Có tiêu đề thì ưu tiên tiến trình **đang mở cửa sổ mang tiêu đề đó**, rồi trong tiến trình ấy ưu
+  tiên đúng cửa sổ đó. Tiêu đề là **ưu tiên, không phải điều kiện cứng** — nó đổi suốt (mở tệp
+  khác, chuyển tab) — nên không khớp thì lùi về cách cũ chứ không từ chối chạy. Chọn ưu tiên thay
+  vì từ chối vì ca dùng chính là game: cửa sổ game hay đổi tiêu đề theo màn chơi, mà từ chối chạy
+  thì hỏng hẳn tính năng.
+
+  Trường này **tuỳ chọn**: tệp cũ không có nó vẫn đọc được, và **Ứng dụng khoá** chọn tay trong
+  cửa sổ soạn thảo thì không có tiêu đề nào để lưu. `RC-14` cảnh báo khi bản ghi trải trên hai
+  **ứng dụng**; trải trên hai **cửa sổ** của cùng một ứng dụng thì không cảnh báo được, vì bản ghi
+  chỉ neo vào một cửa sổ duy nhất.
+
+  Phát hiện lúc chuẩn bị `D10` của [kiểm thử tay](../kiem-thu-e2e.md).
+
 ## Bất biến
 
 - **DM-18** `[Lát 2]` `[đã làm]` **Kịch bản** chứa **Bước** có **Vị trí** `lệchCửaSổ` thì

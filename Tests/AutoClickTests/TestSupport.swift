@@ -16,6 +16,12 @@ final class FakeSystem {
     var frontmostProcessIdentifier: pid_t? = FakeSystem.applicationProcessIdentifier
     var anchorWindowFrame: CGRect? = CGRect(x: 100, y: 200, width: 800, height: 600)
     var processIdentifierAtPoint: pid_t? = FakeSystem.applicationProcessIdentifier
+    /// Cửa sổ của từng tiến trình, theo tiêu đề. Dựng cảnh "hai tiến trình cùng bundle id".
+    var windowTitles: [pid_t: [String]] = [:]
+    /// Khung riêng của một cửa sổ có tiêu đề cụ thể, khi test cần phân biệt hai cửa sổ.
+    var frameForWindowTitle: [String: CGRect] = [:]
+    /// Tiến trình nào đã bị hỏi tới, và với tiêu đề nào.
+    private(set) var anchorLookups: [(processIdentifier: pid_t, title: String?)] = []
     /// `false` mô phỏng trường hợp một dialog modal chặn không cho đưa ứng dụng lên trước.
     var activationSucceeds = true
     private(set) var activations: [pid_t] = []
@@ -23,14 +29,32 @@ final class FakeSystem {
     var bridge: ScenarioSystemBridge {
         ScenarioSystemBridge(
             isAccessibilityTrusted: { [self] in isAccessibilityTrusted },
-            processIdentifier: { [self] in runningApplications[$0] },
+            processIdentifier: { [self] bundleIdentifier, preferredWindowTitle in
+                let candidates = runningApplications
+                    .filter { $0.key == bundleIdentifier }
+                    .map(\.value)
+                    .sorted()
+                if let title = preferredWindowTitle, !title.isEmpty,
+                   let owner = candidates.first(where: {
+                       windowTitles[$0]?.contains(title) ?? false
+                   }) {
+                    return owner
+                }
+                return candidates.first
+            },
             isRunning: { [self] in !terminatedProcesses.contains($0) },
             activate: { [self] processIdentifier in
                 activations.append(processIdentifier)
                 if activationSucceeds { frontmostProcessIdentifier = processIdentifier }
             },
             frontmostProcessIdentifier: { [self] in frontmostProcessIdentifier },
-            anchorWindowFrame: { [self] _ in anchorWindowFrame },
+            anchorWindowFrame: { [self] processIdentifier, preferredWindowTitle in
+                anchorLookups.append((processIdentifier, preferredWindowTitle))
+                if let title = preferredWindowTitle, let frame = frameForWindowTitle[title] {
+                    return frame
+                }
+                return anchorWindowFrame
+            },
             processIdentifierAtPoint: { [self] _ in processIdentifierAtPoint }
         )
     }
@@ -162,6 +186,8 @@ final class FakeRecordingEnvironment {
 
     var frontmostProcessIdentifier: pid_t? = FakeRecordingEnvironment.otherProcessIdentifier
     var anchorWindowFrame: CGRect? = CGRect(x: 100, y: 100, width: 400, height: 300)
+    /// Tiêu đề cửa sổ neo mà bộ ghi sẽ đọc được.
+    var anchorWindowTitle: String? = "Cửa sổ Thử"
     var applications: [pid_t: LockedApplication] = [
         FakeRecordingEnvironment.otherProcessIdentifier:
             LockedApplication(bundleIdentifier: "com.test.Ghi", name: "App Ghi")
@@ -183,6 +209,7 @@ final class FakeRecordingEnvironment {
             },
             processIdentifierAtPoint: { [self] _ in processIdentifierAtPoint },
             anchorWindowFrame: { [self] _ in anchorWindowFrame },
+            anchorWindowTitle: { [self] _ in anchorWindowTitle },
             application: { [self] in applications[$0] },
             doubleClickInterval: { [self] in doubleClickInterval },
             now: { [self] in now }

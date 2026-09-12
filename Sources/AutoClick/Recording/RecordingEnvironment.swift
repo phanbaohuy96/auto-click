@@ -22,6 +22,8 @@ struct RecordingEnvironment {
     /// chính mình chứ không ra ứng dụng người dùng đang thao tác.
     var processIdentifierAtPoint: (CGPoint) -> pid_t?
     var anchorWindowFrame: (pid_t) -> CGRect?
+    /// Tiêu đề của cửa sổ neo, để bản ghi còn chỉ được **cửa sổ** chứ không chỉ mỗi ứng dụng.
+    var anchorWindowTitle: (pid_t) -> String?
     var application: (pid_t) -> LockedApplication?
     var doubleClickInterval: () -> TimeInterval
     /// Đồng hồ, tính bằng giây. Bơm được để test dựng khoảng nghỉ thật mà không phải chờ thật.
@@ -41,6 +43,7 @@ struct RecordingEnvironment {
         },
         processIdentifierAtPoint: ScenarioSystemBridge.live.processIdentifierAtPoint,
         anchorWindowFrame: WindowAnchor.focusedWindowFrame(ofProcess:),
+        anchorWindowTitle: WindowAnchor.focusedWindowTitle(ofProcess:),
         application: { processIdentifier in
             guard let application = NSRunningApplication(processIdentifier: processIdentifier),
                   let bundleIdentifier = application.bundleIdentifier else { return nil }

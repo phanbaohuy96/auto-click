@@ -10,20 +10,31 @@ import Foundation
 @MainActor
 struct ScenarioSystemBridge {
     var isAccessibilityTrusted: () -> Bool
-    var processIdentifier: (_ bundleIdentifier: String) -> pid_t?
+    /// Tiến trình để nhắm tới. `preferredWindowTitle` là tiêu đề **Cửa sổ neo** lúc ghi: hai tiến
+    /// trình cùng bundle id (hai hồ sơ trình duyệt, hai bản game) thì phải có nó mới chọn đúng.
+    var processIdentifier: (_ bundleIdentifier: String, _ preferredWindowTitle: String?) -> pid_t?
     var isRunning: (pid_t) -> Bool
     var activate: (pid_t) -> Void
     var frontmostProcessIdentifier: () -> pid_t?
-    var anchorWindowFrame: (pid_t) -> CGRect?
+    var anchorWindowFrame: (_ processIdentifier: pid_t, _ preferredWindowTitle: String?) -> CGRect?
     var processIdentifierAtPoint: (CGPoint) -> pid_t?
 
     static let live = ScenarioSystemBridge(
         isAccessibilityTrusted: ScenarioSystemBridge.requestAccessibilityAccess,
-        processIdentifier: { bundleIdentifier in
+        processIdentifier: { bundleIdentifier, preferredWindowTitle in
             guard !bundleIdentifier.isEmpty else { return nil }
-            return NSWorkspace.shared.runningApplications.first {
-                $0.bundleIdentifier == bundleIdentifier && !$0.isTerminated
-            }?.processIdentifier
+            let candidates = NSWorkspace.shared.runningApplications
+                .filter { $0.bundleIdentifier == bundleIdentifier && !$0.isTerminated }
+                .map(\.processIdentifier)
+            // Có tiêu đề thì chọn tiến trình thật sự đang mở cửa sổ ấy. Không có, hoặc không tiến
+            // trình nào khớp, thì giữ nguyên nết cũ — lấy cái đầu tiên.
+            if let title = preferredWindowTitle, !title.isEmpty,
+               let owner = candidates.first(where: {
+                   WindowAnchor.hasWindow(ofProcess: $0, titled: title)
+               }) {
+                return owner
+            }
+            return candidates.first
         },
         isRunning: { NSRunningApplication(processIdentifier: $0) != nil },
         activate: { processIdentifier in
@@ -31,7 +42,7 @@ struct ScenarioSystemBridge {
                 .activate(options: [.activateAllWindows])
         },
         frontmostProcessIdentifier: { NSWorkspace.shared.frontmostApplication?.processIdentifier },
-        anchorWindowFrame: WindowAnchor.focusedWindowFrame(ofProcess:),
+        anchorWindowFrame: WindowAnchor.frame(ofProcess:preferringTitle:),
         processIdentifierAtPoint: ScenarioSystemBridge.processIdentifier(at:)
     )
 

@@ -213,6 +213,23 @@ struct Step: Identifiable, Equatable, Sendable {
 struct LockedApplication: Equatable, Codable, Sendable {
     var bundleIdentifier: String
     var name: String
+    /// Tiêu đề của **Cửa sổ neo** lúc ghi, nếu biết.
+    ///
+    /// Bundle id một mình không đủ để chỉ ra một cửa sổ: hai hồ sơ Chrome là hai tiến trình cùng
+    /// bundle id, và một tiến trình thì có bao nhiêu cửa sổ tuỳ thích. Không có tiêu đề, lúc chạy
+    /// lại Kịch bản bám vào "tiến trình đầu tiên khớp bundle id, cửa sổ đang focus của nó" — tức
+    /// là cửa sổ nào tình cờ ở trước. Phát hiện lúc chuẩn bị `D10` của kiểm thử tay: một bản ghi
+    /// dựng trên cửa sổ nháp suýt chạy lại lên cửa sổ đang đăng nhập của người dùng.
+    ///
+    /// Chỉ là **ưu tiên**, không phải điều kiện cứng: tiêu đề cửa sổ đổi suốt (mở tệp khác, đổi
+    /// tab), nên không khớp thì vẫn lùi về cách cũ chứ không từ chối chạy.
+    var windowTitle: String?
+
+    init(bundleIdentifier: String, name: String, windowTitle: String? = nil) {
+        self.bundleIdentifier = bundleIdentifier
+        self.name = name
+        self.windowTitle = windowTitle
+    }
 }
 
 extension Step {

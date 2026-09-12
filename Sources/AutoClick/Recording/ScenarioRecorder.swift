@@ -165,6 +165,7 @@ final class ScenarioRecorder: ObservableObject {
 
         var processIdentifier: pid_t?
         var windowFrame: CGRect?
+        var windowTitle: String?
         if isGestureStart {
             // RC-2: bỏ đúng những cú bấm **rơi vào cửa sổ của chính Auto Click**, và chỉ thế.
             ignoringGesture = environment.pointIsInOwnWindow(event.location)
@@ -180,6 +181,7 @@ final class ScenarioRecorder: ObservableObject {
                 : owner
             if let processIdentifier {
                 windowFrame = environment.anchorWindowFrame(processIdentifier)
+                windowTitle = environment.anchorWindowTitle(processIdentifier)
             }
             recordedGestureCount += 1
         } else if ignoringGesture {
@@ -193,7 +195,8 @@ final class ScenarioRecorder: ObservableObject {
                 location: event.location,
                 timestamp: environment.now(),
                 processIdentifier: processIdentifier ?? events.last?.processIdentifier,
-                windowFrame: windowFrame ?? events.last?.windowFrame
+                windowFrame: windowFrame ?? events.last?.windowFrame,
+                windowTitle: windowTitle ?? events.last?.windowTitle
             )
         )
     }
@@ -224,7 +227,12 @@ final class ScenarioRecorder: ObservableObject {
     private func lockedApplication(for recorded: [RecordedStep]) -> LockedApplication? {
         guard let processIdentifier = RecordingAssembler.singleProcessIdentifier(in: recorded)
         else { return nil }
-        return environment.application(processIdentifier)
+        guard var application = environment.application(processIdentifier) else { return nil }
+        // Nhớ luôn **cửa sổ** nào, không chỉ ứng dụng nào: bundle id một mình không chỉ ra được
+        // một cửa sổ. Lấy tiêu đề lúc cú thao tác đầu tiên xảy ra, không lấy lúc kết thúc — giữa
+        // chừng người dùng có thể đổi tab hay mở tệp khác.
+        application.windowTitle = recorded.first?.windowTitle
+        return application
     }
 
     /// RC-16: tên mặc định theo ứng dụng và thời điểm ghi.

@@ -26,6 +26,8 @@ struct RecordedEvent: Equatable, Sendable {
     var timestamp: TimeInterval
     var processIdentifier: pid_t?
     var windowFrame: CGRect?
+    /// Tiêu đề cửa sổ lúc **cú thao tác này** xảy ra, để lúc chạy lại còn biết nhắm cửa sổ nào.
+    var windowTitle: String?
 }
 
 /// Một Bước đã suy luận xong nhưng còn ở toạ độ tuyệt đối.
@@ -39,6 +41,8 @@ struct RecordedStep: Equatable, Sendable {
     var delayMillisecondsAfter: Int
     var processIdentifier: pid_t?
     var windowFrame: CGRect?
+    /// Tiêu đề cửa sổ lúc **cú thao tác này** xảy ra, để lúc chạy lại còn biết nhắm cửa sổ nào.
+    var windowTitle: String?
 }
 
 /// Biến chuỗi sự kiện thô thành các **Hành động** cấp cao (RC-5…RC-11).
@@ -64,6 +68,7 @@ enum RecordingInterpreter {
         var endTime: TimeInterval
         var processIdentifier: pid_t?
         var windowFrame: CGRect?
+        var windowTitle: String?
         /// Chỉ có ở cử chỉ click ngắn; dùng để gộp thành double click.
         var clickButton: MouseButton?
     }
@@ -128,7 +133,8 @@ enum RecordingInterpreter {
                 startTime: down.timestamp,
                 endTime: up.timestamp,
                 processIdentifier: down.processIdentifier,
-                windowFrame: down.windowFrame
+                windowFrame: down.windowFrame,
+                windowTitle: down.windowTitle
             )
         }
 
@@ -145,6 +151,7 @@ enum RecordingInterpreter {
             endTime: up.timestamp,
             processIdentifier: down.processIdentifier,
             windowFrame: down.windowFrame,
+            windowTitle: down.windowTitle,
             clickButton: isLongPress ? nil : button
         )
     }
@@ -178,7 +185,8 @@ enum RecordingInterpreter {
                 startTime: first.timestamp,
                 endTime: lastTimestamp,
                 processIdentifier: first.processIdentifier,
-                windowFrame: first.windowFrame
+                windowFrame: first.windowFrame,
+                windowTitle: first.windowTitle
             ),
             index
         )
@@ -228,7 +236,8 @@ enum RecordingInterpreter {
                 endLocation: gesture.endLocation,
                 delayMillisecondsAfter: delay.clamped(to: ScenarioLimits.delayMilliseconds),
                 processIdentifier: gesture.processIdentifier,
-                windowFrame: gesture.windowFrame
+                windowFrame: gesture.windowFrame,
+                windowTitle: gesture.windowTitle
             )
         }
     }

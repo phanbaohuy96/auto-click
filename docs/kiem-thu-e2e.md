@@ -286,9 +286,29 @@ bản ghi không phân biệt được.
 Với trường hợp dùng chính — game — thường chỉ có một tiến trình và một cửa sổ, nên chỗ này im
 lặng. Với trình duyệt và trình soạn thảo thì không.
 
-Hướng sửa còn để ngỏ: ghi thêm **tiêu đề cửa sổ neo** lúc ghi, lúc chạy ưu tiên cửa sổ có tiêu đề
-khớp (và ưu tiên tiến trình sở hữu cửa sổ ấy), không khớp thì lùi về cửa sổ đang focus như hiện
-nay. Tiêu đề đổi theo thời gian nên không thể là điều kiện cứng.
+**Đã sửa** (`DM-21`): bản ghi nhớ thêm **tiêu đề Cửa sổ neo**, lấy đúng lúc cú thao tác đầu tiên
+xảy ra chứ không lúc kết thúc. Lúc chạy, ưu tiên tiến trình đang mở cửa sổ mang tiêu đề đó, rồi
+trong tiến trình ấy ưu tiên đúng cửa sổ đó; không khớp thì lùi về cách cũ. Sáu test hồi quy, ba
+trong số đó đã kiểm mutation (bỏ việc lưu tiêu đề, bỏ việc truyền tiêu đề xuống bộ giải neo, và
+bỏ hẳn trường khỏi mô hình — cả ba đều làm test đỏ).
+
+Phần không có test tự động là hai closure `live` thật sự hỏi Accessibility
+(`ScenarioSystemBridge.processIdentifier` và `WindowAnchor.frame(ofProcess:preferringTitle:)`),
+cùng nhóm với mọi seam `live` khác trong dự án. Chúng được **đo bằng tay**, và phép đo dựng đúng
+cái cảnh đã sinh ra lỗi:
+
+Hai **tiến trình** cùng bundle id `com.local.biaA`, cửa sổ tên `Bia kiem thu A2` ở `(20,33)` và
+`Bia kiem thu A` ở `(560,298)`. Tiến trình `A2` khởi động **trước** nên đứng đầu
+`runningApplications` — đúng cái mà logic cũ sẽ chọn — và trước khi chạy còn được đưa hẳn lên
+trước. Ghi hai cú bấm trong cửa sổ **A**:
+
+| | Cửa sổ A nhận | Cửa sổ A2 nhận |
+|---|---|---|
+| bản ghi có `windowTitle` | `T2@(1100,500)`, `T4@(800,620)` | *(không gì)* |
+| cùng bản ghi, **xoá** `windowTitle` khỏi tệp | *(không gì)* | `T2@(560,235)`, `T4@(260,355)` |
+
+Hàng dưới chính là hành vi trước khi sửa, và cũng là hành vi còn lại cho **bản ghi cũ**: không có
+tiêu đề thì không có gì để chọn đúng. Bản ghi cũ muốn hưởng `DM-21` thì phải ghi lại.
 
 #### Bảng nổi lúc ghi và ruột popover đều **không đọc được bằng Accessibility**
 

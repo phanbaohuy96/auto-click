@@ -59,14 +59,59 @@ enum WindowAnchor {
     /// kích thước cũ của nó như thể nó còn trên màn hình, nên nếu tin vào đó thì Kịch bản sẽ
     /// giải Vị trí ra một toạ độ trỏ vào chỗ trống — hoặc tệ hơn, vào cửa sổ của ứng dụng khác.
     static func focusedWindowFrame(ofProcess processIdentifier: pid_t) -> CGRect? {
+        frame(ofProcess: processIdentifier, preferringTitle: nil)
+    }
+
+    /// Như trên, nhưng **ưu tiên cửa sổ có tiêu đề khớp** `title`.
+    ///
+    /// Bản ghi chỉ nhớ được ứng dụng, không nhớ được cửa sổ, nên trước đây Kịch bản bám vào cửa
+    /// sổ nào tình cờ đang focus. Có tiêu đề thì chọn đúng cửa sổ ấy. Tiêu đề hay đổi nên không
+    /// khớp cũng **không** từ chối: lùi về cửa sổ đang focus như cũ.
+    static func frame(ofProcess processIdentifier: pid_t, preferringTitle title: String?) -> CGRect? {
         let application = AXUIElementCreateApplication(processIdentifier)
+        let preferred = title.flatMap { window(of: application, titled: $0) }
         let focused = copyElement(application, attribute: kAXFocusedWindowAttribute)
-        guard let window = (focused.flatMap { isMinimised($0) ? nil : $0 })
+        guard let window = preferred
+            ?? (focused.flatMap { isMinimised($0) ? nil : $0 })
             ?? firstVisibleWindow(of: application) else { return nil }
 
         guard let position = copyPoint(window, attribute: kAXPositionAttribute),
               let size = copySize(window, attribute: kAXSizeAttribute) else { return nil }
         return CGRect(origin: position, size: size)
+    }
+
+    /// Tiêu đề cửa sổ đang focus của một tiến trình. Đây là thứ bộ ghi lưu lại.
+    static func focusedWindowTitle(ofProcess processIdentifier: pid_t) -> String? {
+        let application = AXUIElementCreateApplication(processIdentifier)
+        let focused = copyElement(application, attribute: kAXFocusedWindowAttribute)
+        guard let window = (focused.flatMap { isMinimised($0) ? nil : $0 })
+            ?? firstVisibleWindow(of: application) else { return nil }
+        return copyString(window, attribute: kAXTitleAttribute)
+    }
+
+    /// Tiến trình này có cửa sổ nào mang đúng tiêu đề ấy không.
+    static func hasWindow(ofProcess processIdentifier: pid_t, titled title: String) -> Bool {
+        window(of: AXUIElementCreateApplication(processIdentifier), titled: title) != nil
+    }
+
+    private static func window(of application: AXUIElement, titled title: String) -> AXUIElement? {
+        guard !title.isEmpty else { return nil }
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            application,
+            kAXWindowsAttribute as CFString,
+            &value
+        ) == .success else { return nil }
+        return (value as? [AXUIElement])?.first {
+            !isMinimised($0) && copyString($0, attribute: kAXTitleAttribute) == title
+        }
+    }
+
+    private static func copyString(_ element: AXUIElement, attribute: String) -> String? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success
+        else { return nil }
+        return value as? String
     }
 
     private static func firstVisibleWindow(of application: AXUIElement) -> AXUIElement? {
