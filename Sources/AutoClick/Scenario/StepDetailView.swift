@@ -87,10 +87,22 @@ struct StepDetailView: View {
             }
             footnote("Nhấn giữ tại Vị trí, kéo qua \(ScenarioLimits.dragIntermediateSteps) điểm trung gian, rồi nhả tại Điểm nhả.")
 
-        case .typeText:
+        case let .typeText(text):
             TextField("Nội dung", text: typedText, axis: .vertical)
                 .lineLimit(1...4)
-            footnote("Gõ trực tiếp chuỗi ký tự nên không phụ thuộc bố cục bàn phím; gõ được cả tiếng Việt.")
+            // UI-21: the route is chosen from the string's contents (EX-21), so two strings in the same Step
+            // behave differently. That is only acceptable if the panel says which one this string takes.
+            if KeyboardEventEmitter.isTypableKeyByKey(text) {
+                footnote(
+                    "Gõ từng phím một, đúng như người gõ thật — hợp với game. "
+                    + "Trong lúc gõ, nguồn nhập tạm chuyển sang ABC rồi trả lại như cũ."
+                )
+            } else {
+                footnote(
+                    "Có ký tự ngoài ASCII nên chuỗi được gửi theo khối, ứng dụng đích nhận cả khối như một phím. "
+                    + "Gõ được tiếng Việt và emoji, nhưng game phản ứng theo từng phím sẽ không nhận đúng."
+                )
+            }
 
         case let .pressKey(stroke):
             Picker("Phím", selection: keyName) {

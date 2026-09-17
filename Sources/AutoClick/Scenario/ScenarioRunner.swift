@@ -179,6 +179,10 @@ final class ScenarioRunner: ObservableObject {
         return true
     }
 
+    /// EX-27: whether an input-source override is still in force. Only a test has any business asking — the
+    /// obligation itself is discharged in `finish`, unconditionally.
+    var keyboardInputSourceIsOverridden: Bool { keyboard.inputSource.isActive }
+
     /// Every path that stops a run goes through here (EX-13).
     func stop() {
         task?.cancel()
@@ -189,6 +193,9 @@ final class ScenarioRunner: ObservableObject {
     private func finish(with message: String?, isError: Bool = false) {
         // Runs unconditionally, even once the task has been cancelled (SF-1, SF-2).
         mouse.releaseAllHeld()
+        // EX-27: the same obligation for the input source. `⌥⌘S` can cut a key-by-key string part-way through,
+        // and leaving the user on ABC afterwards is the same class of mistake as leaving a button held down.
+        keyboard.inputSource.restore()
         countdown = nil
         progress = nil
         runningScenarioName = nil

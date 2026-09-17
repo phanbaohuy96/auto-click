@@ -65,9 +65,10 @@ that same runner ([ADR-0002](../adr/0002-step-is-action-times-target.md)).
   interpolated `mouseDragged` events 8 ms apart, then `mouseUp` at the end point. Many
   applications **ignore** a drag if the cursor jumps straight from start to end with nothing in
   between.
-- **EX-21** `[Slice 2]` `[done]` `typeText` uses `keyboardSetUnicodeString` rather than looking up
-  key codes, so it does not depend on the keyboard layout and can type Vietnamese and emoji alike.
-  The string is sent in **chunks**, not character by character — see `EX-24`.
+- **EX-21** `[Slice 2]` `[done]` `typeText` takes one of **two routes, chosen by the string's own
+  contents** (`EX-26`). A string that is entirely ASCII is typed key by key through real key codes;
+  any other string uses `keyboardSetUnicodeString` in **chunks** (`EX-24`), which is the only way to
+  send `ằ` or an emoji. Neither route depends on a fixed keyboard layout.
 - **EX-22** `[Slice 2]` `[done]` `pressKey` emits the physical key code with modifier flags
   attached directly to the event. Modifiers are **not** emitted as separate events, so cancelling
   mid-way leaves no key stuck down — quite unlike the mouse button in `SF-1`.
@@ -96,9 +97,42 @@ that same runner ([ADR-0002](../adr/0002-step-is-action-times-target.md)).
   entirely depending on how the document was cleared between runs. Every quoted rate has been
   withdrawn. See [ADR-0007].
 
-  `B10` of the manual tests is still **broken** after this change: a Scenario with two `typeText`
-  steps produces `"â"` instead of `"[B10b]"`. Cause not found, not fixed — **left open
-  deliberately**: typing strings is a low priority and basic testing is enough.
+  This route is now reached **only by strings containing a character outside ASCII** (`EX-21`,
+  `EX-26`). The root cause is still unknown; what changed is how much rides on it.
+
+- **EX-26** `[done]` A `typeText` **Step** whose string is **entirely ASCII** is typed **key by
+  key**: one key down/up pair per character, carrying the character's real key code, `25 ms` apart.
+  The key code is resolved through the **currently active keyboard layout** at run time, never from
+  a fixed table. A character the layout cannot produce with at most Shift and Option sends the whole
+  string by `EX-24` instead.
+
+  Two reasons, and the second is the one that matters here. It **avoids the lost payload of `EX-24`
+  altogether** rather than touching it less often, because ASCII needs no Unicode payload. And it
+  gives the destination **one key per character**, which is what the primary use case needs:
+  `ADR-0007` recorded that chunked typing makes an application see "one key carrying 20 characters,
+  not 20 keys", and that games react key by key. See
+  [ADR-0009](../adr/0009-type-ascii-key-by-key.md).
+
+  `25 ms` is about 40 keys per second — faster than a person, slower than a frame. Games drop input
+  arriving inside one frame, and a dropped key is another silent loss of characters.
+
+- **EX-27** `[done]` Before typing key by key, the **input source is switched to ABC**, and it is
+  **restored on the stop and cleanup path** — beside `SF-1`'s mouse-button release, not at the end
+  of typing.
+
+  Key-by-key characters pass **through** the active input method, which the `EX-24` route bypassed.
+  Telex folds `aa` into `â` and `as` into `á`, so `"pass"` would be typed `"pá"`. This is observed,
+  not theoretical: it is why `B10` produced `"â"`. Restoring on the cleanup path is what stops
+  `⌥⌘S` part-way through a string from leaving the user's input source changed — the same class of
+  mistake as leaving a mouse button held down.
+
+  **Measured insufficient (`B15`).** This defends only against input methods registered with Text
+  Input Services. EVKey, the one actually in use on the development machine, is **not** a TIS source
+  — it is an event tap — so selecting ABC does not disable it and the transformation still happens:
+  `"password aa dd"` was emitted correctly key by key and arrived as `"Pasword â đ"`. The events
+  EVKey replays carry `virtualKey: 0` with a Unicode payload, the mechanism `EX-24` exists because
+  of. What this requirement covers is therefore real but partial, and the gap is **not** covered
+  anywhere else.
 - **EX-25** `[Slice 2]` `[done]` A window **minimised into the Dock** must not be used as the
   **Anchor window**. Accessibility still reports its old position and size as though it were still
   on screen; trusting that makes `windowRelative` resolve to a coordinate pointing at empty space,

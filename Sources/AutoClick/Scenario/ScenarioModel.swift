@@ -21,6 +21,14 @@ enum ScenarioLimits {
     /// The maximum number of UTF-16 units sent in one key pair when typing a string (EX-24).
     static let typingChunkUTF16Units = 20
 
+    /// The gap between two key pairs when typing a string key by key (EX-26).
+    ///
+    /// About 40 keys per second: faster than a person types, comfortably slower than a frame. Games drop input
+    /// that arrives inside one frame, and a dropped key is another silent loss of characters — the very thing
+    /// `EX-24` exists to stop. ADR-0007's measurements of 30 ms and 60 ms are **not** evidence here: they were
+    /// taken on the payload mechanism, which fails for a different reason.
+    static let perKeyGapMilliseconds = 25
+
     /// How many intermediate points a drag has (EX-20). Many applications ignore a drag if the cursor
     /// jumps straight from start to end with nothing in between.
     static let dragIntermediateSteps = 24

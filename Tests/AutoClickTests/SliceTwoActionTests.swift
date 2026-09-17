@@ -144,8 +144,8 @@ import Testing
     #expect(await waitUntil { !runner.isRunning })
 
     #expect(system.frontmostProcessIdentifier == FakeSystem.applicationProcessIdentifier)
-    // EX-24: the whole string goes in one chunk, so one down/up pair rather than one pair per character.
-    #expect(recorder.records.count == 2)
+    // EX-26: `"hi"` is ASCII, so it goes key by key — one down/up pair per character.
+    #expect(recorder.records.count == 4)
     #expect(recorder.typedText == "hi")
 }
 
@@ -223,14 +223,16 @@ import Testing
 
 /// Proves the string is split in the right places and reassembles without losing a character.
 ///
-/// Sending one character at a time was measured to work only about 1 time in 5 on a real machine: the Unicode
-/// payload is occasionally dropped and the system falls back to `virtualKey` (0 = the `a` key). This test pins down the chunking.
+/// The character-by-character version was measured on a real machine to type `"Xin chào 123 — ăn"` as
+/// `"Aa chào 123 — ăn"`: the Unicode payload is dropped and the system falls back to `virtualKey` (0 = the `a`
+/// key). This test pins down the chunking. The string is deliberately **not** ASCII, because an ASCII one would
+/// take the `EX-26` route and never reach the code under test here.
 @MainActor
 @Test func aLongStringIsSentInChunksThatReassembleExactly() async {
     let recorder = EventRecorder()
     let runner = makeRunner(recorder: recorder)
 
-    let text = String(repeating: "abcde", count: 13)  // 65 UTF-16 units → 4 chunks
+    let text = String(repeating: "àbcde", count: 13)  // 65 UTF-16 units → 4 chunks
     let scenario = Scenario(
         name: "Long typing",
         steps: [Step(action: .typeText(text), target: .cursor, delayMillisecondsAfter: 0)]
