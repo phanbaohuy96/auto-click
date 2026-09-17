@@ -64,3 +64,14 @@ reproducibly, the new one is 8/8 correct.
 - **Stopping here by the project owner's decision:** typing strings is a low-priority feature and
   basic testing is enough. The root cause and `B10` are left open deliberately, not by oversight.
   If typing strings becomes a priority later, the clipboard route is the first thing to revisit.
+
+## Superseded in part by ADR-0009
+
+The premise of that last bullet was wrong. The project owner **does** use `typeText` inside games,
+in ASCII. [ADR-0009](./0009-type-ascii-key-by-key.md) therefore sends an all-ASCII string key by key
+through real key codes, which needs no Unicode payload and so sidesteps this failure completely,
+and it reopens `B10` rather than leaving it closed.
+
+What is decided here still stands for every **other** string: there are no key codes for `ằ` or an
+emoji, so chunking remains the only way to send them, and the root cause below is still unknown.
+The third route was not the clipboard after all.

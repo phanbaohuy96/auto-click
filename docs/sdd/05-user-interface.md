@@ -67,3 +67,11 @@
   bước."` once appeared with an orange `exclamationmark.triangle.fill`, looking exactly like a
   failure — the same bug as `UI-16` on the status line, just somewhere else. Only a message the
   user has to act on carries the warning icon.
+- **UI-21** `[done]` The detail panel of a `typeText` **Step** says **which of the two routes**
+  (`EX-21`) the string will take, and that the key-by-key route switches the input source to ABC
+  (`EX-27`).
+
+  The route is chosen from the string's contents, so two strings in the same **Step** behave
+  differently: `"hello"` reaches the game as five keys, `"hellò"` as one key carrying five
+  characters. That is the price of not adding a switch to the panel, and it is only acceptable if
+  the panel stops it from being something the user has to guess.
