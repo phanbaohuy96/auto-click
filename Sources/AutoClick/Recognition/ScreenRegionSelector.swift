@@ -136,12 +136,16 @@ private final class RegionSelectionView: NSView {
     }
 
     /// The rectangle being dragged, converted into the view's own coordinates (origin at the bottom-left).
+    ///
+    /// RG-26: the y flip is anchored to the **main** display's `maxY`, not to the `maxY` of the display being
+    /// drawn on. The two agree only when the displays are aligned along their top edges, and on any other
+    /// arrangement the frame is drawn in the wrong place. The region actually cropped is not affected — it
+    /// comes straight from `CGEvent.location` in `mouseUp`.
     private var selectionRectInView: NSRect? {
-        guard let anchor, let current, let window else { return nil }
-        let screenTop = window.screen?.frame.maxY ?? 0
-        let screenLeft = window.screen?.frame.minX ?? 0
+        guard let anchor, let current, let window, let screen = window.screen else { return nil }
+        let globalTop = NSScreen.screens.first?.frame.maxY ?? screen.frame.maxY
         func convert(_ point: CGPoint) -> NSPoint {
-            NSPoint(x: point.x - screenLeft, y: screenTop - point.y - (window.screen?.frame.minY ?? 0))
+            NSPoint(x: point.x - screen.frame.minX, y: globalTop - point.y - screen.frame.minY)
         }
         let a = convert(anchor)
         let b = convert(current)

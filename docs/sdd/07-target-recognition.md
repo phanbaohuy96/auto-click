@@ -9,7 +9,16 @@ Slice 4. See [ADR-0001](../adr/0001-screencapturekit-and-min-macos-14.md).
 - **RG-2** `[done]` A capture comes back in **pixels**, while `CGEvent` works in **points**. Every
   coordinate found has to be divided by the scale factor of **the display it is on** before any
   event is emitted. A machine with a retina display and an external display at once has two
-  different factors inside the same coordinate space.
+  different factors inside the same coordinate space. Where that factor comes from is `RG-24`; what
+  the two factors do to a **Template** cropped on one of them is `RG-25`.
+- **RG-24** `[done]` The scale factor of a display is **never guessed**. It is read from `NSScreen`;
+  failing that from `CGDisplayCopyDisplayMode` (`pixelWidth / width`), which is independent of
+  `NSScreen`; and if both fail **that display is skipped**.
+
+  The old code fell back to assuming 2x. On a 1x display that halves every coordinate and the click
+  lands between the display's origin and the target — silently wrong, which is worse than not
+  clicking. Not finding a target is a state the user can see; clicking the wrong place is not.
+  See [ADR-0008](../adr/0008-match-templates-at-two-scales.md).
 - **RG-3** `[done]` The capture must not be cached between `EX-8` retries — the whole point of
   retrying is to see an interface that **has changed**.
 
@@ -90,6 +99,44 @@ Slice 4. See [ADR-0001](../adr/0001-screencapturekit-and-min-macos-14.md).
   contrast wants less downscaling, scanning wants more. When no level satisfies both, **the ceiling
   wins** — a less accurate match beats freezing the interface for seconds on one **Step**.
   Narrowing the **Search region** is how the user buys that accuracy back.
+
+- **RG-25** `[done]` A **Template** is matched at **two scales**, and the second one is only tried
+  when the first finds nothing above the threshold on **any** display. The first attempt is the
+  **Template** at its native pixel size. The second compensates for a **Template** cropped on a
+  display of the other scale: on a 2x display the **haystack** is downsampled by 2 and the point
+  found multiplied by 2; on a 1x display the **Template** is downsampled by 2.
+
+  A **Template** is stored as raw captured pixels, so the same button is 272×86 pixels cropped at
+  2x and 136×43 at 1x, and `RG-8` scans at native size only. Without this a **Template** cropped on
+  one display never matches on a display of the other scale, and it fails **silently** — as a
+  timeout indistinguishable from a target that is not on screen.
+
+  Native-first is what keeps this free: cropping and running on the same display never reaches the
+  second attempt, so `C13` is unaffected. Each attempt is its own coarse scan and each stays inside
+  the `RG-18` ceiling. Two attempts are enough rather than a sweep because the scale of the display
+  being searched is known and the candidate set for the **Template** is `{1, 2}`.
+  See [ADR-0008](../adr/0008-match-templates-at-two-scales.md) for why the crop scale is not
+  recorded per **Template** instead.
+
+- **RG-26** `[done]` The overlay used to crop a **Template** or pick a point covers **every**
+  display, and the rectangle it draws is converted with the **main** display's `maxY` as the origin
+  of the y flip, not the `maxY` of the display being drawn on.
+
+  Converting a `CGEvent` coordinate into a view's own y-up coordinates is anchored to the main
+  display, which is what `CGEvent` measures from; `screen.frame.maxY` happens to equal it on the
+  main display and is a different number on any other.
+
+  **Not demonstrated.** `C18` ran the two formulas against each other on a two-display arrangement
+  whose frames predict a 98-point divergence — built-in `(0, 0, 1512, 982)`, external
+  `(1512, 0, 1920, 1080)` — and the drawn rectangle came out **pixel-identical** both ways
+  (`x 125…399, y 157…339`, measured by differencing two captures). Attempts to instrument the
+  drawing code from inside the app failed. So the reasoning above is sound on paper and the defect
+  it describes was **never reproduced**; this requirement records a conversion that is correct by
+  construction, not a bug that was observed and fixed.
+
+  Whichever formula is used, the region actually cropped is unaffected — it comes straight from
+  `CGEvent.location` in `mouseUp` — so nothing here can corrupt a **Search region** or a
+  **Template**.
 
 - **RG-9** `[done]` The match score is a real number `0…1`. The default threshold is `0.90`,
   adjustable per **Step**.

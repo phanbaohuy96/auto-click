@@ -24,6 +24,7 @@ struct CapturedImage: Sendable {
 enum ScreenCaptureError: LocalizedError {
     case permissionDenied
     case noDisplays
+    case unknownDisplayScale
 
     var errorDescription: String? {
         switch self {
@@ -35,6 +36,10 @@ enum ScreenCaptureError: LocalizedError {
                 + "Nếu đã cấp rồi, hãy thoát và mở lại Auto Click."
         case .noDisplays:
             return "Không tìm thấy màn hình nào để chụp."
+        case .unknownDisplayScale:
+            // RG-24: its own case rather than falling through to `permissionDenied`. Reporting the wrong
+            // cause is the mistake `B5` of the manual tests exists to catch.
+            return "Không đọc được tỉ lệ điểm ảnh của màn hình nên đã bỏ qua để tránh bấm sai chỗ."
         }
     }
 }
@@ -66,12 +71,17 @@ struct ScreenCapture {
         }
 
         var results: [CapturedImage] = []
+        var skippedForUnknownScale = false
         for display in content.displays {
             let displayFrame = display.frame
             let region = rect.map { displayFrame.intersection($0) } ?? displayFrame
             guard !region.isNull, region.width >= 1, region.height >= 1 else { continue }
 
-            let scale = self.scale(of: display)
+            // RG-24: a display whose scale cannot be established is skipped, not guessed at.
+            guard let scale = self.scale(of: display) else {
+                skippedForUnknownScale = true
+                continue
+            }
             let configuration = SCStreamConfiguration()
             configuration.sourceRect = CGRect(
                 x: region.minX - displayFrame.minX,
@@ -98,15 +108,31 @@ struct ScreenCapture {
             results.append(CapturedImage(image: image, frame: region, scale: scale))
         }
 
-        guard !results.isEmpty else { throw ScreenCaptureError.permissionDenied }
+        guard !results.isEmpty else {
+            // Empty now has two causes, and they call for opposite actions from the user.
+            throw skippedForUnknownScale
+                ? ScreenCaptureError.unknownDisplayScale
+                : ScreenCaptureError.permissionDenied
+        }
         return results
     }
 
-    private func scale(of display: SCDisplay) -> Double {
+    /// How many pixels per point `display` has, or `nil` when it cannot be established.
+    ///
+    /// RG-24: this used to end in `?? 2`. On a 1x display that guess halves every coordinate and the click
+    /// lands between the display's origin and the target — silently wrong, which is worse than not clicking
+    /// at all. `CGDisplayCopyDisplayMode` is the second opinion because it comes from CoreGraphics and does
+    /// not depend on `NSScreen` agreeing that the display exists.
+    private func scale(of display: SCDisplay) -> Double? {
         let screen = NSScreen.screens.first {
             ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
                 == display.displayID
         }
-        return screen.map { Double($0.backingScaleFactor) } ?? 2
+        if let screen { return Double(screen.backingScaleFactor) }
+
+        if let mode = CGDisplayCopyDisplayMode(display.displayID), mode.width > 0 {
+            return Double(mode.pixelWidth) / Double(mode.width)
+        }
+        return nil
     }
 }
