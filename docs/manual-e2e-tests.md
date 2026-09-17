@@ -80,12 +80,17 @@ have shown it.
 | B2b | Stop fully, move the window, **run again** | Still hits the same point in the interface | smoke test, **not** evidence for `EX-6` | **Pass** — window at `(400,350)`, rerun produced `(700,600)` |
 | B3 | Drag another window (Finder) over that point, then run | The scenario does **not** click into Finder | `EX-10` | **Pass** — 4 clicks then Finder brought forward: **complete silence**, 0 clicks into Finder; status *"Điểm thao tác không nằm trong ứng dụng…"* |
 | B4 | Quit TextEdit while the scenario is running | Stops, status says the locked application quit | `EX-11` | **Pass** — 6 clicks then `quit` TextEdit: stopped immediately; status *"TextEdit hiện không chạy"* + *"Ứng dụng đích đã đóng"*, Start disabled |
-| B5 | Minimise TextEdit into the Dock then run a `windowRelative` Step | Stops with a message, emits **no** junk coordinates | `EX-7` | **Conditional pass** — 0 clicks, it did stop and did report. But it **named the wrong cause**: it said *"điểm nằm ngoài ứng dụng khoá"* when in fact the window was minimised. See `EX-25` |
+| B5 | Minimise TextEdit into the Dock then run a `windowRelative` Step | Stops with a message, emits **no** junk coordinates | `EX-7` `EX-25` | **Conditional pass, awaiting a re-run.** 0 clicks, it did stop and did report — but it **named the wrong cause**: *"điểm nằm ngoài ứng dụng khoá"* when the window was in fact minimised. `EX-25` was written and fixed **after** this was recorded, so the result above predates the fix. Re-run and check the message now names the minimised window |
 | B6 | A `drag` Step from point A to point B in TextEdit (selecting text) | Text is selected continuously, with no jumps | `EX-20` | **Pass** — 1 `leftDown`, **24** `leftDrag`, 1 `leftUp`; TextEdit selected 40 continuous characters `"AAA BBBB … HHHH I"` |
 | B7 | Press `⌥⌘S` **while B6 is dragging** | The mouse is released, not stuck mid-drag | `SF-1` `EX-23` | **Pass** — 7 `leftDown` / **165** `leftDrag` / 7 `leftUp`. A complete run would be 168, so the 7th drag was cut at step 21 of 24 and released at `x=464` rather than the destination `x=500`. Moving the mouse afterwards: 0 `leftDrag` |
 | B8 | A `typeText` Step with `Xin chào 123 — ăn` | Exactly that text, with Vietnamese diacritics and the em dash | `EX-21` | **Pass after a fix** — the old version produced `"Aa chào 123 — ăn"` with no error. After switching to chunked sending (`EX-24`, [ADR-0007]): **8 of 8 correct** through the app itself |
 | B9 | A `pressKey` `⌘A` Step then a `pressKey` `⌫` Step | Select all then delete all | `EX-22` | **Pass** — the document went from `"Xin chào 123 — ăn"` to empty |
 | B10 | Run a two-typing-Step scenario, **stealing focus to Finder between the steps** | TextEdit **is brought forward** before typing; no text leaks into Finder | `SF-4` `EX-12` | **Broken, left open** — `SF-4` did run (Finder stole focus at t+4 s, TextEdit returned at t+7.3 s), but the text came out `"â"` instead of `"[B10b]"`. Cause not found. **The project owner ranks typing strings a low priority**, so this stops here rather than digging further |
+| B11 | With **EVKey on**, a `typeText` Step with `[B10b]` into TextEdit | Exactly `[B10b]`. This is `B10` again, now that the string takes the key-by-key route | `EX-26` `EX-27` | **Pass** — two-sided. TextEdit holds exactly `[B10b]`, the string `B10` turned into `"â"`. The observer shows **6 down/up pairs, one per character**, key codes 33/11/18/29/11/30 — real codes, never `virtualKey: 0` — spaced 27/24/26/27/27 ms against the 25 ms constant. `EX-26` works |
+| B12 | Repeat B10: two `typeText` Steps, stealing focus to Finder in between | Both strings arrive intact; no text leaks into Finder | `SF-4` `EX-12` `EX-26` | |
+| B15 | With EVKey in Vietnamese mode, type `password aa dd` — a string **Telex transforms** | Exactly `password aa dd`, if `EX-27` works | `EX-27` | **Fail** — came out `Pasword â đ`. See below |
+| B13 | Press `⌥⌘S` **while B11 is typing**, then check the input source in the menu bar | Back to EVKey, not left on ABC. The same obligation `SF-1` places on the mouse button | `EX-27` | **Not reachable** — there is nothing to restore, because `EX-27` never changes anything on this machine. See below |
+| B14 | A `typeText` Step with `Xin chào 123 — ăn` (unchanged from `B8`) | Still exactly that string: a non-ASCII string must still take the `EX-24` route | `EX-21` `EX-24` | |
 
 ### Findings outside the checklist — session B
 
@@ -108,6 +113,45 @@ position of a minimised window as though it were still on screen. `EX-10` blocke
 nothing was damaged, but that was luck: if the locked application had a second window over that
 point, the click would have fired at the coordinates of a window that is no longer visible. Fixed:
 minimised windows are skipped.
+
+### Findings outside the checklist — the key-by-key typing session
+
+**`EX-27` does not work, and cannot work as designed.** Switching the input source to ABC with
+`TISSelectInputSource` was supposed to keep Telex from folding `aa` into `â` while typing key by key.
+It changes nothing here, because **EVKey is not a Text Input Services input source at all**.
+Enumerating every source on this machine returns Apple's own Vietnamese methods
+(`com.apple.inputmethod.VietnameseIM.*`) and no EVKey. EVKey is the event-tap kind — exactly what
+[ADR-0007] described as sitting "between the keyboard event stream and replaying keys under its own
+pid" — so selecting a different TIS source does not disable it.
+
+Measured two-sided with `B15`, typing `password aa dd`:
+
+| Who | What the observer saw |
+|---|---|
+| Auto Click (pid 67983) | 14 `keyDown`, one per character, `p a s s w o r d ␣ a a ␣ d d`, real key codes, ~25 ms apart — **correct** |
+| EVKey (pid 61037) | replayed `á`, then `as`, then `â`, then `đ`, each as `virtualKey: 0` with a Unicode payload |
+
+TextEdit ended up with `Pasword â đ`. So `EX-26` emits exactly the right thing and EVKey rewrites it
+downstream. Note what EVKey replays **with**: the `virtualKey: 0` plus payload mechanism, the very
+one `EX-24` exists because of.
+
+`EX-27` therefore needs redesigning or dropping; it is currently a requirement the code satisfies and
+the machine ignores. `B11` still passes because `[B10b]` contains no Telex trigger — which is also why
+it is a weak test on its own, and why `B15` was added.
+
+**A Template that is absent gets matched to a different shape.** Found by a case nobody had run: `I7`
+was always tested by **pressing** the button that makes `LATE` appear. Run without pressing it, so the
+Template genuinely is not on screen, the Step does **not** wait out its 12-second timeout — it clicks
+`S4` at `(283,433)` after about 554 ms, the same timing as a successful match, at the default
+threshold of `0.90`.
+
+This is **not** caused by the two-pass matching of `RG-25`. Attributed by A/B: with the second pass
+disabled entirely and everything else identical, the result is the same click on the same target at
+the same timing. The false match comes from the **native** pass, and predates both.
+
+It matters more than a wrong click on a practice page suggests: `EX-9`'s `skipStep` and `EX-8`'s
+`stopScenario` both rest on "not found" being reliable. A Template that cannot be found should not be
+able to fire at something else.
 
 ### A measurement trap: the Vietnamese input method holds text in a composition buffer
 
@@ -148,8 +192,8 @@ here.
 |---|---|---|---|---|
 | C1 | A `click`/`template` Step → **Crop a template** → draw around a button in TextEdit | The overlay disappears **before** the capture; the template contains neither the overlay nor an Auto Click window | `RG-5` `RG-20` | **Pass** — the app's template matched the reference image **pixel for pixel** (`0.00/255`). The check is not vacuous: the overlay really does darken the screen (`12.74/255`). `RG-20`: putting an Auto Click window over the capture area still produced the TextEdit behind it (`0.00/255`), quite unlike what was on screen (`65.74/255`) |
 | C2 | Run that Step | **Clicks the exact centre of the button**, no offset | `RG-2` `RG-11` | **Pass** — clicked `(273,321)`, a **pixel-exact** match with the centre measured through Accessibility. A 272×86 **pixel** template → a 136×43 **point** area: `RG-2` is right |
-| C3 | **If the machine has a non-Retina external display**: move TextEdit there, repeat C1–C2 | Still hits the centre | `RG-2` | **Could not run** — the machine has only one internal Retina display (1512×982 @2x) |
-| C4 | **If there are several displays**: put the window on the secondary display, repeat C1–C2 | Still hits, and does not fire onto the main display | `RG-2` | **Could not run** — only one display |
+| C3 | **If the machine has a non-Retina external display**: move TextEdit there, repeat C1–C2 | Still hits the centre | `RG-2` `RG-24` | **To run** — the earlier *"only one internal Retina display"* is out of date: this machine does drive a 1920-wide external display, remembered at both `Scale 1` and `Scale 2`. Run it at **`Scale 1`**, which is the case that matters: that is where the old `?? 2` fallback would have halved every coordinate | **Invalid, not a failure** — the Template was cut with `screencapture` rather than the app's own crop, and at a 3·10⁻⁵ margin that mismatch flips the choice. It clicked `DUP-A` twice, deterministically, but the matcher picks `DUP-B` correctly when handed the same images offline. Needs re-running with a Template cropped through **Chụp lại…**. See below |
+| C4 | **If there are several displays**: put the window on the secondary display, repeat C1–C2 | Still hits, and does not fire onto the main display | `RG-2` | **To run** — the external display sits at `OriginX = 1512`, so this exercises a non-zero `frame.minX`, which a single-display machine can never reach | **Pass** — with the page on the external display and a game window on the built-in, the Step searched both and clicked `(2063,332)` on the external. Nothing was emitted onto the main display |
 | C5 | Move that button elsewhere (resize the window), run again | Found again at the new position | `RG-8` | **Pass** — window moved to `(450,430)`, found again, clicked exactly `(523,551)` |
 | C6 | Cover the button (put another window over it), run with `wait = 5000ms`, `onTimeout = stop` | Retries for about 5 seconds then stops with a message | `EX-8` | **Pass** — 0 clicks, the following Step did **not** run; measured 8.44 s = 3 s countdown + **5.44 s of retrying** (5000 ms configured) |
 | C7 | Repeat C6 with `onTimeout = skipStep` and another Step after it | That Step is skipped and the next one **still runs** | `EX-9` | **Pass** — Step 1 timed out without clicking, **Step 2 still ran** and clicked exactly `(900,700)` |
@@ -159,7 +203,11 @@ here.
 | C11 | **Draw a search region** over the left half of the screen, put the template in the right half, run | **Not found** — the search region really does take effect | `RG-4` `RG-6` | **Pass in both directions** — target outside the region: *"Không tìm thấy Ảnh mẫu zukami.png (ngưỡng 0.90)"*; moved inside the region: clicked exactly `(873,551)` |
 | C12 | A `template` Step with **no** Locked application | Still runs, not blocked | `RG-17` (ADR-0006) | **Pass** — a scenario with no Locked application ran recognition normally |
 | C13 | Time it by eye: how long a `template` Step takes from start to click | Record the number. Over 1 second means `RG-18` needs another look | `RG-18` `RG-21` | **Pass** — 560–710 ms per full-screen recognition. Under the 1-second threshold |
-| C14 | **Revoke** the Screen Recording permission in System Settings then run a `template` Step | An error naming **both** possibilities (never granted / needs restarting), no crash | `SF-7` | **Pass** — no manual revoke was needed: after the install with a stable certificate, the Screen Recording permission lapsed on its own even though the System Settings toggle still showed as on, so the machine was already in exactly the state to test. Running a scenario with a `template` Step: the app **did not crash**, and the popover showed exactly one orange line *"Có lỗi: Hãy cấp quyền Screen Recording cho Auto Click rồi thử lại. Nếu đã cấp rồi, hãy thoát và mở lại Auto Click."* — naming both possibilities as `SF-7` demands. Before that the popover already carried the warning *"Kịch bản dùng nhận dạng ảnh/chữ nên cần thêm quyền Screen Recording"* with a grant link, exactly per `SF-5`: it only asks when the selected scenario actually uses recognition.<br><br>**The "toggle it off yourself" branch cannot be produced on this machine.** Turning Auto Click's toggle off in System Settings: the toggle **stays at `0`**, but the running process **still captures the screen normally** (still recognised `S3` and clicked its exact centre `(267,353)`) — standard macOS behaviour, a revoke only takes effect after the app quits. Quit and reopen: the toggle **returns to `1`** on its own and the app captures as before. Tried twice, the second time with no stray clicks from the rig. So the state "revoked and in force" does not reproduce here; what was measured is the state where the permission genuinely is not in force, and there `SF-7` reports correctly |
+| C14 | **Revoke** the Screen Recording permission in System Settings then run a `template` Step | An error naming **both** possibilities (never granted / needs restarting), no crash | `SF-7` | **Pass** — no manual revoke was needed: after the install with a stable certificate, the Screen Recording permission lapsed on its own even though the System Settings toggle still showed as on, so the machine was already in exactly the state to test. Running a scenario with a `template` Step: the app **did not crash**, and the popover showed exactly one orange line *"Có lỗi: Hãy cấp quyền Screen Recording cho Auto Click rồi thử lại. Nếu đã cấp rồi, hãy thoát và mở lại Auto Click."* — naming both possibilities as `SF-7` demands. Before that the popover already carried the warning *"Kịch bản dùng nhận dạng ảnh/chữ nên cần thêm quyền Screen Recording"* with a grant link, exactly per `SF-5`: it only asks when the selected scenario actually uses recognition.<br><br>**The "toggle it off yourself" branch does not reproduce on this machine, and is not waiting to be run.** Turning Auto Click's toggle off in System Settings: the toggle **stays at `0`**, but the running process **still captures the screen normally** (still recognised `S3` and clicked its exact centre `(267,353)`) — standard macOS behaviour, a revoke only takes effect after the app quits. Quit and reopen: the toggle **returns to `1`** on its own and the app captures as before. Tried twice, the second time with no stray clicks from the rig. So the state "revoked and in force" does not reproduce here; what was measured is the state where the permission genuinely is not in force, and there `SF-7` reports correctly |
+| C15 | Crop a Template on the **built-in** screen, move the window to the **1x external** display, run | Found and clicked — the second pass at the other scale is what makes this work. Without it the Step just times out | `RG-25` |**Blocked** — the external display was not connected during this session | **Pass**, two-sided. Template `124×124` cropped at 2x on the built-in; `DUP-A` on the 1x external is `62×62`. Auto Click emitted `(2063,332)` and the page independently logged `DUP-A` at `screenX 2063, screenY 332`. **A/B:** with the second pass disabled and nothing else changed, the Step emitted nothing and timed out — `RG-25` is exactly what makes this work |
+| C16 | The reverse: crop on the **1x external** display, move the window back to the built-in, run | Found and clicked | `RG-25` |**Blocked** — needs the external display | **Pass** — the other direction. A genuine 1x capture (`62×62`) found on the 2x built-in, where the tile is `124×124`: clicked `(687,433)`, page logged `DUP-B`, `pageX 627`. Here it did pick the tile the Template came from |
+| C17 | Time `C15` by eye, then time `C2` again | `C2` is unchanged (560–710 ms): the ordinary same-display case must not have been made slower. `C15` may be about twice that | `RG-25` `RG-18` |**Blocked** — needs the external display | **Pass** — native, same scale: **567 ms**. Cross-scale 1x→2x: **639 ms**. Cross-scale 2x→1x: **829 ms**, the dearest because the native pass has to fail on both displays first. All under the 1-second bar, and the ordinary path is unchanged |
+| C18 | Drag the external display's box **up or down** in System Settings so the screens are no longer top-aligned, then crop a Template on it | The highlighted frame follows the cursor instead of being drawn offset | `RG-26` |**Blocked** — needs the external display | **Inconclusive** — the two formulas draw **pixel-identically** on this arrangement. See `RG-26` |
 
 ### Findings outside the checklist — session C
 
@@ -280,6 +328,90 @@ only the rig's problem.
 | D12 | After recording, move the TextEdit window and replay the single-application recording | The operations **follow the window** | `RC-13` | **Pass** — moved the target window from `(120,88)` to `(300,240)`, i.e. `+180/+152`, then replayed D10's scenario. Every click shifted by exactly that: `(450,372) (900,572) (1050,372)`, and the target still received `T1 T6 T3`. The three Steps anchor to **three different corners** (`topLeft`, `bottomRight`, `topRight`), so this also tests `WindowAnchor.offset` picking the nearest corner |
 | D13 | Type on the keyboard while recording | Keystrokes **do not** enter the scenario | `RC-4` `SF-6` (ADR-0003) | **Pass** — typed the string `matkhau` outright while recording: the scenario came out with **0** keyboard Steps, and the string `matkhau` **appears nowhere** in the file on disk |
 | D14 | Open System Settings → Privacy → **Input Monitoring** | Auto Click is **not** in the list | `SF-6` | **Pass** — the app's only `CGEvent.tapCreate` registers a mask of **mouse and scroll only**; the two remaining uses of `keyDown` are `addLocalMonitorForEvents` (which only sees keys delivered to the app's own windows, needs no permission, and exists to catch Esc). `Info.plist` has **no** key requesting Input Monitoring; the installed binary **does not reference** `IOHIDRequestAccess`/`IOHIDCheckAccess`. **Seen with my own eyes**: after a whole test session with dozens of recordings, the Input Monitoring list is still **`No Items`** — macOS has never registered Auto Click as something watching the keyboard |
+
+### Findings outside the checklist — the two-display session
+
+The machine used here: built-in `(0, 0, 1512, 982)` at **2x**, and an LG FULL HD
+`(1512, -98, 1920, 1080)` at **1x**. Both `NSScreen` and `CGDisplayCopyDisplayMode` agreed on each
+scale, so `RG-24`'s chain never had to fall past its first step — what that requirement buys here is
+the removal of a guess, not a correction.
+
+**How small the margin between two near-identical tiles really is, and what that costs.** `C3`
+cropped its Template from `DUP-B` and clicked `DUP-A`, twice, deterministically. Chasing it produced a
+more useful answer than the case was written for.
+
+The tiles differ genuinely — `DUP-B` means `(147, 199, 241)`, `DUP-A` means `(140, 193, 240)`, being
+`#2b93e8` against `#1e88e5`. But they are flat colour, and **normalised** cross-correlation subtracts
+the mean and divides by the standard deviation, so a uniform shade difference is exactly what it
+removes. What survives is only the antialiased edge, and it is worth about **3·10⁻⁵**:
+
+| Measured | `DUP-B` | `DUP-A` |
+|---|---|---|
+| Luma grey, 1x | `1.000000` | `0.999970` |
+| Through `GrayImage`'s own 8-bit DeviceGray conversion | `1.00000000` | `0.99996443` |
+| In-app Template (SCK, 2x) against captures of both | `0.999994` | `0.999960` |
+
+That is precisely the figure the `correlation` comment already records — *"two nearly identical
+buttons really differ by about 4·10⁻⁵"* — and the reason that comment exists is that accumulating in
+`Float` produced ~2·10⁻³ of noise, forty times the gap. Accumulating in `Double` is what makes the
+margin visible at all.
+
+**The matcher is not at fault.** Handed the very same two images offline, `TemplateMatcher.bestMatch`
+returns `origin=(108, 21)` — `DUP-B`, the right tile — with `score = 1.0`. The failure only appears in
+the running app.
+
+The difference is where the Template came from. `C3`'s was cut with `/usr/sbin/screencapture`, while
+the haystack the app matches against comes from **ScreenCaptureKit**. Everything from one path agrees;
+mixing paths moves the numbers by more than 3·10⁻⁵ and the wrong tile wins. `I2`, whose Template was
+cropped by the app itself, picks correctly.
+
+So `C3` as run here **does not show a defect**: it exercised a route no user can take, because the
+only way to make a Template is the app's own crop. What it does show is how little headroom there is.
+Any future change that perturbs the capture path — a colour space, a downsample, a resize — can flip a
+near-duplicate choice without failing anything else, and `01-scope.md` names telling near-identical
+things apart as a requirement. A cheap guard would be to compare mean brightness alongside the
+correlation score, since that is the one thing the tiles differ in and the one thing `RG-8`'s measure
+deliberately ignores.
+
+**A test that cost more than it proved.** `C3` had to be rebuilt as an offline unit test and measured
+three separate ways before its own validity could be judged. A manual case that crops its Template by
+any means other than the app's own button is not measuring the app.
+
+**The popover's Accessibility tree is readable after all.** Session A recorded "63 elements with
+empty `role`, `name` and `value`", and every session since has clicked the popover by coordinates
+measured from a screenshot. It now exposes `AXPopUpButton desc="Kịch bản"`,
+`AXButton desc="Bắt đầu sau 3 giây"`, `AXLink desc="Soạn kịch bản…"` and the rest, with positions.
+A rig built on this would not need colour anchoring at all.
+
+**What a drifting menu bar cost.** The status item moved from `x=906` to `x=872` mid-session, and
+later to the external display entirely at `(2828, -95)`, because menu-bar extras come and go. Every
+run in between clicked the wrong icon, the popover never opened, and `C15` was recorded as a failure
+that had never run. Looking the item up through Accessibility on every run, and refusing to click
+Start unless the popover is confirmed open, is not optional tooling — without it the session
+produces confident wrong answers.
+
+### The I-series, re-run against the two-pass matcher
+
+`RG-25` changed how every Template is matched, so the practice targets were re-run to check the
+ordinary path had not been disturbed. The page reports which target it received, independently of
+what the observer saw Auto Click emit.
+
+| # | Result |
+|---|---|
+| I1 | **Pass** — `S3@(207,433)`, the centre the page declares |
+| I2 | **Pass** — `DUP-A@(551,433)` with `DUP-B` 76 points away. The near-identical pair still resolves correctly, which is the case most at risk from a blurrier second comparison |
+| I4 | **Pass** — `G2@(109,529)`. The earlier session recorded `G1`; the difference is not the tie-break changing but the **Search region** doing its job. `G1` spans `x=24…84` and the region starts at `x=60`, so the leftmost circle **inside the region** is `G2`. Incidentally re-proves `C11` |
+| I5 | **Pass** — `TINY@(214,638)`, exact |
+| I6 | **Pass** — `NOISY-ICON@(100,671)` against a declared `(100,672)`, the same 1 px rounding the earlier session recorded |
+
+The window was at a **different position** from when the Templates were cropped (offset `(0,154)`
+rather than `(60,74)`), so these also re-prove `RG-8`: a Template is found again after the interface
+has moved.
+
+**Timing (`C13`)**: measured from the rig's click on Start to the click Auto Click emitted, minus the
+3-second countdown, with all three clicks separated by source pid: **I1 554 ms, I4 562 ms, I5 469 ms,
+I6 491 ms**. The band recorded before this change was 560–710 ms. Native-first did what it was
+supposed to: the ordinary path never reaches the second pass and is not slower.
 
 ### Findings outside the checklist — session D
 
