@@ -88,6 +88,11 @@ has moved. Spanning several applications keeps absolute coordinates and says so 
 - Remembers its configuration and can start at macOS login.
 - Always releases the mouse button on stop, even mid long-press or mid-drag.
 - Brings the locked application to the front before every typing step; stops if it cannot.
+- Types a plain-ASCII string **key by key**, the way a person does, so games and
+  filter-as-you-type fields see it correctly; strings with Vietnamese or emoji are sent as text
+  instead. The step's panel says which of the two a given string will use.
+- Finds a template even when it was cropped on a display of a different scale, so a template made
+  on the built-in screen still works on an external monitor.
 
 ## Building and installing
 

@@ -1,0 +1,3 @@
+{"n": 1, "type": "mousedown", "t": 243608, "target": "DUP-A", "screenX": 2063, "screenY": 332, "pageX": 551, "pageY": 279, "button": 0, "clickCount": 1}
+{"n": 2, "type": "mouseup", "t": 243610, "target": "DUP-A", "screenX": 2063, "screenY": 332, "pageX": 551, "pageY": 279, "button": 0, "clickCount": 1, "heldMs": 2}
+{"n": 3, "type": "click", "t": 243610, "target": "DUP-A", "screenX": 2063, "screenY": 332, "pageX": 551, "pageY": 279, "button": 0, "clickCount": 1}
