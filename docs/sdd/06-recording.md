@@ -97,6 +97,18 @@ and [ADR-0004](../adr/0004-recordings-keep-real-timing.md) (no timing cap).
   still leaves the name **untouched**, because it is also the path that records every character
   the user types while renaming.
 - **RC-17** `[done]` A **Recording session** that captured no **Step** creates no **Scenario**.
+- **RC-20** `[done]` The timestamp in that default name is `yyyy-MM-dd HH:mm`, formatted with
+  `en_US_POSIX` and **never** with the user's locale.
+
+  The name is the **sort key**: `ScenarioStore` orders the list with
+  `name.localizedCaseInsensitiveCompare`. The previous `"dd/MM HH:mm"` sorted by day-of-month, so a
+  recording made on `01/10` came out ahead of one made on `17/09` and the list of recordings was in
+  no useful order.
+
+  Freezing the format is not only about ordering. A name is written into `scenario.json` and stays
+  there, so deriving it from an interface setting would name the same recording differently on two
+  machines, and would bring the wrong ordering back in every locale that puts the day first. Only
+  the **word** in the name is translated (`LC-6`); the digits are data.
 
 ## Verification
 

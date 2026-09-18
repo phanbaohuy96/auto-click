@@ -237,9 +237,8 @@ final class ScenarioRecorder: ObservableObject {
 
     /// RC-16: the default name comes from the application and the time of recording.
     private func defaultName(for recorded: [RecordedStep]) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd/MM HH:mm"
-        let timestamp = formatter.string(from: Date(timeIntervalSinceReferenceDate: environment.now()))
+        let timestamp = Self.timestampFormatter
+            .string(from: Date(timeIntervalSinceReferenceDate: environment.now()))
 
         guard let processIdentifier = RecordingAssembler.singleProcessIdentifier(in: recorded),
               let application = environment.application(processIdentifier)
@@ -248,4 +247,20 @@ final class ScenarioRecorder: ObservableObject {
         }
         return "\(application.name) \(timestamp)"
     }
+
+    /// RC-20: a **sortable** timestamp, frozen to `en_US_POSIX`.
+    ///
+    /// `ScenarioStore` orders the list with `name.localizedCaseInsensitiveCompare`, so the name **is** the sort
+    /// key. The previous `"dd/MM HH:mm"` sorts by day-of-month first, which puts a recording made on `01/10`
+    /// ahead of one made on `17/09` — the list of recordings was in no useful order at all.
+    ///
+    /// The format is deliberately **not** taken from the user's locale. A name goes into `scenario.json` and
+    /// stays there; deriving it from an interface setting would mean the same recording is named differently on
+    /// two machines, and would reintroduce the same wrong ordering in every locale that puts the day first.
+    private static let timestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return formatter
+    }()
 }
