@@ -7,7 +7,9 @@ right place on a real screen.
 This document is the remainder. Each case states what to do, what to expect, and **which
 requirement** in the [SDD](sdd/) it proves. The last column is yours to fill in.
 
-Quoted strings show the app's own interface text, which stays in Vietnamese.
+Quoted strings show the app's own interface text. Cases written before Slice 6 quote the
+Vietnamese wording the interface had at the time; the same labels now come from `en.lproj` and
+`vi.lproj` (`LC-1`).
 
 ## Why these cases cannot be automated
 
@@ -510,6 +512,29 @@ copy kept the template filenames but its `templates/` was empty, so every recogn
 broke immediately. Before `UI-19` the interface showed only a filename, with no way to tell the file
 did not exist. Fixed; rechecked on the real app: the copy of `I6` now carries `NOISYICON.png` in its
 own directory.
+
+---
+
+## Session F — Interface languages
+
+None of these can be automated: three of the four are judgements about what a human can read on a
+real screen, and the fourth needs a real `.app` with its `.lproj` directories installed.
+
+| # | Do | Expect | Proves | Result |
+|---|---|---|---|---|
+| F1 | Open the popover, switch the language picker from *English* to *Tiếng Việt* | Every label changes **at once**, with no relaunch and no flicker of raw keys. The popover stays open | `LC-6`, `LC-7` | |
+| F2 | Switch to *Español*, then walk the popover **and** the editor window | No label is clipped, wrapped mid-word or squeezed to nothing — the popover is a hard `340` points wide and the editor's middle column about `380` (`UI-18`) | `LC-1` | |
+| F3 | Switch to *日本語*. Now find the way back to *Tiếng Việt* **without reading anything else on screen** | The picker lists `English`, `Tiếng Việt`, `中文（简体）`, `日本語`, `Español` in their own scripts, so the row is recognisable to someone who cannot read the interface around it | `LC-8` | |
+| F4 | Record a scenario while the interface is English, then switch to Vietnamese and reopen the editor | The saved name still reads `Recording 2026-…`, unchanged. New scenarios created afterwards are named in Vietnamese | `LC-11`, `RC-20` | |
+
+`F2` is the reason `es` was taken knowing it stretches the layout — see
+[ADR-0010](adr/0010-strings-files-and-a-live-bundle-swap.md). `UI-18` records a previous occasion
+where a fixed-width column squeezed a label to zero points, so this is a repeat of a failure that
+has already happened once.
+
+There is deliberately **no** case here for "the app appears in System Settings → Language & Region →
+Applications". Whether an `LSUIElement` agent is listed there was never established, and `LC-6`
+exists so that the answer does not matter.
 
 ---
 

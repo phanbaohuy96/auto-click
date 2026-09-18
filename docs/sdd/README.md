@@ -23,6 +23,7 @@ behaviour is not obvious from the code itself.
 | `RC` | Recording | [06](./06-recording.md) |
 | `RG` | Target recognition | [07](./07-target-recognition.md) |
 | `SF` | Permissions and safety | [08](./08-permissions-and-safety.md) |
+| `LC` | Localisation | [09](./09-localisation.md) |
 
 Requirement identifiers are **never reused**. A dropped requirement is marked `~~DM-7~~
 (dropped)`, never deleted and never renumbered.
@@ -31,7 +32,7 @@ Requirement identifiers are **never reused**. A dropped requirement is marked `~
 
 Every requirement carries a status label:
 
-- **`[Slice 1]`…`[Slice 4]`** — which slice it belongs to, see [01](./01-scope.md)
+- **`[Slice 1]`…`[Slice 6]`** — which slice it belongs to, see [01](./01-scope.md)
 - **`[done]`** — code and matching tests exist
 
 `[done]` means the code exists; it does **not** mean it has been tried on a real machine. Any

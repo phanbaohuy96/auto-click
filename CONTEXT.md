@@ -45,6 +45,18 @@ _Avoid_: record, capture
 The only application allowed to receive events when the user turns the restriction on; entirely distinct from **Target**.
 _Avoid_: destination app, target app
 
+**Interface language**:
+Which translation of Auto Click's **own** menus and labels is on screen. It is a display setting and nothing else: it never decides what text OCR can read, and never decides how characters are typed.
+_Avoid_: language (unqualified), locale, region
+
+**Recognition language**:
+The language Vision is told to expect when looking for a text **Target** — the language of the **application being automated**, not of Auto Click.
+_Avoid_: OCR language setting, text language
+
+**Input source**:
+The keyboard layout or input method in effect while a `typeText` **Step** runs. What Telex folds `aa` into `â` is this, not a language.
+_Avoid_: keyboard language, typing language
+
 ## Relationships
 
 - **Simple mode** produces exactly one one-step **Scenario**; it is not a separate way of running.
@@ -58,6 +70,7 @@ _Avoid_: destination app, target app
 - A **Template** **Target** is the opposite: it needs no **Locked application**, and a **Template** can be cropped from anywhere on screen, including from a screenshot open in another application.
 - One **Recording session** produces exactly one **Scenario**; it watches the mouse only, never the keyboard.
 - A **Template** or text **Target** may fail to resolve; the **Step** then retries until its timeout expires and either stops the **Scenario** or is skipped, as that **Step** itself specifies.
+- **Interface language**, **Recognition language** and **Input source** are three independent settings that share a word. None of them is derived from another, and wiring any two together is a bug.
 
 ## Example dialogue
 
@@ -80,3 +93,5 @@ _Avoid_: destination app, target app
 - "long press" is settled as holding in place; **drag** is its own **Action**.
 - "wait until the button appears" is not control flow — it is the timeout on resolving a **Template** **Target**.
 - "fixed point" once meant only absolute coordinates; it is now two distinct **Target** forms — absolute, and relative to the **Anchor window**.
+- "language" is the most overloaded word in the project: it means the **Interface language**, the **Recognition language**, or the **Input source**, depending on who is speaking. They look connected and are not — a Vietnamese menu says nothing about whether the game on screen is in Vietnamese, and neither says anything about what EVKey will do to a keystroke. Settled by naming all three; see `LC-13`.
+- "name" carries two meanings too, and they are the interface/data boundary: a **Scenario**'s name is data written into `scenario.json`, so it is translated once, when created, and never again. `KeyCatalog`'s `name` is an identifier and is never translated at all — only its `title` is.

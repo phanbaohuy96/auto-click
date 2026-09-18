@@ -108,7 +108,7 @@ and [ADR-0004](../adr/0004-recordings-keep-real-timing.md) (no timing cap).
   Freezing the format is not only about ordering. A name is written into `scenario.json` and stays
   there, so deriving it from an interface setting would name the same recording differently on two
   machines, and would bring the wrong ordering back in every locale that puts the day first. Only
-  the **word** in the name is translated (`LC-6`); the digits are data.
+  the **word** in the name is translated (`LC-11`); the digits are data.
 
 ## Verification
 
