@@ -115,11 +115,51 @@ is unavoidable, in a codebase that otherwise injects its seams carefully
 (`ScenarioStore(defaults:fileManager:)`). It is settable, so tests still pin it, but it is a step
 down and it is the strongest argument that was available for the relaunch option.
 
+**And that global cannot live on the main actor** — see the section below, which corrects what this
+one first said.
+
 **Four `@Published` message properties freeze.** `AutoClicker.message`, `ScenarioRecorder.message`,
 `ScenarioRunner.message` and `LaunchAtLoginManager.errorMessage` hold strings already materialised
 at the moment of an event, so a language change leaves them in the old language until the next
 action. They become enums rendered at display time — which is the shape `SettingsValidationError`
 already had, and which incidentally frees six test files from asserting on Vietnamese prose.
+
+## Measured after the fact: the reader is not always on the main actor
+
+This decision first put the lookup on `Localization.current`, a `@MainActor` object, and reached it
+from `nonisolated` code through `MainActor.assumeIsolated`, on the reasoning that *"every one of
+these strings exists to be put on screen: it is built and read while drawing, on the main thread."*
+
+**That reasoning was wrong, and the parallel test run proved it** — `SIGTRAP`, deterministically,
+with this stack:
+
+```
+dispatch_assert_queue$V2.cold.1
+MainActor.assumeIsolated<A>(_:file:line:)
+localized(_:_:)
+closure #1 in variable initialization expression of static KeyCatalog.entries
+one-time initialization function for entries
+```
+
+`KeyCatalog.entries` is a `static let`. Swift builds it lazily, **on whichever thread touches it
+first**, and nothing says that thread is the main one. In the app it happened to be, which is luck
+rather than design; under `swift test` it was a background thread and `assumeIsolated` trapped
+outright. The same shape would bite any global, any `Task.detached`, any future background caller.
+
+So the lookup was moved off the actor entirely. `Catalogue` holds one language's loaded tables and
+is immutable; `InstalledCatalogue` holds the current one behind an `OSAllocatedUnfairLock` and can
+be read from any thread. `Localization` keeps its `@MainActor`, `ObservableObject` face — that is
+what views need in order to redraw — and its only extra job is deciding **which** catalogue is
+installed. `MainActor.assumeIsolated` does not appear in the module at all.
+
+`Bundle` is not `Sendable`, and `Catalogue` is `@unchecked Sendable` on the grounds that
+`localizedString(forKey:value:table:)` reads a table parsed when the bundle was loaded and never
+written to afterwards. What changes on a language switch is the reference, and that swap is the
+thing the lock guards.
+
+The same measurement caught a second bug of the same family: `KeyCatalog.Entry.title` was a
+**stored** property, so the table baked its titles in whichever language was active the first time
+anything touched it — and kept them after the user switched. It is now computed.
 
 ## Keys in Swift, translations in `.strings`
 

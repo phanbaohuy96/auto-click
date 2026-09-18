@@ -25,7 +25,17 @@ enum Catalogs {
     /// language builds its own instance instead. Without pinning, `Localization.current` would be reading
     /// `Bundle.main`, which under `swift test` is the xctest runner and carries no catalogue at all.
     static let pinnedToEnglish: Void = {
-        Localization.current = try! localization(preference: "en")
+        // Deliberately no `#require` here: this runs inside a lazy global initialiser that the first test to
+        // touch it triggers, which is not a place an expectation belongs.
+        guard let container = Bundle(path: directory.path()) else {
+            fatalError("no catalogue directory at \(directory.path())")
+        }
+        let localization = Localization(
+            container: container,
+            defaults: UserDefaults(suiteName: "AutoClickPinned-\(UUID().uuidString)")!
+        )
+        localization.select("en")
+        Localization.current = localization
     }()
 
     static func localization(preference: String? = nil) throws -> Localization {

@@ -12,16 +12,41 @@ import Foundation
 enum KeyCatalog {
     struct Entry: Identifiable, Sendable {
         let name: String
-        let title: String
         let keyCode: CGKeyCode
+        /// The key-cap name, used as it is. `Return`, `Tab`, `F1` and `←` read the same in every language.
+        private let capName: String
+        /// The one entry that is a **description** rather than a key cap, so the one that is translated.
+        private let titleKey: StringKey?
+
+        init(name: String, title: String, keyCode: CGKeyCode) {
+            self.name = name
+            self.capName = title
+            self.titleKey = nil
+            self.keyCode = keyCode
+        }
+
+        init(name: String, titleKey: StringKey, keyCode: CGKeyCode) {
+            self.name = name
+            self.capName = name
+            self.titleKey = titleKey
+            self.keyCode = keyCode
+        }
 
         var id: String { name }
+
+        /// LC-6: **computed**, not stored. `entries` is a `static let` built once, so a stored title would be
+        /// frozen in whichever language happened to be active the first time anything touched the table — and
+        /// would stay in it after the user switched.
+        var title: String {
+            guard let titleKey else { return capName }
+            return localized(titleKey)
+        }
     }
 
     static let entries: [Entry] = {
         var result: [Entry] = [
             Entry(name: "return", title: "Return", keyCode: CGKeyCode(kVK_Return)),
-            Entry(name: "enter", title: localized(.keyNumpadEnter), keyCode: CGKeyCode(kVK_ANSI_KeypadEnter)),
+            Entry(name: "enter", titleKey: .keyNumpadEnter, keyCode: CGKeyCode(kVK_ANSI_KeypadEnter)),
             Entry(name: "tab", title: "Tab", keyCode: CGKeyCode(kVK_Tab)),
             Entry(name: "space", title: "Space", keyCode: CGKeyCode(kVK_Space)),
             Entry(name: "delete", title: "Delete", keyCode: CGKeyCode(kVK_Delete)),

@@ -8,6 +8,12 @@ final class FakeSystem {
     static let applicationBundleIdentifier = "com.test.App"
     static let applicationProcessIdentifier: pid_t = 1234
 
+    /// LC-15 fallout: anything that renders a message reads the **global** `Localization.current`, and under
+    /// `swift test` that would be `Bundle.main` — the xctest runner, which carries no catalogue, so every
+    /// lookup would come back as its own raw key. Pinning here rather than per-test is deliberate: relying on
+    /// some *other* test to have pinned it first made the suite pass in parallel and fail when serialised.
+    init() { Catalogs.pinnedToEnglish }
+
     var isAccessibilityTrusted = true
     var runningApplications: [String: pid_t] = [
         FakeSystem.applicationBundleIdentifier: FakeSystem.applicationProcessIdentifier
@@ -183,6 +189,9 @@ func waitUntil(
 final class FakeRecordingEnvironment {
     static let ownProcessIdentifier: pid_t = 99
     static let otherProcessIdentifier: pid_t = 42
+
+    /// See `FakeSystem.init`.
+    init() { Catalogs.pinnedToEnglish }
 
     var frontmostProcessIdentifier: pid_t? = FakeRecordingEnvironment.otherProcessIdentifier
     var anchorWindowFrame: CGRect? = CGRect(x: 100, y: 100, width: 400, height: 300)
