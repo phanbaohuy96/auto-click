@@ -11,7 +11,23 @@ final class ScenarioStore: ObservableObject {
     @Published private(set) var scenarios: [Scenario] = []
     /// Scenarios in a newer format: the name loads, but they cannot be edited or run (ST-12).
     @Published private(set) var readOnlyScenarioIDs: Set<UUID> = []
-    @Published private(set) var loadIssues: [String] = []
+    /// LC-6: enums, so the list is translated when it is drawn rather than when the directory was scanned.
+    @Published private(set) var loadIssues: [LoadIssue] = []
+
+    /// Why one Scenario directory could not be loaded normally (ST-9, ST-12).
+    enum LoadIssue: Equatable {
+        case readOnlySchema(name: String, version: Int)
+        case unreadable(directory: String)
+
+        var text: String {
+            switch self {
+            case let .readOnlySchema(name, version):
+                return localized(.issueSchemaReadOnly, name, version)
+            case let .unreadable(directory):
+                return localized(.issueUnreadable, directory)
+            }
+        }
+    }
 
     @Published var selectedScenarioID: UUID? {
         didSet {
@@ -77,7 +93,7 @@ final class ScenarioStore: ObservableObject {
     func reload() {
         var loaded: [Scenario] = []
         var readOnly: Set<UUID> = []
-        var issues: [String] = []
+        var issues: [LoadIssue] = []
 
         let directories = (try? fileManager.contentsOfDirectory(
             at: rootDirectory,
@@ -96,12 +112,12 @@ final class ScenarioStore: ObservableObject {
                    header.schemaVersion > ScenarioSchema.currentVersion {
                     loaded.append(Scenario(id: header.id, name: header.name))
                     readOnly.insert(header.id)
-                    issues.append("\(header.name): định dạng phiên bản \(header.schemaVersion), chỉ xem được.")
+                    issues.append(.readOnlySchema(name: header.name, version: header.schemaVersion))
                 } else {
                     Self.logger.error(
                         "Skipping \(file.path, privacy: .public): \(error.localizedDescription, privacy: .public)"
                     )
-                    issues.append("\(directory.lastPathComponent): không đọc được scenario.json.")
+                    issues.append(.unreadable(directory: directory.lastPathComponent))
                 }
             }
         }
@@ -120,7 +136,9 @@ final class ScenarioStore: ObservableObject {
     // MARK: - Ghi
 
     @discardableResult
-    func create(name: String = "Kịch bản mới") -> Scenario {
+    func create(name: String? = nil) -> Scenario {
+        // LC-11: translated once, here, and then it is data like any other name.
+        let name = name ?? localized(.dataNewScenarioName)
         let scenario = Scenario(name: uniqueName(from: name))
         save(scenario)
         selectedScenarioID = scenario.id
@@ -180,7 +198,7 @@ final class ScenarioStore: ObservableObject {
         guard !readOnlyScenarioIDs.contains(scenario.id) else { return nil }
         var copy = scenario
         copy.id = UUID()
-        copy.name = uniqueName(from: "\(scenario.name) (bản sao)")
+        copy.name = uniqueName(from: localized(.dataDuplicateSuffix, scenario.name))
         copy.steps = scenario.steps.map { step in
             var duplicated = step
             duplicated.id = UUID()

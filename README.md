@@ -54,6 +54,20 @@ graphics.
 This feature needs the extra **Screen Recording** permission, and only asks when you actually
 use it.
 
+## Languages
+
+The interface is available in **English** (the default), **Tiếng Việt**, **中文（简体）**,
+**日本語** and **Español**. Pick one in the menu-bar popover, next to *Launch at login* — it
+changes immediately, with no restart. Left alone it follows the system language.
+
+> Only English and Vietnamese have been checked by a person. Chinese, Japanese and Spanish are
+> machine-translated, and corrections are very welcome — a translation does not have to be complete
+> to be useful, because anything missing falls back to English.
+
+**Adding a language is adding one directory.** Copy `Resources/en.lproj/` to
+`Resources/<code>.lproj/`, translate the values, and add the code to `Localization.supportedCodes`
+and its name to `Localization.nativeName(of:)`. No other Swift changes, no build-script changes.
+
 ## Recording
 
 Press `⌥⌘R` to start and end a recording session. Auto Click watches your mouse and builds a

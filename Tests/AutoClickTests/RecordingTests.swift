@@ -180,7 +180,7 @@ private func scroll(_ dy: Int, at time: TimeInterval, pid: pid_t? = 1) -> Record
 
     #expect(result.scenario.steps.allSatisfy { !$0.target.needsAnchorWindow })
     #expect(result.scenario.lockedApplication == nil)
-    #expect(result.warning?.contains("2 ứng dụng") == true)
+    #expect(result.warning == .spansSeveralApplications(2))
 }
 
 @Test func aDragDestinationIsUpgradedTogetherWithItsStart() {

@@ -249,6 +249,13 @@ extension Step {
 }
 
 struct Scenario: Identifiable, Equatable, Sendable {
+    /// The name given to a Scenario whose `scenario.json` has no `name` field.
+    ///
+    /// LC-11: deliberately **not** translated. This is a repair value, not a name the user chose, and it is
+    /// written back to disk on the next save — so translating it would let an interface setting rewrite user
+    /// data, and would give the same damaged file a different name on every machine.
+    static let repairedName = "Untitled scenario"
+
     var id: UUID
     var name: String
     var steps: [Step]

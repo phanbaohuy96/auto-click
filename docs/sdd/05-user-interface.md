@@ -75,3 +75,14 @@
   differently: `"hello"` reaches the game as five keys, `"hellò"` as one key carrying five
   characters. That is the price of not adding a switch to the panel, and it is only acceptable if
   the panel stops it from being something the user has to guess.
+
+## Interface language
+
+- **UI-22** `[Slice 6]` `[done]` The language picker lives in the **popover**, in the settings area
+  below the divider, next to the launch-at-login toggle. It is a `.menu` picker, not `.segmented`
+  like the two above it: six entries mixing Han characters with Latin script do not fit a popover
+  fixed at 340 points.
+
+  Not in the editor window: someone who only ever uses **Simple mode** never opens it, and would
+  have no way to find the setting at all. The full reasoning is in
+  [`09-localisation.md`](./09-localisation.md) (`LC-5`…`LC-8`).

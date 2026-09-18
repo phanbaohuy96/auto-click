@@ -17,11 +17,11 @@ enum ScenarioDecodingError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case let .unsupportedSchemaVersion(version):
-            return "Kịch bản dùng định dạng phiên bản \(version), bản Auto Click này chỉ hiểu tới \(ScenarioSchema.currentVersion)."
+            return localized(.errorSchemaTooNew, version, ScenarioSchema.currentVersion)
         case let .unknownActionKind(kind):
-            return "Không nhận ra hành động \"\(kind)\"."
+            return localized(.errorUnknownAction, kind)
         case let .unknownTargetKind(kind):
-            return "Không nhận ra vị trí \"\(kind)\"."
+            return localized(.errorUnknownTarget, kind)
         }
     }
 }
@@ -296,7 +296,7 @@ extension Scenario: Codable {
 
         self.init(
             id: try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID(),
-            name: try container.decodeIfPresent(String.self, forKey: .name) ?? "Kịch bản",
+            name: try container.decodeIfPresent(String.self, forKey: .name) ?? Scenario.repairedName,
             steps: try container.decodeIfPresent([Step].self, forKey: .steps) ?? [],
             runCount: try container.decodeIfPresent(RunCount.self, forKey: .runCount) ?? .times(1),
             lockedApplication: try container.decodeIfPresent(

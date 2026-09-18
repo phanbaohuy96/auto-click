@@ -21,7 +21,7 @@ struct CapturedImage: Sendable {
     }
 }
 
-enum ScreenCaptureError: LocalizedError {
+enum ScreenCaptureError: LocalizedError, Equatable {
     case permissionDenied
     case noDisplays
     case unknownDisplayScale
@@ -32,14 +32,13 @@ enum ScreenCaptureError: LocalizedError {
             // SF-7: if the user has just enabled the permission and it still fails, it is almost certainly an
             // ad-hoc signed build that macOS treats as a different application after an update. The fix is to
             // restart the app, and that has to be said — the system cannot tell the two cases apart.
-            return "Hãy cấp quyền Screen Recording cho Auto Click rồi thử lại. "
-                + "Nếu đã cấp rồi, hãy thoát và mở lại Auto Click."
+            return localized(.errorScreenRecordingDenied)
         case .noDisplays:
-            return "Không tìm thấy màn hình nào để chụp."
+            return localized(.errorNoDisplay)
         case .unknownDisplayScale:
             // RG-24: its own case rather than falling through to `permissionDenied`. Reporting the wrong
             // cause is the mistake `B5` of the manual tests exists to catch.
-            return "Không đọc được tỉ lệ điểm ảnh của màn hình nên đã bỏ qua để tránh bấm sai chỗ."
+            return localized(.errorPixelScaleUnreadable)
         }
     }
 }

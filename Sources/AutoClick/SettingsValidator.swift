@@ -52,9 +52,9 @@ enum ApplicationLockValidationError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .missingSelection:
-            return "Hãy chọn ứng dụng cần khóa."
+            return localized(.errorLockMissingSelection)
         case .applicationNotRunning:
-            return "Ứng dụng đã chọn hiện không chạy."
+            return localized(.errorLockNotRunning)
         }
     }
 }
@@ -75,6 +75,11 @@ enum ApplicationLockValidator {
 struct AutoClickSettings: Equatable, Sendable {
     let intervalMilliseconds: Int
     let repeatCount: Int
+
+    /// LC-9: the limits are **arguments** to the message, never digits written inside a translation. Baked in,
+    /// changing them here would leave five languages stating a number the code no longer enforces.
+    static let intervalRange = 10...3_600_000
+    static let repeatRange = 1...1_000_000
 }
 
 enum SettingsValidationError: LocalizedError, Equatable {
@@ -86,13 +91,21 @@ enum SettingsValidationError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .invalidInterval:
-            return "Interval phải là số nguyên."
+            return localized(.errorIntervalNotAnInteger)
         case .intervalOutOfRange:
-            return "Interval phải từ 10 đến 3.600.000 ms."
+            return localized(
+                .errorIntervalOutOfRange,
+                localizedNumber(AutoClickSettings.intervalRange.lowerBound),
+                localizedNumber(AutoClickSettings.intervalRange.upperBound)
+            )
         case .invalidRepeatCount:
-            return "Repeat phải là số nguyên."
+            return localized(.errorRepeatNotAnInteger)
         case .repeatCountOutOfRange:
-            return "Repeat phải từ 1 đến 1.000.000."
+            return localized(
+                .errorRepeatOutOfRange,
+                localizedNumber(AutoClickSettings.repeatRange.lowerBound),
+                localizedNumber(AutoClickSettings.repeatRange.upperBound)
+            )
         }
     }
 }
@@ -105,13 +118,13 @@ enum SettingsValidator {
         guard let interval = Int(intervalText) else {
             return .failure(.invalidInterval)
         }
-        guard (10...3_600_000).contains(interval) else {
+        guard AutoClickSettings.intervalRange.contains(interval) else {
             return .failure(.intervalOutOfRange)
         }
         guard let repeatCount = Int(repeatText) else {
             return .failure(.invalidRepeatCount)
         }
-        guard (1...1_000_000).contains(repeatCount) else {
+        guard AutoClickSettings.repeatRange.contains(repeatCount) else {
             return .failure(.repeatCountOutOfRange)
         }
 

@@ -25,6 +25,13 @@ swift build -c "$configuration"
 mkdir -p "$contents_dir/MacOS" "$contents_dir/Resources"
 cp "$binary_dir/AutoClick" "$contents_dir/MacOS/AutoClick"
 cp "$project_dir/Resources/Info.plist" "$contents_dir/Info.plist"
+# LC-3: the .lproj directories go straight into Contents/Resources, where `Bundle.main` finds them the
+# ordinary way. Deliberately not a SwiftPM resource bundle: `Bundle.module` resolves through an absolute
+# path into the build machine's .build/, so it works here and crashes on any other machine (LC-4).
+# Rebuilt from scratch so a language removed from the repository also leaves the bundle.
+rm -rf "$contents_dir/Resources"
+mkdir -p "$contents_dir/Resources"
+cp -R "$project_dir/Resources/"*.lproj "$contents_dir/Resources/"
 
 codesign --force --deep --sign "$signing_identity" "$app_dir"
 

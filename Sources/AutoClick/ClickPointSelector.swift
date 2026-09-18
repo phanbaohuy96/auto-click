@@ -104,7 +104,7 @@ private final class PointSelectionView: NSView {
         NSColor.black.withAlphaComponent(0.10).setFill()
         dirtyRect.fill()
 
-        let text = "Click để chọn điểm  •  Esc để hủy"
+        let text = localized(.overlayPickPoint)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 18, weight: .semibold),
             .foregroundColor: NSColor.white

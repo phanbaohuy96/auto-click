@@ -19,7 +19,7 @@ final class LaunchAtLoginManager: ObservableObject {
             }
             errorMessage = nil
         } catch {
-            errorMessage = "Không thể đổi cài đặt đăng nhập: \(error.localizedDescription)"
+            errorMessage = localized(.errorLaunchAtLogin, error.localizedDescription)
         }
         refresh()
     }

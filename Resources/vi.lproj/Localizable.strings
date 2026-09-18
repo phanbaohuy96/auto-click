@@ -1,0 +1,235 @@
+/* Auto Click — Tiếng Việt.
+   Bản dịch duy nhất ngoài `en` có người rà, nên nó bị test giữ ở cùng chuẩn: thiếu một key là build đỏ
+   (LC-15). Chuỗi có số đếm nằm ở Localizable.stringsdict. */
+
+/* MARK: Menu bar popover */
+"menu.subtitle" = "Click theo con trỏ, điểm cố định, hoặc kịch bản";
+"menu.mode.label" = "Chế độ";
+"menu.mode.simple" = "Đơn giản";
+"menu.mode.scenario" = "Kịch bản";
+"menu.launch_at_login" = "Khởi động cùng MacBook";
+"menu.quit" = "Thoát";
+"menu.grant_accessibility" = "Cấp quyền Accessibility";
+"menu.grant_screen_recording" = "Cấp quyền Screen Recording";
+"menu.language" = "Ngôn ngữ";
+"menu.language.follow_system" = "Theo hệ thống";
+
+/* MARK: Running */
+"run.stop" = "Dừng";
+"run.ready" = "Sẵn sàng";
+"run.stopped" = "Đã dừng";
+"run.progress.step" = "Bước %1$d/%2$d";
+"run.progress.iteration_of_total" = "Vòng %1$d/%2$d · %3$@";
+"run.progress.iteration" = "Vòng %1$d · %2$@";
+"run.failed" = "Có lỗi: %@";
+
+/* MARK: Recording */
+"record.button" = "Ghi thao tác";
+"record.hint" = "kết thúc bằng ⌥⌘R";
+"record.nothing_captured" = "Không ghi được thao tác nào.";
+"record.tap_failed" = "Không tạo được bộ lắng nghe sự kiện.";
+"record.default_name" = "Bản ghi";
+"record.warning.absolute_steps" = "%1$d/%2$d bước dùng toạ độ tuyệt đối vì không lấy được cửa sổ lúc ghi; các bước đó sẽ trượt nếu cửa sổ dịch chuyển.";
+
+/* MARK: Floating panel */
+"panel.recording_title" = "Đang ghi thao tác";
+"panel.finish_hint" = "Kết thúc bằng ⌥⌘R";
+"panel.stop_hint" = "Dừng nhanh bằng ⌥⌘S";
+"panel.finish" = "Kết thúc";
+"panel.stop" = "Dừng";
+
+/* MARK: Simple mode */
+"simple.interval" = "Khoảng thời gian";
+"simple.repeat" = "Số lần lặp";
+"simple.repeat.unit" = "lần";
+"simple.scenario_name" = "Chế độ đơn giản";
+"simple.position.label" = "Vị trí click";
+"simple.position.cursor" = "Theo con trỏ";
+"simple.position.fixed" = "Điểm cố định";
+"simple.point.none" = "Chưa chọn điểm";
+"simple.point.coordinates" = "X: %1$d  Y: %2$d";
+"simple.point.choose" = "Chọn điểm…";
+"simple.point.choose_again" = "Chọn lại…";
+"simple.cursor_hint" = "Lấy vị trí con trỏ khi hết đếm ngược";
+"simple.picking_point" = "Click vào vị trí muốn lưu; nhấn Esc để hủy.";
+"simple.point_cancelled" = "Đã hủy chọn điểm.";
+"simple.point_saved" = "Đã lưu điểm click: %@";
+"simple.lock.toggle" = "Chỉ click trong ứng dụng";
+"simple.lock.application" = "Ứng dụng";
+"simple.lock.choose" = "Chọn ứng dụng…";
+"simple.lock.closed" = "%@ — đã đóng";
+"simple.lock.refresh" = "Làm mới danh sách ứng dụng";
+"simple.lock.hint" = "Chỉ click khi điểm thuộc ứng dụng đã chọn";
+"simple.application.fallback_name" = "Ứng dụng đã chọn";
+
+/* MARK: Scenario section of the popover */
+"scenario.picker.label" = "Kịch bản";
+"scenario.picker.empty" = "Chưa có kịch bản";
+"scenario.none_at_all" = "Chưa có kịch bản nào.";
+"scenario.read_only_blocker" = "Kịch bản này chỉ xem được.";
+"scenario.needs_screen_recording" = "Kịch bản dùng nhận dạng ảnh/chữ nên cần thêm quyền Screen Recording.";
+"scenario.open_editor" = "Soạn kịch bản";
+"scenario.open_editor_ellipsis" = "Soạn kịch bản…";
+"scenario.summary.with_loops" = "%1$@ · lặp %2$@";
+"scenario.summary.until_stopped" = "%@ · lặp đến khi dừng";
+
+/* MARK: Editor window */
+"editor.title" = "Soạn kịch bản";
+"editor.running_notice" = "Đang chạy — không sửa được";
+"editor.select_a_step" = "Chọn một bước để sửa";
+"editor.new_scenario" = "Kịch bản mới";
+"editor.duplicate_scenario" = "Nhân bản";
+"editor.delete_scenario" = "Xoá kịch bản và toàn bộ thư mục của nó";
+"editor.unnamed" = "Chưa đặt tên";
+"editor.read_only_badge" = "Chỉ xem được";
+"editor.empty.title" = "Chưa có kịch bản nào";
+"editor.empty.action" = "Tạo kịch bản đầu tiên";
+"editor.newer_format.title" = "“%@” dùng định dạng mới hơn";
+"editor.newer_format.detail" = "Chỉ xem được, không sửa và không chạy được bằng bản Auto Click này.";
+"editor.scenario_name" = "Tên kịch bản";
+"editor.repeat_until_stopped" = "Lặp đến khi dừng";
+"editor.iteration_count" = "Số vòng";
+"editor.lock.toggle" = "Khoá vào ứng dụng";
+"editor.lock.application" = "Ứng dụng";
+"editor.lock.choose" = "Chọn ứng dụng…";
+"editor.lock.refresh" = "Làm mới danh sách ứng dụng";
+"editor.not_chosen" = "Chưa chọn";
+"editor.add_step" = "Thêm bước";
+"editor.duplicate_step" = "Nhân bản bước";
+"editor.delete_step" = "Xoá bước";
+"editor.drag_to_reorder" = "Kéo để đổi thứ tự";
+"editor.anchor_needs_lock" = "Hãy chọn ứng dụng khoá trước khi neo theo cửa sổ.";
+"editor.locked_not_running" = "%@ hiện không chạy.";
+"editor.no_window_for_locked" = "Không lấy được cửa sổ nào của %@.";
+
+/* MARK: Step summaries in the list */
+"summary.hold" = ", giữ %d ms";
+"summary.scroll" = "Cuộn (%1$d, %2$d)";
+"summary.move" = "Di chuột";
+"summary.drag" = "Kéo %1$@ tới %2$@";
+"summary.type_empty" = "Gõ chuỗi (trống)";
+"summary.type" = "Gõ “%@”";
+"summary.key" = "Phím %@";
+"summary.target.cursor" = "Theo con trỏ";
+"summary.target.point" = "Điểm màn hình X: %1$d  Y: %2$d";
+"summary.target.corner" = "Lệch góc %1$@: %2$d, %3$d";
+"summary.target.template" = "Ảnh mẫu %1$@ (ngưỡng %2$@)";
+"summary.target.template_missing" = "chưa chụp";
+"summary.target.text_empty" = "Chữ (chưa nhập)";
+"summary.target.text" = "Chữ “%@”";
+
+/* MARK: Step detail */
+"step.action.section" = "Hành động";
+"step.action.kind" = "Loại";
+"step.position" = "Vị trí";
+"step.release_point" = "Điểm nhả";
+"step.repeat.section" = "Lặp và chờ";
+"step.repeat.count" = "Lặp bước";
+"step.repeat.unit" = "lần";
+"step.delay_after" = "Chờ sau mỗi lần";
+"step.minimum_gap_hint" = "Bộ chạy luôn nhường ít nhất %d ms giữa hai sự kiện.";
+"step.button" = "Nút";
+"step.click_count" = "Số lần bấm";
+"step.hold" = "Giữ";
+"step.double_click_hint" = "Hai lần bấm liền nhau được đánh dấu là double click, không phải hai click rời.";
+"step.hold_hint" = "Con trỏ đứng yên trong lúc giữ. Dừng giữa chừng vẫn nhả nút.";
+"step.scroll.unit" = "dòng";
+"step.scroll.horizontal" = "Ngang";
+"step.scroll.vertical" = "Dọc";
+"step.scroll.hint" = "Dọc dương là cuộn lên.";
+"step.move_hint" = "Chỉ đưa con trỏ tới vị trí, không bấm gì.";
+"step.drag_hint" = "Nhấn giữ tại Vị trí, kéo qua %d điểm trung gian, rồi nhả tại Điểm nhả.";
+"step.type.content" = "Nội dung";
+"step.type.per_key_hint" = "Gõ từng phím một, đúng như người gõ thật — hợp với game. Trong lúc gõ, nguồn nhập tạm chuyển sang ABC rồi trả lại như cũ.";
+"step.type.chunked_hint" = "Có ký tự ngoài ASCII nên chuỗi được gửi theo khối, ứng dụng đích nhận cả khối như một phím. Gõ được tiếng Việt và emoji, nhưng game phản ứng theo từng phím sẽ không nhận đúng.";
+"step.key" = "Phím";
+"step.modifiers" = "Phím bổ trợ";
+"step.key_preview" = "Sẽ gửi %@.";
+"step.key_activation_hint" = "Trước khi gõ, Auto Click đưa %@ lên trước; không đưa lên được thì dừng.";
+"step.key_no_lock_hint" = "Chưa khoá ứng dụng: phím sẽ đi vào bất kỳ cửa sổ nào đang ở trước.";
+"step.target.kind" = "Loại";
+"step.target.cursor_hint" = "Đọc lại vị trí con trỏ ở mỗi lần lặp, nên chuỗi thao tác sẽ đi theo tay bạn.";
+"step.target.coordinates" = "Toạ độ";
+"step.target.choose_point" = "Chọn điểm…";
+"step.target.corner_offset" = "Lệch góc %@";
+"step.target.anchor_hint" = "Bám vào góc gần điểm nhất của cửa sổ trước nhất thuộc %@, nên cửa sổ dịch chuyển hay phóng to vẫn đúng.";
+"step.target.anchor_needs_lock" = "Phải khoá kịch bản vào một ứng dụng thì mới neo được theo cửa sổ.";
+"step.target.template" = "Ảnh mẫu";
+"step.target.capture_region" = "Chụp vùng…";
+"step.target.capture_again" = "Chụp lại…";
+"step.target.template_hint" = "Khoanh được ở bất cứ đâu — kể cả từ một ảnh chụp màn hình đang mở trong ứng dụng khác, khi mục tiêu chưa hiện ra.";
+"step.target.text" = "Chữ cần tìm";
+"step.target.text_hint" = "Không phân biệt hoa thường. Bền hơn ảnh mẫu khi đổi giao diện sáng/tối hay cỡ chữ, nhưng chỉ nhắm được thứ có chữ.";
+"step.template.not_captured" = "Chưa chụp";
+"step.template.file_missing" = "Thiếu tệp ảnh mẫu";
+"step.threshold" = "Ngưỡng khớp";
+"step.wait_at_most" = "Chờ tối đa";
+"step.on_timeout" = "Hết giờ thì";
+"step.on_timeout.stop" = "Dừng kịch bản";
+"step.on_timeout.skip" = "Bỏ qua bước";
+"step.search_region" = "Vùng tìm";
+"step.search_region.clear" = "Bỏ";
+"step.search_region.pick" = "Khoanh…";
+"step.wait_hint" = "Thử lại tới %d ms — đủ để đợi nút hiện ra sau khi trang tải.";
+"step.region.whole_screen" = "Cả màn hình (hoặc cửa sổ đã khoá)";
+"step.region.absolute" = "Tuyệt đối %1$d×%2$d — trượt nếu cửa sổ dịch";
+"step.region.window_relative" = "Theo cửa sổ %1$d×%2$d";
+
+/* MARK: Actions and targets */
+"action.click" = "Click / giữ nhấn";
+"action.scroll" = "Cuộn";
+"action.move" = "Di chuột";
+"action.drag" = "Kéo thả";
+"action.type" = "Gõ chuỗi";
+"action.press_key" = "Tổ hợp phím";
+"target.cursor" = "Theo con trỏ";
+"target.fixed_point" = "Điểm cố định";
+"target.window_relative" = "Lệch theo cửa sổ";
+"target.template" = "Theo ảnh mẫu";
+"target.text" = "Theo chữ";
+"button.left" = "trái";
+"button.right" = "phải";
+"button.middle" = "giữa";
+"corner.top_left" = "trên-trái";
+"corner.top_right" = "trên-phải";
+"corner.bottom_left" = "dưới-trái";
+"corner.bottom_right" = "dưới-phải";
+"key.numpad_enter" = "Enter (bàn số)";
+
+/* MARK: Overlays */
+"overlay.pick_point" = "Click để chọn điểm  •  Esc để hủy";
+"overlay.search_region" = "Kéo để chọn vùng tìm  •  Esc để hủy";
+"overlay.template_region" = "Kéo để chọn vùng làm ảnh mẫu  •  Esc để hủy";
+
+/* MARK: Errors */
+"error.interval.not_an_integer" = "Interval phải là số nguyên.";
+"error.interval.out_of_range" = "Interval phải từ %1$@ đến %2$@ ms.";
+"error.repeat.not_an_integer" = "Repeat phải là số nguyên.";
+"error.repeat.out_of_range" = "Repeat phải từ %1$@ đến %2$@.";
+"error.lock.missing_selection" = "Hãy chọn ứng dụng cần khóa.";
+"error.lock.not_running" = "Ứng dụng đã chọn hiện không chạy.";
+"error.fixed_point_missing" = "Hãy chọn một điểm click cố định.";
+"error.empty_scenario" = "Kịch bản chưa có bước nào.";
+"error.accessibility_denied" = "Hãy cấp quyền Accessibility cho Auto Click rồi thử lại. Nếu Auto Click đã có trong danh sách, hãy tắt rồi bật lại — bản cập nhật làm quyền cũ hết hiệu lực.";
+"error.missing_locked_application" = "Kịch bản có bước neo theo cửa sổ nên phải chọn ứng dụng khoá.";
+"error.locked_application_not_running" = "%@ hiện không chạy.";
+"error.locked_application_terminated" = "Ứng dụng đích đã đóng; Auto Click đã dừng.";
+"error.point_outside_locked_application" = "Điểm thao tác không nằm trong ứng dụng đã khoá; Auto Click đã dừng.";
+"error.anchor_window_unavailable" = "Không lấy được cửa sổ nào của %@ để làm gốc toạ độ — cửa sổ có thể đang thu nhỏ dưới Dock.";
+"error.activation_failed" = "Không đưa được %@ lên trước để gõ phím; Auto Click đã dừng.";
+"error.unknown_key" = "Không nhận ra phím “%@”.";
+"error.target_not_found" = "Không tìm thấy %@ trên màn hình; Auto Click đã dừng.";
+"error.launch_at_login" = "Không thể đổi cài đặt đăng nhập: %@";
+"error.schema_too_new" = "Kịch bản dùng định dạng phiên bản %1$d, bản Auto Click này chỉ hiểu tới %2$d.";
+"error.unknown_action" = "Không nhận ra hành động “%@”.";
+"error.unknown_target" = "Không nhận ra vị trí “%@”.";
+"error.screen_recording_denied" = "Hãy cấp quyền Screen Recording cho Auto Click rồi thử lại. Nếu đã cấp rồi, hãy thoát và mở lại Auto Click.";
+"error.no_display" = "Không tìm thấy màn hình nào để chụp.";
+"error.pixel_scale_unreadable" = "Không đọc được tỉ lệ điểm ảnh của màn hình nên đã bỏ qua để tránh bấm sai chỗ.";
+"error.screen_capture_failed" = "Không chụp được màn hình.";
+"issue.schema_read_only" = "%1$@: định dạng phiên bản %2$d, chỉ xem được.";
+"issue.unreadable" = "%@: không đọc được scenario.json.";
+
+/* MARK: Names written into scenario.json (LC-11) */
+"data.duplicate_suffix" = "%@ (bản sao)";
+"data.new_scenario_name" = "Kịch bản mới";

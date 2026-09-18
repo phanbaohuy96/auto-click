@@ -114,7 +114,7 @@ struct RecorderCaptureTests {
         // RC-2: a click on Auto Click's own window must not get into the recording.
         #expect(recorder.recordedGestureCount == 0)
         #expect(result() == nil)
-        #expect(recorder.message == "Không ghi được thao tác nào.")
+        #expect(recorder.message == .nothingCaptured)
     }
 
     @Test func theScrollAxesAreNotSwapped() {
@@ -168,7 +168,7 @@ struct RecorderCaptureTests {
         let unwrapped = try! #require(result())
         #expect(unwrapped.scenario.lockedApplication == nil)
         #expect(unwrapped.scenario.steps.allSatisfy { !$0.target.needsAnchorWindow })
-        #expect(unwrapped.warning?.contains("2 ứng dụng") == true)
+        #expect(unwrapped.warning == .spansSeveralApplications(2))
     }
 
     @Test func aDisabledTapIsReEnabledWithoutPollutingTheRecording() {
@@ -241,7 +241,7 @@ struct RecorderNeverListensToTheKeyboardTests {
     }
 }
 
-/// UI-16 (same family): `"Đã ghi N bước."` is a **success**, and must not carry the error icon.
+/// UI-16 (same family): `"Recorded N steps."` is a **success**, and must not carry the error icon.
 ///
 /// The recorder's message was poured into the same line as the reasons a Scenario cannot run, and that line was
 /// always drawn with an orange `exclamationmark.triangle.fill`. So a successful recording still looked like a failure.
@@ -256,7 +256,9 @@ struct RecorderMessageSeverityTests {
         recorder.handle(type: .leftMouseUp, event: TestEvent.mouse(.leftMouseUp, at: CGPoint(x: 150, y: 140)))
         recorder.finishSession()
 
-        #expect(recorder.message == "Đã ghi 1 bước.")
+        // LC-6: the assertion is on the message's **identity**, not on its words. Before Slice 6 this
+        // compared Vietnamese prose, so correcting a typo in the interface broke a test about icons.
+        #expect(recorder.message == .recorded(1))
         #expect(recorder.messageNeedsAttention == false)
     }
 
@@ -269,7 +271,7 @@ struct RecorderMessageSeverityTests {
         recorder.handle(type: .leftMouseUp, event: TestEvent.mouse(.leftMouseUp, at: CGPoint(x: 150, y: 140)))
         recorder.finishSession()
 
-        #expect(recorder.message == "Không ghi được thao tác nào.")
+        #expect(recorder.message == .nothingCaptured)
         #expect(recorder.messageNeedsAttention)
     }
 

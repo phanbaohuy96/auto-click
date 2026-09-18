@@ -80,10 +80,13 @@ private struct Fixture {
     ]
     store.save(original)
 
+    Catalogs.pinnedToEnglish
     let copy = try #require(store.duplicate(original))
 
     #expect(copy.id != original.id)
-    #expect(copy.name == "Original (bản sao)")
+    // LC-11: the suffix is translated once, here, and then it is data — it does not follow a later
+    // language change. The catalogue is pinned to English so the assertion can name the text.
+    #expect(copy.name == "Original (copy)")
     #expect(Set(copy.steps.map(\.id)).isDisjoint(with: Set(original.steps.map(\.id))))
     #expect(copy.steps.map(\.action) == original.steps.map(\.action))
 }

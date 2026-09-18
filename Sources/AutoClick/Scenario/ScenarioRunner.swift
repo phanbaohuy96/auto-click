@@ -23,37 +23,37 @@ enum ScenarioRunError: LocalizedError, Equatable {
     case activationFailed(String)
     case unknownKey(String)
     case targetNotFound(String)
-    case recognitionFailed(String)
+    case screenCaptureFailed(ScreenCaptureError?)
 
     var errorDescription: String? {
         switch self {
         case .emptyScenario:
-            return "Kịch bản chưa có bước nào."
+            return localized(.errorEmptyScenario)
         case .accessibilityDenied:
             // SF-10: an app update changes the signature, macOS invalidates the old grant but still
             // shows the toggle as on. Saying only "please grant the permission" makes the user open
             // System Settings, see it already enabled, and conclude the app is broken.
-            return "Hãy cấp quyền Accessibility cho Auto Click rồi thử lại. Nếu Auto Click đã có trong danh sách, hãy tắt rồi bật lại — bản cập nhật làm quyền cũ hết hiệu lực."
+            return localized(.errorAccessibilityDenied)
         case .missingLockedApplication:
-            return "Kịch bản có bước neo theo cửa sổ nên phải chọn ứng dụng khoá."
+            return localized(.errorMissingLockedApplication)
         case let .lockedApplicationNotRunning(name):
-            return "\(name) hiện không chạy."
+            return localized(.errorLockedApplicationNotRunning, name)
         case .lockedApplicationTerminated:
-            return "Ứng dụng đích đã đóng; Auto Click đã dừng."
+            return localized(.errorLockedApplicationTerminated)
         case .pointOutsideLockedApplication:
-            return "Điểm thao tác không nằm trong ứng dụng đã khoá; Auto Click đã dừng."
+            return localized(.errorPointOutsideLockedApplication)
         case let .anchorWindowUnavailable(name):
             // EX-25: the most common cause is the window being minimised under the Dock. Not saying so
             // sends the user looking in the wrong place.
-            return "Không lấy được cửa sổ nào của \(name) để làm gốc toạ độ — cửa sổ có thể đang thu nhỏ dưới Dock."
+            return localized(.errorAnchorWindowUnavailable, name)
         case let .activationFailed(name):
-            return "Không đưa được \(name) lên trước để gõ phím; Auto Click đã dừng."
+            return localized(.errorActivationFailed, name)
         case let .unknownKey(key):
-            return "Không nhận ra phím \"\(key)\"."
+            return localized(.errorUnknownKey, key)
         case let .targetNotFound(description):
-            return "Không tìm thấy \(description) trên màn hình; Auto Click đã dừng."
-        case let .recognitionFailed(reason):
-            return reason
+            return localized(.errorTargetNotFound, description)
+        case let .screenCaptureFailed(cause):
+            return cause?.errorDescription ?? localized(.errorScreenCaptureFailed)
         }
     }
 }
@@ -72,10 +72,39 @@ final class ScenarioRunner: ObservableObject {
     }
     @Published private(set) var countdown: Int?
     @Published private(set) var progress: RunProgress?
-    @Published private(set) var message: String?
+    /// LC-6: an enum, so the status line is translated when it is drawn. A stored string would keep the
+    /// language the run happened to end in, however many times the user switched afterwards.
+    @Published private(set) var message: Message?
+
+    /// How a run ended, or why it could not start.
+    enum Message: Equatable {
+        case stopped
+        case failed(ScenarioRunError)
+        /// Anything thrown that is not a `ScenarioRunError`; its text comes from the system, already localised.
+        case unexpected(String)
+        case completedSteps(Int)
+        case completedIterations(Int)
+
+        var text: String {
+            switch self {
+            case .stopped: return localized(.runStopped)
+            case let .failed(error): return error.errorDescription ?? localized(.runStopped)
+            case let .unexpected(reason): return localized(.runFailed, reason)
+            case let .completedSteps(count): return localized(.runCompletedSteps, count)
+            case let .completedIterations(count): return localized(.runCompletedIterations, count)
+            }
+        }
+
+        var isError: Bool {
+            switch self {
+            case .failed, .unexpected: return true
+            case .stopped, .completedSteps, .completedIterations: return false
+            }
+        }
+    }
     /// UI-16: whether `message` is an error. It used to be just a string, so the interface could not tell
-    /// "finished" from "failed" and drew both with a checkmark.
-    @Published private(set) var messageIsError = false
+    /// UI-16: an error state has to look like an error, so this is read straight off the message.
+    var messageIsError: Bool { message?.isError ?? false }
     @Published private(set) var runningScenarioName: String?
 
     var onRunningStateChanged: ((Bool) -> Void)?
@@ -115,16 +144,18 @@ final class ScenarioRunner: ObservableObject {
 
     var statusText: String {
         if let countdown {
-            return "Bắt đầu sau \(countdown) giây…"
+            return localized(.runCountdown, countdown)
         }
         if let progress {
-            let step = "Bước \(progress.stepIndex)/\(progress.stepCount)"
+            let step = localized(.runProgressStep, progress.stepIndex, progress.stepCount)
             if let total = progress.totalIterations {
-                return total == 1 ? step : "Vòng \(progress.iteration)/\(total) · \(step)"
+                return total == 1
+                    ? step
+                    : localized(.runProgressIterationOfTotal, progress.iteration, total, step)
             }
-            return "Vòng \(progress.iteration) · \(step)"
+            return localized(.runProgressIteration, progress.iteration, step)
         }
-        return message ?? "Sẵn sàng"
+        return message?.text ?? localized(.runReady)
     }
 
     /// Checks everything that has to be true *before* the first event is emitted (EX-2).
@@ -146,14 +177,12 @@ final class ScenarioRunner: ObservableObject {
         guard !isRunning else { return false }
 
         if let error = validate(scenario) {
-            message = error.errorDescription
-            messageIsError = true
+            message = .failed(error)
             return false
         }
 
         guard system.isAccessibilityTrusted() else {
-            message = ScenarioRunError.accessibilityDenied.errorDescription
-            messageIsError = true
+            message = .failed(.accessibilityDenied)
             return false
         }
 
@@ -168,7 +197,6 @@ final class ScenarioRunner: ObservableObject {
         }
 
         message = nil
-        messageIsError = false
         progress = nil
         runningScenarioName = scenario.name
         isRunning = true
@@ -187,10 +215,10 @@ final class ScenarioRunner: ObservableObject {
     func stop() {
         task?.cancel()
         task = nil
-        finish(with: "Đã dừng")
+        finish(with: .stopped)
     }
 
-    private func finish(with message: String?, isError: Bool = false) {
+    private func finish(with message: Message?) {
         // Runs unconditionally, even once the task has been cancelled (SF-1, SF-2).
         mouse.releaseAllHeld()
         // EX-27: the same obligation for the input source. `⌥⌘S` can cut a key-by-key string part-way through,
@@ -202,21 +230,20 @@ final class ScenarioRunner: ObservableObject {
         isRunning = false
         if let message {
             self.message = message
-            messageIsError = isError
         }
     }
 
     private func run(_ scenario: Scenario, lockedProcessIdentifier: pid_t?) async {
-        var outcome: String?
-        var outcomeIsError = false
+        var outcome: Message?
         defer {
             task = nil
-            finish(with: outcome, isError: outcomeIsError)
+            finish(with: outcome)
         }
 
         let context = RunContext(
             lockedProcessIdentifier: lockedProcessIdentifier,
-            lockedApplicationName: scenario.lockedApplication?.name ?? "ứng dụng đã khoá",
+            lockedApplicationName: scenario.lockedApplication?.name
+                ?? localized(.editorLockApplication),
             lockedWindowTitle: scenario.lockedApplication?.windowTitle
         )
 
@@ -247,10 +274,9 @@ final class ScenarioRunner: ObservableObject {
 
             outcome = completionMessage(for: scenario)
         } catch is CancellationError {
-            outcome = "Đã dừng"
+            outcome = .stopped
         } catch {
-            outcome = "Có lỗi: \(error.localizedDescription)"
-            outcomeIsError = true
+            outcome = .unexpected(error.localizedDescription)
         }
     }
 
@@ -262,14 +288,14 @@ final class ScenarioRunner: ObservableObject {
         let lockedWindowTitle: String?
     }
 
-    private func completionMessage(for scenario: Scenario) -> String {
+    private func completionMessage(for scenario: Scenario) -> Message {
         switch scenario.runCount {
-        case let .times(count) where count == 1:
-            return "Hoàn tất \(scenario.steps.count) bước"
+        case .times(1):
+            return .completedSteps(scenario.steps.count)
         case let .times(count):
-            return "Hoàn tất \(count) vòng"
+            return .completedIterations(count)
         case .untilStopped:
-            return "Đã dừng"
+            return .stopped
         }
     }
 
@@ -405,9 +431,7 @@ final class ScenarioRunner: ObservableObject {
             do {
                 if let point = try await recognizer.locate(target, within: region) { return point }
             } catch let error as ScreenCaptureError {
-                throw ScenarioRunError.recognitionFailed(
-                    error.errorDescription ?? "Không chụp được màn hình."
-                )
+                throw ScenarioRunError.screenCaptureFailed(error)
             }
 
             if ContinuousClock.now >= deadline { break }

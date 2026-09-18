@@ -7,10 +7,10 @@ enum PopoverMode: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    var titleKey: StringKey {
         switch self {
-        case .simple: return "Đơn giản"
-        case .scenario: return "Kịch bản"
+        case .simple: return .menuModeSimple
+        case .scenario: return .menuModeScenario
         }
     }
 }
@@ -22,6 +22,7 @@ struct AutoClickMenuView: View {
     @ObservedObject var store: ScenarioStore
     @ObservedObject var recorder: ScenarioRecorder
     @ObservedObject var launchAtLogin: LaunchAtLoginManager
+    @ObservedObject var localization: Localization
     let onOpenEditor: () -> Void
 
     @AppStorage("popoverMode") private var rawMode = PopoverMode.simple.rawValue
@@ -37,8 +38,8 @@ struct AutoClickMenuView: View {
         VStack(alignment: .leading, spacing: 14) {
             header
 
-            Picker("Chế độ", selection: mode) {
-                ForEach(PopoverMode.allCases) { Text($0.title).tag($0) }
+            Picker(localization(.menuModeLabel), selection: mode) {
+                ForEach(PopoverMode.allCases) { Text(localization($0.titleKey)).tag($0) }
             }
             .labelsHidden()
             .pickerStyle(.segmented)
@@ -76,12 +77,31 @@ struct AutoClickMenuView: View {
             Divider()
 
             Toggle(
-                "Khởi động cùng MacBook",
+                localization(.menuLaunchAtLogin),
                 isOn: Binding(
                     get: { launchAtLogin.isEnabled },
                     set: { launchAtLogin.setEnabled($0) }
                 )
             )
+
+            // UI-22: the popover's settings area, next to the login toggle that opened it. The editor window
+            // is the wrong home — someone who only ever uses Simple mode never opens it, and would have no
+            // way to find the language at all.
+            Picker(
+                localization(.menuLanguage),
+                selection: Binding(
+                    get: { localization.preference },
+                    set: { localization.select($0) }
+                )
+            ) {
+                Text(localization(.menuLanguageFollowSystem)).tag(String?.none)
+                ForEach(Localization.supportedCodes, id: \.self) { code in
+                    Text(Localization.nativeName(of: code)).tag(String?.some(code))
+                }
+            }
+            // `.menu`, not `.segmented` like the pickers above: six entries mixing Han characters with Latin
+            // would not fit a popover fixed at 340 points.
+            .pickerStyle(.menu)
 
             if let error = launchAtLogin.errorMessage {
                 Text(error)
@@ -91,13 +111,13 @@ struct AutoClickMenuView: View {
             }
 
             HStack {
-                Button("Cấp quyền Accessibility") {
+                Button(localization(.menuGrantAccessibility)) {
                     clicker.openAccessibilitySettings()
                 }
                 .buttonStyle(.link)
 
                 if needsScreenRecording {
-                    Button("Cấp quyền Screen Recording") {
+                    Button(localization(.menuGrantScreenRecording)) {
                         ScreenRecordingPermission.request()
                         ScreenRecordingPermission.openSettings()
                     }
@@ -106,7 +126,7 @@ struct AutoClickMenuView: View {
 
                 Spacer()
 
-                Button("Thoát") {
+                Button(localization(.menuQuit)) {
                     NSApplication.shared.terminate(nil)
                 }
                 .keyboardShortcut("q")
@@ -134,18 +154,18 @@ struct AutoClickMenuView: View {
         if runner.isRunning { return nil }
         switch mode.wrappedValue {
         case .simple:
-            guard let text = clicker.validationMessage ?? clicker.message else { return nil }
+            guard let text = clicker.validationMessage ?? clicker.messageText else { return nil }
             return Notice(text: text, needsAttention: true)
         case .scenario:
             guard let scenario = store.selectedScenario else {
-                return Notice(text: "Chưa có kịch bản nào.", needsAttention: true)
+                return Notice(text: localization(.scenarioNoneAtAll), needsAttention: true)
             }
             if store.isReadOnly(scenario) {
-                return Notice(text: "Kịch bản này chỉ xem được.", needsAttention: true)
+                return Notice(text: localization(.scenarioReadOnlyBlocker), needsAttention: true)
             }
             if needsScreenRecording {
                 return Notice(
-                    text: "Kịch bản dùng nhận dạng ảnh/chữ nên cần thêm quyền Screen Recording.",
+                    text: localization(.scenarioNeedsScreenRecording),
                     needsAttention: true
                 )
             }
@@ -153,7 +173,7 @@ struct AutoClickMenuView: View {
                 return Notice(text: invalid, needsAttention: true)
             }
             guard let recorderMessage = recorder.message else { return nil }
-            return Notice(text: recorderMessage, needsAttention: recorder.messageNeedsAttention)
+            return Notice(text: recorderMessage.text, needsAttention: recorderMessage.needsAttention)
         }
     }
 
@@ -179,7 +199,7 @@ struct AutoClickMenuView: View {
     @ViewBuilder
     private var runButton: some View {
         if runner.isRunning {
-            Button("Dừng", role: .destructive) {
+            Button(localization(.runStop), role: .destructive) {
                 runner.stop()
             }
             .buttonStyle(.borderedProminent)
@@ -203,7 +223,7 @@ struct AutoClickMenuView: View {
                 }
                 if started { NSApp.keyWindow?.orderOut(nil) }
             } label: {
-                Label("Bắt đầu sau \(runner.countdownSeconds) giây", systemImage: "play.fill")
+                Label(localization(.runStart, runner.countdownSeconds), systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -217,7 +237,10 @@ struct AutoClickMenuView: View {
     @ViewBuilder
     private var recordButton: some View {
         if recorder.isRecording {
-            Label("Đang ghi \(recorder.recordedGestureCount) thao tác — ⌥⌘R để kết thúc", systemImage: "record.circle")
+            Label(
+                localization(.recordInProgress, recorder.recordedGestureCount),
+                systemImage: "record.circle"
+            )
                 .font(.caption)
                 .foregroundStyle(.red)
         } else if !runner.isRunning {
@@ -226,9 +249,9 @@ struct AutoClickMenuView: View {
                     NSApp.keyWindow?.orderOut(nil)
                     recorder.start()
                 } label: {
-                    Label("Ghi thao tác", systemImage: "record.circle")
+                    Label(localization(.recordButton), systemImage: "record.circle")
                 }
-                Text("kết thúc bằng ⌥⌘R")
+                Text(localization(.recordHint))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -240,9 +263,9 @@ struct AutoClickMenuView: View {
     private var scenarioSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Picker("Kịch bản", selection: $store.selectedScenarioID) {
+                Picker(localization(.scenarioPickerLabel), selection: $store.selectedScenarioID) {
                     if store.scenarios.isEmpty {
-                        Text("Chưa có kịch bản").tag(UUID?.none)
+                        Text(localization(.scenarioPickerEmpty)).tag(UUID?.none)
                     }
                     ForEach(store.scenarios) { scenario in
                         Text(scenario.name).tag(UUID?.some(scenario.id))
@@ -256,7 +279,7 @@ struct AutoClickMenuView: View {
                 } label: {
                     Image(systemName: "slider.horizontal.3")
                 }
-                .help("Soạn kịch bản")
+                .help(localization(.scenarioOpenEditor))
             }
 
             if let scenario = store.selectedScenario {
@@ -265,19 +288,19 @@ struct AutoClickMenuView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Button("Soạn kịch bản…") { openEditor() }
+            Button(localization(.scenarioOpenEditorEllipsis)) { openEditor() }
                 .buttonStyle(.link)
                 .font(.caption)
         }
     }
 
     private func summary(of scenario: Scenario) -> String {
-        let steps = "\(scenario.steps.count) bước"
+        let steps = localization(.scenarioSummarySteps, scenario.steps.count)
         switch scenario.runCount {
         case let .times(count) where count > 1:
-            return "\(steps) · lặp \(count) vòng"
+            return localization(.scenarioSummaryWithLoops, steps, localization(.scenarioSummaryLoops, count))
         case .untilStopped:
-            return "\(steps) · lặp đến khi dừng"
+            return localization(.scenarioSummaryUntilStopped, steps)
         case .times:
             return steps
         }
@@ -290,8 +313,16 @@ struct AutoClickMenuView: View {
     private var simpleSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(spacing: 10) {
-                numberField(title: "Time interval", suffix: "ms", text: $clicker.intervalText)
-                numberField(title: "Repeat", suffix: "lần", text: $clicker.repeatText)
+                numberField(
+                    title: localization(.simpleInterval),
+                    suffix: "ms",
+                    text: $clicker.intervalText
+                )
+                numberField(
+                    title: localization(.simpleRepeat),
+                    suffix: localization(.simpleRepeatUnit),
+                    text: $clicker.repeatText
+                )
             }
 
             targetPicker
@@ -308,7 +339,7 @@ struct AutoClickMenuView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Auto Click")
                     .font(.headline)
-                Text("Click theo con trỏ, điểm cố định, hoặc kịch bản")
+                Text(localization(.menuSubtitle))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -317,12 +348,12 @@ struct AutoClickMenuView: View {
 
     private var targetPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Vị trí click")
+            Text(localization(.simplePositionLabel))
                 .font(.subheadline.weight(.medium))
 
-            Picker("Vị trí click", selection: $clicker.targetMode) {
-                Text("Theo con trỏ").tag(ClickTargetMode.cursor)
-                Text("Điểm cố định").tag(ClickTargetMode.fixedPoint)
+            Picker(localization(.simplePositionLabel), selection: $clicker.targetMode) {
+                Text(localization(.simplePositionCursor)).tag(ClickTargetMode.cursor)
+                Text(localization(.simplePositionFixed)).tag(ClickTargetMode.fixedPoint)
             }
             .labelsHidden()
             .pickerStyle(.segmented)
@@ -335,14 +366,16 @@ struct AutoClickMenuView: View {
 
                     Spacer()
 
-                    Button(clicker.fixedPoint == nil ? "Chọn điểm…" : "Chọn lại…") {
+                    Button(localization(
+                        clicker.fixedPoint == nil ? .simplePointChoose : .simplePointChooseAgain
+                    )) {
                         let returnWindow = NSApp.keyWindow
                         returnWindow?.orderOut(nil)
                         clicker.chooseFixedPoint(returningTo: returnWindow)
                     }
                 }
             } else {
-                Label("Lấy vị trí con trỏ khi hết đếm ngược", systemImage: "cursorarrow")
+                Label(localization(.simpleCursorHint), systemImage: "cursorarrow")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -353,7 +386,7 @@ struct AutoClickMenuView: View {
         if runner.countdown != nil { return "timer" }
         if runner.isRunning { return "cursorarrow.rays" }
         // UI-16: an error state has to look like an error. Previously every non-running state carried a
-        // checkmark, so the line "Có lỗi: …" appeared with the success icon.
+        // checkmark, so the line "Error: …" appeared with the success icon.
         if runner.messageIsError { return "exclamationmark.triangle.fill" }
         return "checkmark.circle"
     }
@@ -365,19 +398,22 @@ struct AutoClickMenuView: View {
 
     private var applicationLockPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Toggle("Chỉ click trong ứng dụng", isOn: $clicker.applicationLockEnabled)
+            Toggle(localization(.simpleLockToggle), isOn: $clicker.applicationLockEnabled)
                 .font(.subheadline.weight(.medium))
 
             if clicker.applicationLockEnabled {
                 HStack {
-                    Picker("Ứng dụng", selection: $clicker.selectedApplicationIdentifier) {
-                        Text("Chọn ứng dụng…").tag("")
+                    Picker(
+                        localization(.simpleLockApplication),
+                        selection: $clicker.selectedApplicationIdentifier
+                    ) {
+                        Text(localization(.simpleLockChoose)).tag("")
 
                         if !clicker.selectedApplicationIdentifier.isEmpty,
                            !clicker.runningApplications.contains(where: {
                                $0.bundleIdentifier == clicker.selectedApplicationIdentifier
                            }) {
-                            Text("\(clicker.selectedApplicationName) — đã đóng")
+                            Text(localization(.simpleLockClosed, clicker.selectedApplicationDisplayName))
                                 .tag(clicker.selectedApplicationIdentifier)
                         }
 
@@ -393,10 +429,10 @@ struct AutoClickMenuView: View {
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
-                    .help("Làm mới danh sách ứng dụng")
+                    .help(localization(.simpleLockRefresh))
                 }
 
-                Label("Chỉ click khi điểm thuộc ứng dụng đã chọn", systemImage: "lock.fill")
+                Label(localization(.simpleLockHint), systemImage: "lock.fill")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
