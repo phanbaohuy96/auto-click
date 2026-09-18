@@ -290,3 +290,38 @@ struct RecorderMessageSeverityTests {
         #expect(recorder.messageNeedsAttention)
     }
 }
+
+/// RC-20: the default name **is** the sort key, so its timestamp has to sort chronologically.
+///
+/// `ScenarioStore` orders the list with `name.localizedCaseInsensitiveCompare`. Under the previous
+/// `"dd/MM HH:mm"` the day came first, so a recording made in October sorted ahead of one made in September.
+@MainActor
+struct RecordingNameOrderingTests {
+    private func recordedName(at components: DateComponents) throws -> String {
+        let fake = FakeRecordingEnvironment()
+        fake.now = try #require(Calendar(identifier: .gregorian).date(from: components))
+            .timeIntervalSinceReferenceDate
+        let recorder = ScenarioRecorder(environment: fake.environment)
+        var captured: RecordingAssembler.Result?
+        recorder.onFinished = { captured = $0 }
+
+        recorder.handle(type: .leftMouseDown, event: TestEvent.mouse(.leftMouseDown, at: CGPoint(x: 150, y: 140)))
+        recorder.handle(type: .leftMouseUp, event: TestEvent.mouse(.leftMouseUp, at: CGPoint(x: 150, y: 140)))
+        recorder.finishSession()
+
+        return try #require(captured).scenario.name
+    }
+
+    @Test func aLaterRecordingSortsAfterAnEarlierOneAcrossAMonthBoundary() throws {
+        let september = try recordedName(
+            at: DateComponents(year: 2026, month: 9, day: 17, hour: 14, minute: 30)
+        )
+        let october = try recordedName(
+            at: DateComponents(year: 2026, month: 10, day: 1, hour: 9, minute: 5)
+        )
+
+        #expect(september.hasSuffix("2026-09-17 14:30"))
+        #expect(october.hasSuffix("2026-10-01 09:05"))
+        #expect(september.localizedCaseInsensitiveCompare(october) == .orderedAscending)
+    }
+}
