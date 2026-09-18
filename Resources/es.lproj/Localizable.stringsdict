@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>editor.load_issues</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@scenarios@</string>
+		<key>scenarios</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d escenario con problemas</string>
+			<key>other</key>
+			<string>%d escenarios con problemas</string>
+		</dict>
+	</dict>
+	<key>panel.gestures</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@gestures@</string>
+		<key>gestures</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d operación</string>
+			<key>other</key>
+			<string>%d operaciones</string>
+		</dict>
+	</dict>
+	<key>record.finished</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@steps@</string>
+		<key>steps</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Grabado %d paso.</string>
+			<key>other</key>
+			<string>Grabados %d pasos.</string>
+		</dict>
+	</dict>
+	<key>record.in_progress</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@gestures@</string>
+		<key>gestures</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Grabando %d operación — ⌥⌘R para terminar</string>
+			<key>other</key>
+			<string>Grabando %d operaciones — ⌥⌘R para terminar</string>
+		</dict>
+	</dict>
+	<key>record.warning.multiple_applications</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@applications@</string>
+		<key>applications</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>La grabación abarca %d aplicación, así que usa coordenadas absolutas; los pasos se desviarán si la ventana se mueve.</string>
+			<key>other</key>
+			<string>La grabación abarca %d aplicaciones, así que usa coordenadas absolutas; los pasos se desviarán si la ventana se mueve.</string>
+		</dict>
+	</dict>
+	<key>run.completed.iterations</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@loops@</string>
+		<key>loops</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Completada %d vuelta</string>
+			<key>other</key>
+			<string>Completadas %d vueltas</string>
+		</dict>
+	</dict>
+	<key>run.completed.steps</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@steps@</string>
+		<key>steps</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Completado %d paso</string>
+			<key>other</key>
+			<string>Completados %d pasos</string>
+		</dict>
+	</dict>
+	<key>run.countdown</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@seconds@</string>
+		<key>seconds</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Empieza en %d segundo…</string>
+			<key>other</key>
+			<string>Empieza en %d segundos…</string>
+		</dict>
+	</dict>
+	<key>run.start</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@seconds@</string>
+		<key>seconds</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>Empezar en %d segundo</string>
+			<key>other</key>
+			<string>Empezar en %d segundos</string>
+		</dict>
+	</dict>
+	<key>scenario.summary.loops</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@loops@</string>
+		<key>loops</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d vuelta</string>
+			<key>other</key>
+			<string>%d vueltas</string>
+		</dict>
+	</dict>
+	<key>scenario.summary.steps</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@steps@</string>
+		<key>steps</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>one</key>
+			<string>%d paso</string>
+			<key>other</key>
+			<string>%d pasos</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

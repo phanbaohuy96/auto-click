@@ -1,0 +1,237 @@
+/* Auto Click — 日本語.
+   MACHINE TRANSLATED, not reviewed by a native speaker. Corrections are very welcome, and a partial one is
+   fine: anything missing here falls back to English (LC-7), so fixing twenty keys is a safe change.
+   機械翻訳であり、ネイティブによる校正は受けていません。修正の提案を歓迎します。未翻訳の項目は英語に
+   フォールバックするため、一部だけ直しても問題ありません。 */
+
+/* MARK: Menu bar popover */
+"menu.subtitle" = "カーソル位置・固定座標・シナリオでクリック";
+"menu.mode.label" = "モード";
+"menu.mode.simple" = "シンプル";
+"menu.mode.scenario" = "シナリオ";
+"menu.launch_at_login" = "ログイン時に起動";
+"menu.quit" = "終了";
+"menu.grant_accessibility" = "「アクセシビリティ」を許可";
+"menu.grant_screen_recording" = "「画面収録」を許可";
+"menu.language" = "言語";
+"menu.language.follow_system" = "システムに従う";
+
+/* MARK: Running */
+"run.stop" = "停止";
+"run.ready" = "準備完了";
+"run.stopped" = "停止しました";
+"run.progress.step" = "ステップ %1$d/%2$d";
+"run.progress.iteration_of_total" = "%1$d/%2$d 周目 · %3$@";
+"run.progress.iteration" = "%1$d 周目 · %2$@";
+"run.failed" = "エラー: %@";
+
+/* MARK: Recording */
+"record.button" = "操作を記録";
+"record.hint" = "⌥⌘R で終了";
+"record.nothing_captured" = "操作を記録できませんでした。";
+"record.tap_failed" = "イベントリスナーを作成できませんでした。";
+"record.default_name" = "記録";
+"record.warning.absolute_steps" = "記録中にウインドウを取得できなかったため、%2$d 個中 %1$d 個のステップが絶対座標を使っています。ウインドウが動くとこれらはずれます。";
+
+/* MARK: Floating panel */
+"panel.recording_title" = "操作を記録中";
+"panel.finish_hint" = "⌥⌘R で終了";
+"panel.stop_hint" = "⌥⌘S で即座に停止";
+"panel.finish" = "終了";
+"panel.stop" = "停止";
+
+/* MARK: Simple mode */
+"simple.interval" = "間隔";
+"simple.repeat" = "繰り返し回数";
+"simple.repeat.unit" = "回";
+"simple.scenario_name" = "シンプルモード";
+"simple.position.label" = "クリック位置";
+"simple.position.cursor" = "カーソル位置";
+"simple.position.fixed" = "固定座標";
+"simple.point.none" = "未選択";
+"simple.point.coordinates" = "X: %1$d  Y: %2$d";
+"simple.point.choose" = "位置を選択…";
+"simple.point.choose_again" = "選び直す…";
+"simple.cursor_hint" = "カウントダウン終了時のカーソル位置を使います";
+"simple.picking_point" = "保存したい位置をクリックしてください。Esc でキャンセルします。";
+"simple.point_cancelled" = "位置の選択をキャンセルしました。";
+"simple.point_saved" = "クリック位置を保存しました: %@";
+"simple.lock.toggle" = "特定のアプリ内だけでクリック";
+"simple.lock.application" = "アプリケーション";
+"simple.lock.choose" = "アプリケーションを選択…";
+"simple.lock.closed" = "%@ — 終了済み";
+"simple.lock.refresh" = "アプリケーション一覧を更新";
+"simple.lock.hint" = "その位置が選択したアプリに属するときだけクリックします";
+"simple.application.fallback_name" = "選択したアプリケーション";
+
+/* MARK: Scenario section of the popover */
+"scenario.picker.label" = "シナリオ";
+"scenario.picker.empty" = "シナリオがありません";
+"scenario.none_at_all" = "シナリオがまだありません。";
+"scenario.read_only_blocker" = "このシナリオは読み取り専用です。";
+"scenario.needs_screen_recording" = "このシナリオは画像・文字認識を使うため、「画面収録」の許可が必要です。";
+"scenario.open_editor" = "シナリオを編集";
+"scenario.open_editor_ellipsis" = "シナリオを編集…";
+"scenario.summary.with_loops" = "%1$@ · %2$@ 繰り返す";
+"scenario.summary.until_stopped" = "%@ · 停止するまで繰り返す";
+
+/* MARK: Editor window */
+"editor.title" = "シナリオを編集";
+"editor.running_notice" = "実行中 — 編集できません";
+"editor.select_a_step" = "編集するステップを選択してください";
+"editor.new_scenario" = "新規シナリオ";
+"editor.duplicate_scenario" = "複製";
+"editor.delete_scenario" = "シナリオとそのディレクトリ全体を削除";
+"editor.unnamed" = "名称未設定";
+"editor.read_only_badge" = "読み取り専用";
+"editor.empty.title" = "シナリオがありません";
+"editor.empty.action" = "最初のシナリオを作成";
+"editor.newer_format.title" = "「%@」は新しい形式です";
+"editor.newer_format.detail" = "読み取り専用: このバージョンの Auto Click では編集も実行もできません。";
+"editor.scenario_name" = "シナリオ名";
+"editor.repeat_until_stopped" = "停止するまで繰り返す";
+"editor.iteration_count" = "周回数";
+"editor.lock.toggle" = "アプリケーションに固定";
+"editor.lock.application" = "アプリケーション";
+"editor.lock.choose" = "アプリケーションを選択…";
+"editor.lock.refresh" = "アプリケーション一覧を更新";
+"editor.not_chosen" = "未選択";
+"editor.add_step" = "ステップを追加";
+"editor.duplicate_step" = "ステップを複製";
+"editor.delete_step" = "ステップを削除";
+"editor.drag_to_reorder" = "ドラッグで並べ替え";
+"editor.anchor_needs_lock" = "ウインドウに固定する前に、対象のアプリケーションを選択してください。";
+"editor.locked_not_running" = "%@ は実行されていません。";
+"editor.no_window_for_locked" = "%@ のウインドウを取得できませんでした。";
+
+/* MARK: Step summaries in the list */
+"summary.hold" = "、%d ms 長押し";
+"summary.scroll" = "スクロール (%1$d, %2$d)";
+"summary.move" = "カーソルを移動";
+"summary.drag" = "%1$@で %2$@ までドラッグ";
+"summary.type_empty" = "文字を入力（空）";
+"summary.type" = "「%@」と入力";
+"summary.key" = "キー %@";
+"summary.target.cursor" = "カーソル位置";
+"summary.target.point" = "画面座標 X: %1$d  Y: %2$d";
+"summary.target.corner" = "%1$@の角からのオフセット: %2$d, %3$d";
+"summary.target.template" = "テンプレート %1$@（しきい値 %2$@）";
+"summary.target.template_missing" = "未取得";
+"summary.target.text_empty" = "文字列（未入力）";
+"summary.target.text" = "文字列「%@」";
+
+/* MARK: Step detail */
+"step.action.section" = "アクション";
+"step.action.kind" = "種類";
+"step.position" = "位置";
+"step.release_point" = "離す位置";
+"step.repeat.section" = "繰り返しと待機";
+"step.repeat.count" = "ステップの繰り返し";
+"step.repeat.unit" = "回";
+"step.delay_after" = "毎回のあとに待つ";
+"step.minimum_gap_hint" = "ランナーは 2 つのイベントの間に必ず %d ms 以上あけます。";
+"step.button" = "ボタン";
+"step.click_count" = "クリック回数";
+"step.hold" = "長押し";
+"step.double_click_hint" = "連続した 2 回のクリックはダブルクリックとして扱われ、独立した 2 回のクリックにはなりません。";
+"step.hold_hint" = "長押し中カーソルは動きません。途中で停止してもボタンは離されます。";
+"step.scroll.unit" = "行";
+"step.scroll.horizontal" = "水平";
+"step.scroll.vertical" = "垂直";
+"step.scroll.hint" = "垂直の値が正だと上方向にスクロールします。";
+"step.move_hint" = "カーソルを移動するだけで、何も押しません。";
+"step.drag_hint" = "「位置」で押し、%d 個の中間点を通ってドラッグし、「離す位置」で離します。";
+"step.type.content" = "内容";
+"step.type.per_key_hint" = "実際のタイピングと同じく 1 キーずつ入力します — ゲームに必要なのはこの方式です。入力中は入力ソースが一時的に ABC に切り替わり、終わると元に戻ります。";
+"step.type.chunked_hint" = "ASCII 以外の文字を含むため、文字列はひとかたまりで送られ、送り先は 1 つのキーとして受け取ります。日本語や絵文字は入力できますが、キーごとに反応するゲームでは正しく読み取れません。";
+"step.key" = "キー";
+"step.modifiers" = "修飾キー";
+"step.key_preview" = "%@ を送信します。";
+"step.key_activation_hint" = "入力前に Auto Click が %@ を前面に出します。出せない場合は停止します。";
+"step.key_no_lock_hint" = "アプリが固定されていません: キーはそのとき最前面のウインドウに入ります。";
+"step.target.kind" = "種類";
+"step.target.cursor_hint" = "毎回カーソル位置を読み直すので、操作の並びが手の動きについてきます。";
+"step.target.coordinates" = "座標";
+"step.target.choose_point" = "位置を選択…";
+"step.target.corner_offset" = "%@の角からのオフセット";
+"step.target.anchor_hint" = "%@ の最前面ウインドウで、その点にいちばん近い角に吸着します。ウインドウを動かしても拡大しても正しいままです。";
+"step.target.anchor_needs_lock" = "ウインドウに固定するには、まずシナリオをアプリケーションに固定する必要があります。";
+"step.target.template" = "テンプレート";
+"step.target.capture_region" = "範囲を取得…";
+"step.target.capture_again" = "取得し直す…";
+"step.target.template_hint" = "どこからでも切り出せます — 対象がまだ画面に出ていないときは、別のアプリで開いたスクリーンショットからでもかまいません。";
+"step.target.text" = "探す文字列";
+"step.target.text_hint" = "大文字と小文字を区別しません。ライト／ダークの切り替えや文字サイズの変更にはテンプレートより強いですが、文字があるものしか狙えません。";
+"step.template.not_captured" = "未取得";
+"step.template.file_missing" = "テンプレートのファイルがありません";
+"step.threshold" = "一致のしきい値";
+"step.wait_at_most" = "最大待機時間";
+"step.on_timeout" = "時間切れのとき";
+"step.on_timeout.stop" = "シナリオを停止";
+"step.on_timeout.skip" = "ステップを飛ばす";
+"step.search_region" = "検索範囲";
+"step.search_region.clear" = "クリア";
+"step.search_region.pick" = "範囲を指定…";
+"step.wait_hint" = "最大 %d ms まで再試行します — ページ読み込み後にボタンが現れるのを待つのに十分です。";
+"step.region.whole_screen" = "画面全体（または固定したウインドウ）";
+"step.region.absolute" = "絶対 %1$d×%2$d — ウインドウが動くとずれます";
+"step.region.window_relative" = "ウインドウ基準 %1$d×%2$d";
+
+/* MARK: Actions and targets */
+"action.click" = "クリック / 長押し";
+"action.scroll" = "スクロール";
+"action.move" = "カーソル移動";
+"action.drag" = "ドラッグ";
+"action.type" = "文字を入力";
+"action.press_key" = "キーの組み合わせ";
+"target.cursor" = "カーソル位置";
+"target.fixed_point" = "固定座標";
+"target.window_relative" = "ウインドウからのオフセット";
+"target.template" = "テンプレートの位置";
+"target.text" = "文字列の位置";
+"button.left" = "左ボタン";
+"button.right" = "右ボタン";
+"button.middle" = "中ボタン";
+"corner.top_left" = "左上";
+"corner.top_right" = "右上";
+"corner.bottom_left" = "左下";
+"corner.bottom_right" = "右下";
+"key.numpad_enter" = "Enter（テンキー）";
+
+/* MARK: Overlays */
+"overlay.pick_point" = "クリックして位置を選択  •  Esc でキャンセル";
+"overlay.search_region" = "ドラッグして検索範囲を選択  •  Esc でキャンセル";
+"overlay.template_region" = "ドラッグしてテンプレート範囲を選択  •  Esc でキャンセル";
+
+/* MARK: Errors */
+"error.interval.not_an_integer" = "間隔は整数で指定してください。";
+"error.interval.out_of_range" = "間隔は %1$@ 〜 %2$@ ms の範囲で指定してください。";
+"error.repeat.not_an_integer" = "繰り返し回数は整数で指定してください。";
+"error.repeat.out_of_range" = "繰り返し回数は %1$@ 〜 %2$@ の範囲で指定してください。";
+"error.lock.missing_selection" = "固定するアプリケーションを選択してください。";
+"error.lock.not_running" = "選択したアプリケーションは実行されていません。";
+"error.fixed_point_missing" = "固定のクリック位置を選択してください。";
+"error.empty_scenario" = "このシナリオにはまだステップがありません。";
+"error.accessibility_denied" = "Auto Click に「アクセシビリティ」を許可してからもう一度お試しください。すでに一覧にある場合は、いったんオフにしてからオンに戻してください — アップデートで以前の許可は無効になります。";
+"error.missing_locked_application" = "このシナリオにはウインドウ基準のステップがあるため、固定するアプリケーションを選ぶ必要があります。";
+"error.locked_application_not_running" = "%@ は実行されていません。";
+"error.locked_application_terminated" = "対象のアプリケーションが終了しました。Auto Click を停止しました。";
+"error.point_outside_locked_application" = "その位置は固定したアプリケーションの外です。Auto Click を停止しました。";
+"error.anchor_window_unavailable" = "座標の基準となる %@ のウインドウを取得できませんでした — Dock に最小化されている可能性があります。";
+"error.activation_failed" = "入力のために %@ を前面に出せませんでした。Auto Click を停止しました。";
+"error.unknown_key" = "キー「%@」を認識できません。";
+"error.target_not_found" = "画面上に %@ が見つかりませんでした。Auto Click を停止しました。";
+"error.launch_at_login" = "ログイン設定を変更できませんでした: %@";
+"error.schema_too_new" = "このシナリオは形式バージョン %1$d を使っていますが、このバージョンの Auto Click は %2$d までしか対応していません。";
+"error.unknown_action" = "アクション「%@」を認識できません。";
+"error.unknown_target" = "位置「%@」を認識できません。";
+"error.screen_recording_denied" = "Auto Click に「画面収録」を許可してからもう一度お試しください。すでに許可している場合は、Auto Click を終了して開き直してください。";
+"error.no_display" = "取得できるディスプレイが見つかりません。";
+"error.pixel_scale_unreadable" = "ディスプレイのピクセル倍率を読み取れなかったため、誤った位置をクリックしないようスキップしました。";
+"error.screen_capture_failed" = "画面を取得できませんでした。";
+"issue.schema_read_only" = "%1$@: 形式バージョン %2$d、読み取り専用。";
+"issue.unreadable" = "%@: scenario.json を読み取れませんでした。";
+
+/* MARK: Names written into scenario.json (LC-11) */
+"data.duplicate_suffix" = "%@ のコピー";
+"data.new_scenario_name" = "新規シナリオ";
