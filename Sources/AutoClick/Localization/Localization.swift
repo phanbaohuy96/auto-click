@@ -1,21 +1,28 @@
 import Foundation
 
-/// The active **Interface language**, and the lookup that goes with it (`LC-1`…`LC-8`).
+/// The active **Interface language** (`LC-1`…`LC-8`), and the object views observe so they redraw when it
+/// changes.
 ///
-/// Reading is done through an explicitly loaded `<code>.lproj` sub-bundle rather than through
-/// `Bundle.main`, and that is the whole reason this type exists. `Bundle.main` resolves its language **once
-/// per process and caches it**: writing `AppleLanguages` into our own defaults domain mid-process leaves
+/// The lookup itself lives in `Catalogue`; this type decides **which** catalogue is installed. That split is
+/// deliberate: views need an `ObservableObject` on the main actor, while the readers of a translation are not
+/// all on the main actor and must not be forced onto it.
+///
+/// Reading goes through an explicitly loaded `<code>.lproj` sub-bundle rather than through `Bundle.main`, and
+/// that is the whole reason this type exists. `Bundle.main` resolves its language **once per process and
+/// caches it**: writing `AppleLanguages` into our own defaults domain mid-process leaves
 /// `preferredLocalizations` at its launch value and every string unchanged. Holding the bundle ourselves is
 /// what makes `LC-6` — switching with no relaunch — possible at all. See [ADR-0010].
 @MainActor
 final class Localization: ObservableObject {
     /// `LC-1`. `en` is first because it is the development language and the fallback target.
-    static let supportedCodes = ["en", "vi", "zh-Hans", "ja", "es"]
-    static let developmentCode = "en"
+    ///
+    /// `nonisolated` because `Catalogue` is built off the main actor too — see `InstalledCatalogue`.
+    nonisolated static let supportedCodes = ["en", "vi", "zh-Hans", "ja", "es"]
+    nonisolated static let developmentCode = "en"
 
     static let preferenceKey = "interfaceLanguage"
 
-    /// LC-8: each language written **in its own language**, and deliberately not a `StringKey`.
+    /// `LC-8`: each language written **in its own language**, and deliberately not a `StringKey`.
     ///
     /// Someone who picked `日本語` by accident has to find the way back while unable to read anything else on
     /// screen. Translating this list would show them *"ベトナム語"* where they are looking for *"Tiếng Việt"*.
@@ -30,12 +37,14 @@ final class Localization: ObservableObject {
         }
     }
 
-    /// The instance non-view code reads from.
+    /// The instance that owns the installed `Catalogue`.
     ///
-    /// A mutable global, in a codebase that otherwise injects its seams. It is unavoidable:
-    /// `LocalizedError.errorDescription` is a protocol property taking no arguments, so a validator has no
-    /// way to be handed a bundle. It is settable so tests can pin it. [ADR-0010] records the cost.
-    static var current = Localization()
+    /// Assigning it installs that instance's catalogue, which is what every `localized(_:)` call then reads.
+    /// A mutable global, in a codebase that otherwise injects its seams: `LocalizedError.errorDescription` is
+    /// a protocol property taking no arguments, so a validator has no way to be handed a bundle.
+    static var current = Localization() {
+        didSet { current.install() }
+    }
 
     /// The active language code — always one of `supportedCodes`.
     @Published private(set) var code: String
@@ -44,11 +53,7 @@ final class Localization: ObservableObject {
 
     private let container: Bundle
     private let defaults: UserDefaults
-    private var active: Bundle
-    private let fallback: Bundle
-
-    /// A value no translation can equal, used to tell "missing" apart from "translated to this" (`LC-7`).
-    private static let missing = "\u{0}AutoClick.missing"
+    private(set) var catalogue: Catalogue
 
     /// - Parameter container: the bundle holding the `.lproj` directories. `Bundle.main` in the app, where
     ///   `build-app.sh` puts them in `Contents/Resources`; a plain directory in tests. Never a SwiftPM
@@ -60,8 +65,7 @@ final class Localization: ObservableObject {
         let resolved = Self.resolve(preference: stored, container: container)
         self.preference = stored
         self.code = resolved
-        self.fallback = Self.bundle(for: Self.developmentCode, in: container) ?? container
-        self.active = Self.bundle(for: resolved, in: container) ?? self.fallback
+        self.catalogue = InstalledCatalogue.build(code: resolved, container: container)
     }
 
     // MARK: - Choosing
@@ -75,9 +79,15 @@ final class Localization: ObservableObject {
             defaults.removeObject(forKey: Self.preferenceKey)
         }
         self.preference = preference
-        active = Self.bundle(for: resolved, in: container) ?? fallback
-        // Published last: SwiftUI redraws on this, and by then the bundle is already in place.
+        catalogue = InstalledCatalogue.build(code: resolved, container: container)
+        if Localization.current === self { install() }
+        // Published last: SwiftUI redraws on this, and by then the catalogue is already in place.
         code = resolved
+    }
+
+    /// Makes this instance's catalogue the one every `localized(_:)` call reads.
+    func install() {
+        InstalledCatalogue.install(catalogue)
     }
 
     /// `LC-5`: an unset preference goes through `Bundle.main.preferredLocalizations`, which has already done
@@ -90,59 +100,34 @@ final class Localization: ObservableObject {
         return developmentCode
     }
 
-    private static func bundle(for code: String, in container: Bundle) -> Bundle? {
-        guard let path = container.path(forResource: code, ofType: "lproj") else { return nil }
-        return Bundle(path: path)
-    }
-
     // MARK: - Reading
 
     /// The translation of `key`, falling back to `en` and never to the raw key (`LC-7`).
     func callAsFunction(_ key: StringKey) -> String {
-        let value = active.localizedString(forKey: key.rawValue, value: Self.missing, table: nil)
-        guard value == Self.missing else { return value }
-        // Foundation's own fallback chain belongs to `Bundle.main`; a sub-bundle asked for a key it does not
-        // have hands back the key itself, so `editor.step.delay` would appear on screen. Hence the sentinel.
-        return fallback.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)
+        catalogue.string(key)
     }
 
     /// A translation with arguments (`LC-9`, `LC-10`).
-    ///
-    /// The locale is the **active language**, not `Locale.current`: it drives both the plural rule chosen out
-    /// of `Localizable.stringsdict` and the shape of the numbers. `String.localizedStringWithFormat` would
-    /// take the process locale instead, so a Spanish interface on an English machine would count in English.
     func callAsFunction(_ key: StringKey, _ arguments: any CVarArg...) -> String {
-        format(key, arguments)
+        catalogue.format(key, arguments)
     }
 
-    func format(_ key: StringKey, _ arguments: [any CVarArg]) -> String {
-        String(format: self(key), locale: Locale(identifier: code), arguments: arguments)
-    }
+    /// A number in the active language's shape (`LC-9`).
+    func number(_ value: Int) -> String { catalogue.number(value) }
 
-    /// A number in the shape the **active language** writes it (`LC-9`).
-    ///
-    /// `vi` and `es` group with dots and separate decimals with a comma where `en` does the opposite. A limit
-    /// written into the sentence instead would also go stale the moment `ScenarioLimits` changes.
-    func number(_ value: Int) -> String {
-        value.formatted(.number.locale(Locale(identifier: code)))
-    }
-
-    /// A decimal in the active language's shape (`LC-9`): `0.85` in `en`, `0,85` in `vi` and `es`.
+    /// A decimal in the active language's shape (`LC-9`).
     func decimal(_ value: Double, fractionDigits: Int = 2) -> String {
-        value.formatted(
-            .number.precision(.fractionLength(fractionDigits)).locale(Locale(identifier: code))
-        )
+        catalogue.decimal(value, fractionDigits: fractionDigits)
     }
+
+    // MARK: - For the completeness tests (LC-15, LC-16)
 
     /// Whether `code` has its own translation of `key`, rather than reaching the `en` fallback.
-    ///
-    /// Only the coverage test needs this (`LC-15`).
     func hasOwnTranslation(of key: StringKey, in code: String) -> Bool {
-        guard let bundle = Self.bundle(for: code, in: container) else { return false }
-        return bundle.localizedString(forKey: key.rawValue, value: Self.missing, table: nil) != Self.missing
+        InstalledCatalogue.build(code: code, container: container).hasOwnTranslation(of: key)
     }
 
-    /// Every key `<code>.lproj` declares, whether or not `StringKey` still uses it (`LC-16`).
+    /// Every key `<code>.lproj` declares, whether or not `StringKey` still uses it.
     ///
     /// Both files count: Foundation merges `Localizable.strings` and `Localizable.stringsdict` into one
     /// table, so a key living in either of them is a key the catalogue declares.
@@ -157,31 +142,4 @@ final class Localization: ObservableObject {
         }
         return keys
     }
-}
-
-/// Reading a translation from a `nonisolated` context.
-///
-/// `LocalizedError.errorDescription` is a protocol requirement: it takes no arguments, so it cannot be handed
-/// a bundle, and it cannot be declared `@MainActor` without breaking the conformance. So the hop is
-/// **asserted** rather than awaited. That is sound here because every one of these strings exists to be put
-/// on screen: it is built and read while drawing, on the main thread. [ADR-0010] records this as the price of
-/// switching language without a relaunch.
-nonisolated func localized(_ key: StringKey, _ arguments: any CVarArg...) -> String {
-    // Only `String` and `Locale` cross the hop — an array of `any CVarArg` is not `Sendable`, so the
-    // formatting itself is done out here, on the caller's side.
-    let (format, locale) = MainActor.assumeIsolated {
-        (Localization.current(key), Locale(identifier: Localization.current.code))
-    }
-    guard !arguments.isEmpty else { return format }
-    return String(format: format, locale: locale, arguments: arguments)
-}
-
-/// A number in the active language's shape, from a `nonisolated` context. See `localized(_:_:)`.
-nonisolated func localizedNumber(_ value: Int) -> String {
-    MainActor.assumeIsolated { Localization.current.number(value) }
-}
-
-/// A decimal in the active language's shape, from a `nonisolated` context. See `localized(_:_:)`.
-nonisolated func localizedDecimal(_ value: Double) -> String {
-    MainActor.assumeIsolated { Localization.current.decimal(value) }
 }

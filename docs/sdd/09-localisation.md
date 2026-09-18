@@ -106,6 +106,19 @@ ruled out are in [ADR-0010](../adr/0010-strings-files-and-a-live-bundle-swap.md)
   OCR reads text belonging to **the application being automated**, which has nothing to do with the
   language of Auto Click's own menus.
 
+- **LC-17** `[Slice 6]` `[done]` A translation is readable from **any thread**, and no lookup path may
+  assert main-actor isolation.
+
+  `KeyCatalog.entries` is a `static let`: Swift builds it lazily on whichever thread touches it
+  first. With the lookup behind `MainActor.assumeIsolated` that trapped with `SIGTRAP` whenever
+  that thread was not the main one — deterministically under `swift test`, and in the app only by
+  luck. The lookup therefore lives in an immutable `Catalogue` held behind a lock
+  (`InstalledCatalogue`), not on the `@MainActor` object that views observe.
+
+- **LC-18** `[Slice 6]` `[done]` A translated label on a value that lives in a `static let` table is
+  **computed**, never stored. `KeyCatalog.Entry.title` stored its text and so froze the language of
+  whoever touched the table first (`LC-12` is the same rule seen from the other side).
+
 ## Keys and tests
 
 - **LC-14** `[Slice 6]` `[done]` Every key used by the code is a case of `StringKey: String,

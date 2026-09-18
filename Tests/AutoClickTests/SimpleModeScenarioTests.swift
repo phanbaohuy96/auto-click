@@ -7,6 +7,7 @@ private func makeClicker(
     interval: Int = 250,
     repeatCount: Int = 12
 ) -> AutoClicker {
+    Catalogs.pinnedToEnglish
     let defaults = UserDefaults(suiteName: "AutoClickSimple-\(UUID().uuidString)")!
     defaults.set(interval, forKey: "intervalMilliseconds")
     defaults.set(repeatCount, forKey: "repeatCount")
@@ -38,7 +39,6 @@ private func makeClicker(
     let clicker = makeClicker()
     clicker.targetMode = .fixedPoint
 
-    Catalogs.pinnedToEnglish
     #expect(clicker.makeScenario() == nil)
     #expect(clicker.validationMessage == "Choose a fixed click point.")
 }
