@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>editor.load_issues</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@scenarios@</string>
+		<key>scenarios</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>%d 个脚本有问题</string>
+		</dict>
+	</dict>
+	<key>panel.gestures</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@gestures@</string>
+		<key>gestures</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>%d 个操作</string>
+		</dict>
+	</dict>
+	<key>record.finished</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@steps@</string>
+		<key>steps</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>已录制 %d 个步骤。</string>
+		</dict>
+	</dict>
+	<key>record.in_progress</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@gestures@</string>
+		<key>gestures</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>已录制 %d 个操作 — 按 ⌥⌘R 结束</string>
+		</dict>
+	</dict>
+	<key>record.warning.multiple_applications</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@applications@</string>
+		<key>applications</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>该录制跨越 %d 个应用，因此使用绝对坐标；窗口一旦移动，这些步骤就会偏移。</string>
+		</dict>
+	</dict>
+	<key>run.completed.iterations</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@loops@</string>
+		<key>loops</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>已完成 %d 轮</string>
+		</dict>
+	</dict>
+	<key>run.completed.steps</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@steps@</string>
+		<key>steps</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>已完成 %d 个步骤</string>
+		</dict>
+	</dict>
+	<key>run.countdown</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@seconds@</string>
+		<key>seconds</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>%d 秒后开始…</string>
+		</dict>
+	</dict>
+	<key>run.start</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@seconds@</string>
+		<key>seconds</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>%d 秒后开始</string>
+		</dict>
+	</dict>
+	<key>scenario.summary.loops</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@loops@</string>
+		<key>loops</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>%d 轮</string>
+		</dict>
+	</dict>
+	<key>scenario.summary.steps</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@steps@</string>
+		<key>steps</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>%d 个步骤</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

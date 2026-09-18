@@ -1,0 +1,236 @@
+/* Auto Click — 简体中文.
+   MACHINE TRANSLATED, not reviewed by a native speaker. Corrections are very welcome, and a partial one is
+   fine: anything missing here falls back to English (LC-7), so fixing twenty keys is a safe change.
+   机器翻译，未经母语者校对。欢迎提交更正；缺失的条目会回退到英文，因此只修改一部分也是安全的。 */
+
+/* MARK: Menu bar popover */
+"menu.subtitle" = "在光标处、固定点或按脚本点击";
+"menu.mode.label" = "模式";
+"menu.mode.simple" = "简易";
+"menu.mode.scenario" = "脚本";
+"menu.launch_at_login" = "登录时启动";
+"menu.quit" = "退出";
+"menu.grant_accessibility" = "授予「辅助功能」权限";
+"menu.grant_screen_recording" = "授予「屏幕录制」权限";
+"menu.language" = "语言";
+"menu.language.follow_system" = "跟随系统";
+
+/* MARK: Running */
+"run.stop" = "停止";
+"run.ready" = "就绪";
+"run.stopped" = "已停止";
+"run.progress.step" = "步骤 %1$d/%2$d";
+"run.progress.iteration_of_total" = "第 %1$d/%2$d 轮 · %3$@";
+"run.progress.iteration" = "第 %1$d 轮 · %2$@";
+"run.failed" = "出错：%@";
+
+/* MARK: Recording */
+"record.button" = "录制操作";
+"record.hint" = "按 ⌥⌘R 结束";
+"record.nothing_captured" = "没有录到任何操作。";
+"record.tap_failed" = "无法创建事件监听器。";
+"record.default_name" = "录制";
+"record.warning.absolute_steps" = "%2$d 个步骤中有 %1$d 个使用绝对坐标，因为录制时读不到窗口；窗口一旦移动，这些步骤就会偏移。";
+
+/* MARK: Floating panel */
+"panel.recording_title" = "正在录制操作";
+"panel.finish_hint" = "按 ⌥⌘R 结束";
+"panel.stop_hint" = "按 ⌥⌘S 立即停止";
+"panel.finish" = "结束";
+"panel.stop" = "停止";
+
+/* MARK: Simple mode */
+"simple.interval" = "间隔时间";
+"simple.repeat" = "重复次数";
+"simple.repeat.unit" = "次";
+"simple.scenario_name" = "简易模式";
+"simple.position.label" = "点击位置";
+"simple.position.cursor" = "在光标处";
+"simple.position.fixed" = "固定点";
+"simple.point.none" = "尚未选点";
+"simple.point.coordinates" = "X: %1$d  Y: %2$d";
+"simple.point.choose" = "选择位置…";
+"simple.point.choose_again" = "重新选择…";
+"simple.cursor_hint" = "倒计时结束时读取光标位置";
+"simple.picking_point" = "点击要保存的位置；按 Esc 取消。";
+"simple.point_cancelled" = "已取消选点。";
+"simple.point_saved" = "已保存点击位置：%@";
+"simple.lock.toggle" = "仅在某个应用内点击";
+"simple.lock.application" = "应用";
+"simple.lock.choose" = "选择一个应用…";
+"simple.lock.closed" = "%@ — 已关闭";
+"simple.lock.refresh" = "刷新应用列表";
+"simple.lock.hint" = "仅当该位置属于所选应用时才点击";
+"simple.application.fallback_name" = "所选应用";
+
+/* MARK: Scenario section of the popover */
+"scenario.picker.label" = "脚本";
+"scenario.picker.empty" = "还没有脚本";
+"scenario.none_at_all" = "还没有任何脚本。";
+"scenario.read_only_blocker" = "该脚本为只读。";
+"scenario.needs_screen_recording" = "该脚本使用图像或文字识别，因此需要「屏幕录制」权限。";
+"scenario.open_editor" = "编辑脚本";
+"scenario.open_editor_ellipsis" = "编辑脚本…";
+"scenario.summary.with_loops" = "%1$@ · 重复 %2$@";
+"scenario.summary.until_stopped" = "%@ · 重复到手动停止";
+
+/* MARK: Editor window */
+"editor.title" = "编辑脚本";
+"editor.running_notice" = "运行中 — 无法编辑";
+"editor.select_a_step" = "选择要编辑的步骤";
+"editor.new_scenario" = "新建脚本";
+"editor.duplicate_scenario" = "复制";
+"editor.delete_scenario" = "删除该脚本及其整个目录";
+"editor.unnamed" = "未命名";
+"editor.read_only_badge" = "只读";
+"editor.empty.title" = "还没有脚本";
+"editor.empty.action" = "创建第一个脚本";
+"editor.newer_format.title" = "“%@”使用了更新的格式";
+"editor.newer_format.detail" = "只读：此版本的 Auto Click 既不能编辑也不能运行它。";
+"editor.scenario_name" = "脚本名称";
+"editor.repeat_until_stopped" = "重复到手动停止";
+"editor.iteration_count" = "轮数";
+"editor.lock.toggle" = "锁定到某个应用";
+"editor.lock.application" = "应用";
+"editor.lock.choose" = "选择一个应用…";
+"editor.lock.refresh" = "刷新应用列表";
+"editor.not_chosen" = "未选择";
+"editor.add_step" = "添加步骤";
+"editor.duplicate_step" = "复制步骤";
+"editor.delete_step" = "删除步骤";
+"editor.drag_to_reorder" = "拖动以调整顺序";
+"editor.anchor_needs_lock" = "锚定到窗口之前，请先选择要锁定的应用。";
+"editor.locked_not_running" = "%@ 没有在运行。";
+"editor.no_window_for_locked" = "读不到 %@ 的任何窗口。";
+
+/* MARK: Step summaries in the list */
+"summary.hold" = "，按住 %d 毫秒";
+"summary.scroll" = "滚动 (%1$d, %2$d)";
+"summary.move" = "移动光标";
+"summary.drag" = "把%1$@拖到 %2$@";
+"summary.type_empty" = "输入文本（空）";
+"summary.type" = "输入“%@”";
+"summary.key" = "按键 %@";
+"summary.target.cursor" = "在光标处";
+"summary.target.point" = "屏幕坐标 X: %1$d  Y: %2$d";
+"summary.target.corner" = "相对%1$@角偏移：%2$d, %3$d";
+"summary.target.template" = "图像 %1$@（阈值 %2$@）";
+"summary.target.template_missing" = "未截取";
+"summary.target.text_empty" = "文字（未填写）";
+"summary.target.text" = "文字“%@”";
+
+/* MARK: Step detail */
+"step.action.section" = "动作";
+"step.action.kind" = "类型";
+"step.position" = "位置";
+"step.release_point" = "释放点";
+"step.repeat.section" = "重复与等待";
+"step.repeat.count" = "重复该步骤";
+"step.repeat.unit" = "次";
+"step.delay_after" = "每次之后等待";
+"step.minimum_gap_hint" = "运行器在两个事件之间始终至少留出 %d 毫秒。";
+"step.button" = "按键";
+"step.click_count" = "点击次数";
+"step.hold" = "按住";
+"step.double_click_hint" = "连续两次点击会被标记为双击，而不是两次独立点击。";
+"step.hold_hint" = "按住期间光标保持不动。中途停止也会松开按键。";
+"step.scroll.unit" = "行";
+"step.scroll.horizontal" = "水平";
+"step.scroll.vertical" = "垂直";
+"step.scroll.hint" = "垂直值为正表示向上滚动。";
+"step.move_hint" = "只把光标移到该位置，不做任何点击。";
+"step.drag_hint" = "在「位置」按下，经过 %d 个中间点拖动，然后在「释放点」松开。";
+"step.type.content" = "内容";
+"step.type.per_key_hint" = "逐键输入，和真人打字一样——游戏需要的正是这种方式。输入期间输入源会临时切换到 ABC，之后恢复原状。";
+"step.type.chunked_hint" = "含有 ASCII 之外的字符，因此整串作为一个整体发送，目标应用会把它当作单个按键接收。中文和 emoji 可以正常输入，但逐键响应的游戏无法正确识别。";
+"step.key" = "按键";
+"step.modifiers" = "修饰键";
+"step.key_preview" = "将发送 %@。";
+"step.key_activation_hint" = "输入前 Auto Click 会把 %@ 切到前台；切不过去就停止。";
+"step.key_no_lock_hint" = "未锁定应用：按键会进入当前最前面的任意窗口。";
+"step.target.kind" = "类型";
+"step.target.cursor_hint" = "每一轮都重新读取光标位置，因此整串操作会跟着你的手走。";
+"step.target.coordinates" = "坐标";
+"step.target.choose_point" = "选择位置…";
+"step.target.corner_offset" = "相对%@角偏移";
+"step.target.anchor_hint" = "吸附到 %@ 最前窗口中离该点最近的那个角，因此窗口移动或放大后依然准确。";
+"step.target.anchor_needs_lock" = "脚本必须先锁定到某个应用，才能锚定到窗口。";
+"step.target.template" = "图像样本";
+"step.target.capture_region" = "截取区域…";
+"step.target.capture_again" = "重新截取…";
+"step.target.template_hint" = "可以从任何地方截取——包括在别的应用里打开的截图，用于目标尚未出现的情况。";
+"step.target.text" = "要查找的文字";
+"step.target.text_hint" = "不区分大小写。比图像样本更能扛住浅色/深色切换和字号变化，但只能瞄准带文字的东西。";
+"step.template.not_captured" = "未截取";
+"step.template.file_missing" = "图像文件缺失";
+"step.threshold" = "匹配阈值";
+"step.wait_at_most" = "最多等待";
+"step.on_timeout" = "超时后";
+"step.on_timeout.stop" = "停止脚本";
+"step.on_timeout.skip" = "跳过该步骤";
+"step.search_region" = "搜索区域";
+"step.search_region.clear" = "清除";
+"step.search_region.pick" = "框选…";
+"step.wait_hint" = "最多重试 %d 毫秒——足够等待页面加载后按钮出现。";
+"step.region.whole_screen" = "整个屏幕（或已锁定的窗口）";
+"step.region.absolute" = "绝对 %1$d×%2$d — 窗口移动就会偏移";
+"step.region.window_relative" = "相对窗口 %1$d×%2$d";
+
+/* MARK: Actions and targets */
+"action.click" = "点击 / 按住";
+"action.scroll" = "滚动";
+"action.move" = "移动光标";
+"action.drag" = "拖动";
+"action.type" = "输入文本";
+"action.press_key" = "组合键";
+"target.cursor" = "在光标处";
+"target.fixed_point" = "固定点";
+"target.window_relative" = "相对窗口偏移";
+"target.template" = "按图像";
+"target.text" = "按文字";
+"button.left" = "左键";
+"button.right" = "右键";
+"button.middle" = "中键";
+"corner.top_left" = "左上";
+"corner.top_right" = "右上";
+"corner.bottom_left" = "左下";
+"corner.bottom_right" = "右下";
+"key.numpad_enter" = "Enter（小键盘）";
+
+/* MARK: Overlays */
+"overlay.pick_point" = "点击以选择位置  •  Esc 取消";
+"overlay.search_region" = "拖动以选择搜索区域  •  Esc 取消";
+"overlay.template_region" = "拖动以选择图像区域  •  Esc 取消";
+
+/* MARK: Errors */
+"error.interval.not_an_integer" = "间隔必须是整数。";
+"error.interval.out_of_range" = "间隔必须在 %1$@ 到 %2$@ 毫秒之间。";
+"error.repeat.not_an_integer" = "重复次数必须是整数。";
+"error.repeat.out_of_range" = "重复次数必须在 %1$@ 到 %2$@ 之间。";
+"error.lock.missing_selection" = "请选择要锁定的应用。";
+"error.lock.not_running" = "所选应用没有在运行。";
+"error.fixed_point_missing" = "请选择一个固定的点击位置。";
+"error.empty_scenario" = "该脚本还没有任何步骤。";
+"error.accessibility_denied" = "请为 Auto Click 授予「辅助功能」权限后重试。如果 Auto Click 已在列表中，请关掉再打开——更新会让旧的授权失效。";
+"error.missing_locked_application" = "该脚本有锚定窗口的步骤，因此必须选择要锁定的应用。";
+"error.locked_application_not_running" = "%@ 没有在运行。";
+"error.locked_application_terminated" = "目标应用已关闭；Auto Click 已停止。";
+"error.point_outside_locked_application" = "该位置不在已锁定的应用内；Auto Click 已停止。";
+"error.anchor_window_unavailable" = "读不到 %@ 的任何窗口作为坐标原点——它可能已最小化到程序坞。";
+"error.activation_failed" = "无法把 %@ 切到前台以输入；Auto Click 已停止。";
+"error.unknown_key" = "无法识别按键“%@”。";
+"error.target_not_found" = "在屏幕上找不到 %@；Auto Click 已停止。";
+"error.launch_at_login" = "无法修改登录设置：%@";
+"error.schema_too_new" = "该脚本使用格式版本 %1$d，而此版本的 Auto Click 最高只支持 %2$d。";
+"error.unknown_action" = "无法识别动作“%@”。";
+"error.unknown_target" = "无法识别位置“%@”。";
+"error.screen_recording_denied" = "请为 Auto Click 授予「屏幕录制」权限后重试。如果已经授予，请退出 Auto Click 再重新打开。";
+"error.no_display" = "找不到可截取的显示器。";
+"error.pixel_scale_unreadable" = "读不到显示器的像素缩放比例，因此已跳过，以免点错位置。";
+"error.screen_capture_failed" = "无法截取屏幕。";
+"issue.schema_read_only" = "%1$@：格式版本 %2$d，只读。";
+"issue.unreadable" = "%@：无法读取 scenario.json。";
+
+/* MARK: Names written into scenario.json (LC-11) */
+"data.duplicate_suffix" = "%@（副本）";
+"data.new_scenario_name" = "新建脚本";
