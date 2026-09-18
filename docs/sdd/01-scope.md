@@ -60,6 +60,26 @@ runner.
 - **Target** by **Template** (pyramid matching) and by text (Vision OCR)
 - Search region, threshold, timeout, behaviour when nothing is found
 
+### Slice 5 — Two-scale matching and per-key typing  ✅
+
+Not in the original plan; both came out of running the manual tests on real hardware.
+
+- Match **Template**s at two scales so they survive an external display
+  ([ADR-0008](../adr/0008-match-templates-at-two-scales.md))
+- Type an all-ASCII string **key by key**, so a game sees one key per character
+  ([ADR-0009](../adr/0009-type-ascii-key-by-key.md))
+
+### Slice 6 — Interface languages
+
+Preparation for releasing the source. The interface was written entirely in Vietnamese; the
+documentation and the log messages were translated earlier, the interface was not.
+
+- `en` as the development language, plus `vi`, `zh-Hans`, `ja`, `es` ([09](./09-localisation.md))
+- Switching language inside the application, without a relaunch
+- A boundary drawn between **interface text** and **names written into `scenario.json`**
+
+Done when: adding a sixth language is adding one directory and no Swift.
+
 ## Out of scope
 
 Stated explicitly so it does not get proposed again:
