@@ -38,8 +38,9 @@ private func makeClicker(
     let clicker = makeClicker()
     clicker.targetMode = .fixedPoint
 
+    Catalogs.pinnedToEnglish
     #expect(clicker.makeScenario() == nil)
-    #expect(clicker.validationMessage == "Hãy chọn một điểm click cố định.")
+    #expect(clicker.validationMessage == "Choose a fixed click point.")
 }
 
 @MainActor

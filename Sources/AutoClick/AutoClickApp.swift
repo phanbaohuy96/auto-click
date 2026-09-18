@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct AutoClickApp: App {
+    @StateObject private var localization: Localization
     @StateObject private var runner: ScenarioRunner
     @StateObject private var store: ScenarioStore
     @StateObject private var recorder: ScenarioRecorder
@@ -11,10 +12,18 @@ struct AutoClickApp: App {
     @StateObject private var editorController: ScenarioEditorWindowController
 
     init() {
+        // Built once and published through `Localization.current`, which is what the non-view code reads
+        // (LC-6, [ADR-0010]). Views take it as an `ObservedObject` so they redraw when it changes.
+        let localization = Localization()
+        Localization.current = localization
         let runner = ScenarioRunner()
         let store = ScenarioStore()
         let recorder = ScenarioRecorder()
-        let editorController = ScenarioEditorWindowController(store: store, runner: runner)
+        let editorController = ScenarioEditorWindowController(
+            store: store,
+            runner: runner,
+            localization: localization
+        )
 
         // RC-16: when recording finishes, save the Scenario, select it, then open the editor.
         recorder.onFinished = { result in
@@ -22,13 +31,18 @@ struct AutoClickApp: App {
             editorController.show()
         }
 
+        _localization = StateObject(wrappedValue: localization)
         _runner = StateObject(wrappedValue: runner)
         _store = StateObject(wrappedValue: store)
         _recorder = StateObject(wrappedValue: recorder)
         _clicker = StateObject(wrappedValue: AutoClicker(runner: runner))
         _launchAtLogin = StateObject(wrappedValue: LaunchAtLoginManager())
         _runtimeController = StateObject(
-            wrappedValue: AutoClickRuntimeController(runner: runner, recorder: recorder)
+            wrappedValue: AutoClickRuntimeController(
+                runner: runner,
+                recorder: recorder,
+                localization: localization
+            )
         )
         _editorController = StateObject(wrappedValue: editorController)
     }
@@ -41,6 +55,7 @@ struct AutoClickApp: App {
                 store: store,
                 recorder: recorder,
                 launchAtLogin: launchAtLogin,
+                localization: localization,
                 onOpenEditor: { editorController.show() }
             )
         } label: {
@@ -50,8 +65,8 @@ struct AutoClickApp: App {
     }
 
     private var menuBarTitle: String {
-        if recorder.isRecording { return "Auto Click đang ghi — ⌥⌘R để kết thúc" }
-        if runner.isRunning { return "Auto Click đang chạy — ⌥⌘S để dừng" }
+        if recorder.isRecording { return localized(.panelRecordingTitle) }
+        if runner.isRunning { return localized(.panelStopHint) }
         return "Auto Click"
     }
 

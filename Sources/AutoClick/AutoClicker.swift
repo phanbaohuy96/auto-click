@@ -8,6 +8,14 @@ import Foundation
 /// to disk (UI-7).
 @MainActor
 final class AutoClicker: ObservableObject {
+    /// A piece of feedback chosen when it happens and translated when it is drawn (LC-6).
+    enum Message: Equatable {
+        case validationFailed
+        case pickingPoint
+        case pointCancelled
+        case pointSaved(CGPoint)
+    }
+
     @Published var intervalText: String {
         didSet { saveValidSettings() }
     }
@@ -32,7 +40,21 @@ final class AutoClicker: ObservableObject {
     @Published private(set) var selectedApplicationName: String
     @Published private(set) var runningApplications: [RunningApplicationOption] = []
     /// Feedback for point picking. The *running* state lives in `ScenarioRunner`.
-    @Published private(set) var message: String?
+    ///
+    /// LC-6: an **enum**, not a rendered string. A string stored here would be frozen in whichever language
+    /// was active when the event happened, and would still be in it after the user switched.
+    @Published private(set) var message: Message?
+
+    /// What `message` says, in the language that is active **now**.
+    var messageText: String? {
+        switch message {
+        case nil: return nil
+        case .validationFailed: return validationMessage
+        case .pickingPoint: return localized(.simplePickingPoint)
+        case .pointCancelled: return localized(.simplePointCancelled)
+        case let .pointSaved(point): return localized(.simplePointSaved, Self.describe(point))
+        }
+    }
 
     private var pointSelector: ClickPointSelector?
     private let defaults: UserDefaults
@@ -51,7 +73,7 @@ final class AutoClicker: ObservableObject {
         targetMode = storedMode
         applicationLockEnabled = defaults.bool(forKey: "applicationLockEnabled")
         selectedApplicationIdentifier = defaults.string(forKey: "selectedApplicationIdentifier") ?? ""
-        selectedApplicationName = defaults.string(forKey: "selectedApplicationName") ?? "Ứng dụng đã chọn"
+        selectedApplicationName = defaults.string(forKey: "selectedApplicationName") ?? ""
 
         if defaults.object(forKey: "fixedPointX") != nil,
            defaults.object(forKey: "fixedPointY") != nil {
@@ -70,7 +92,7 @@ final class AutoClicker: ObservableObject {
         switch SettingsValidator.validate(intervalText: intervalText, repeatText: repeatText) {
         case .success:
             if targetMode == .fixedPoint, fixedPoint == nil {
-                return "Hãy chọn một điểm click cố định."
+                return localized(.errorFixedPointMissing)
             }
 
             if let error = ApplicationLockValidator.validate(
@@ -87,8 +109,19 @@ final class AutoClicker: ObservableObject {
     }
 
     var fixedPointDescription: String {
-        guard let fixedPoint else { return "Chưa chọn điểm" }
-        return "X: \(Int(fixedPoint.x.rounded()))  Y: \(Int(fixedPoint.y.rounded()))"
+        guard let fixedPoint else { return localized(.simplePointNone) }
+        return Self.describe(fixedPoint)
+    }
+
+    /// The application shown in the lock picker, or a placeholder when none has been chosen yet.
+    var selectedApplicationDisplayName: String {
+        selectedApplicationName.isEmpty
+            ? localized(.simpleApplicationFallbackName)
+            : selectedApplicationName
+    }
+
+    private static func describe(_ point: CGPoint) -> String {
+        localized(.simplePointCoordinates, Int(point.x.rounded()), Int(point.y.rounded()))
     }
 
     var selectedApplicationIsRunning: Bool {
@@ -124,7 +157,7 @@ final class AutoClicker: ObservableObject {
         }
 
         return Scenario(
-            name: "Chế độ đơn giản",
+            name: localized(.simpleScenarioName),
             steps: [
                 Step(
                     action: .click(button: .left, count: 1, holdMilliseconds: 0),
@@ -141,7 +174,7 @@ final class AutoClicker: ObservableObject {
     @discardableResult
     func start() -> Bool {
         guard let scenario = makeScenario() else {
-            message = validationMessage
+            message = .validationFailed
             return false
         }
         message = nil
@@ -151,7 +184,7 @@ final class AutoClicker: ObservableObject {
     func chooseFixedPoint(returningTo returnWindow: NSWindow?) {
         guard !runner.isRunning else { return }
 
-        message = "Click vào vị trí muốn lưu; nhấn Esc để hủy."
+        message = .pickingPoint
         let selector = ClickPointSelector()
         pointSelector = selector
 
@@ -162,7 +195,7 @@ final class AutoClicker: ObservableObject {
             returnWindow?.makeKeyAndOrderFront(nil)
 
             guard let point else {
-                self.message = "Đã hủy chọn điểm."
+                self.message = .pointCancelled
                 return
             }
 
@@ -170,7 +203,7 @@ final class AutoClicker: ObservableObject {
             self.targetMode = .fixedPoint
             self.defaults.set(Double(point.x), forKey: "fixedPointX")
             self.defaults.set(Double(point.y), forKey: "fixedPointY")
-            self.message = "Đã lưu điểm click: \(self.fixedPointDescription)"
+            self.message = .pointSaved(point)
         }
     }
 

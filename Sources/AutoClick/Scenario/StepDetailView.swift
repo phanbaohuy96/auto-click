@@ -6,6 +6,7 @@ import SwiftUI
 /// (UI-10, ADR-0002).
 struct StepDetailView: View {
     @Binding var step: Step
+    @ObservedObject var localization: Localization
     /// The Locked application's name, or `nil` when the Scenario is not locked to any application.
     let lockedApplicationName: String?
     let onPickScreenPoint: (@escaping (CGPoint) -> Void) -> Void
@@ -17,38 +18,38 @@ struct StepDetailView: View {
 
     var body: some View {
         Form {
-            Section("Hành động") {
-                Picker("Loại", selection: actionKind) {
+            Section(localization(.stepActionSection)) {
+                Picker(localization(.stepActionKind), selection: actionKind) {
                     ForEach(ActionKind.allCases) { Text($0.title).tag($0) }
                 }
                 actionParameters
             }
 
-            Section("Vị trí") {
+            Section(localization(.stepPosition)) {
                 targetEditor(target)
             }
 
             if case .drag = step.action {
-                Section("Điểm nhả") {
+                Section(localization(.stepReleasePoint)) {
                     targetEditor(dragDestination)
                 }
             }
 
-            Section("Lặp và chờ") {
+            Section(localization(.stepRepeatSection)) {
                 labelledField(
-                    "Lặp bước",
+                    localization(.stepRepeatCount),
                     value: $step.repeatCount,
                     range: ScenarioLimits.stepRepeatCount,
-                    suffix: "lần"
+                    suffix: localization(.stepRepeatUnit)
                 )
                 labelledField(
-                    "Chờ sau mỗi lần",
+                    localization(.stepDelayAfter),
                     value: $step.delayMillisecondsAfter,
                     range: ScenarioLimits.delayMilliseconds,
                     suffix: "ms"
                 )
                 if step.delayMillisecondsAfter < ScenarioLimits.minimumEventGapMilliseconds {
-                    footnote("Bộ chạy luôn nhường ít nhất \(ScenarioLimits.minimumEventGapMilliseconds) ms giữa hai sự kiện.")
+                    footnote(localization(.stepMinimumGapHint, ScenarioLimits.minimumEventGapMilliseconds))
                 }
             }
         }
@@ -61,69 +62,77 @@ struct StepDetailView: View {
     private var actionParameters: some View {
         switch step.action {
         case .click(_, let count, let hold):
-            Picker("Nút", selection: mouseButton) {
+            Picker(localization(.stepButton), selection: mouseButton) {
                 ForEach(MouseButton.allCases) { Text(StepSummary.name(of: $0)).tag($0) }
             }
-            labelledField("Số lần bấm", value: clickCount, range: ScenarioLimits.clickCount)
-            labelledField("Giữ", value: clickHold, range: ScenarioLimits.holdMilliseconds, suffix: "ms")
+            labelledField(localization(.stepClickCount), value: clickCount, range: ScenarioLimits.clickCount)
+            labelledField(localization(.stepHold), value: clickHold, range: ScenarioLimits.holdMilliseconds, suffix: "ms")
             if count == 2 {
-                footnote("Hai lần bấm liền nhau được đánh dấu là double click, không phải hai click rời.")
+                footnote(localization(.stepDoubleClickHint))
             }
             if hold > 0 {
-                footnote("Con trỏ đứng yên trong lúc giữ. Dừng giữa chừng vẫn nhả nút.")
+                footnote(localization(.stepHoldHint))
             }
 
         case .scroll:
-            labelledField("Ngang", value: scrollDeltaX, range: ScenarioLimits.scrollDelta, suffix: "dòng")
-            labelledField("Dọc", value: scrollDeltaY, range: ScenarioLimits.scrollDelta, suffix: "dòng")
-            footnote("Dọc dương là cuộn lên.")
+            labelledField(
+                localization(.stepScrollHorizontal),
+                value: scrollDeltaX,
+                range: ScenarioLimits.scrollDelta,
+                suffix: localization(.stepScrollUnit)
+            )
+            labelledField(
+                localization(.stepScrollVertical),
+                value: scrollDeltaY,
+                range: ScenarioLimits.scrollDelta,
+                suffix: localization(.stepScrollUnit)
+            )
+            footnote(localization(.stepScrollHint))
 
         case .move:
-            footnote("Chỉ đưa con trỏ tới vị trí, không bấm gì.")
+            footnote(localization(.stepMoveHint))
 
         case .drag:
-            Picker("Nút", selection: mouseButton) {
+            Picker(localization(.stepButton), selection: mouseButton) {
                 ForEach(MouseButton.allCases) { Text(StepSummary.name(of: $0)).tag($0) }
             }
-            footnote("Nhấn giữ tại Vị trí, kéo qua \(ScenarioLimits.dragIntermediateSteps) điểm trung gian, rồi nhả tại Điểm nhả.")
+            footnote(localization(.stepDragHint, ScenarioLimits.dragIntermediateSteps))
 
         case let .typeText(text):
-            TextField("Nội dung", text: typedText, axis: .vertical)
+            TextField(localization(.stepTypeContent), text: typedText, axis: .vertical)
                 .lineLimit(1...4)
             // UI-21: the route is chosen from the string's contents (EX-21), so two strings in the same Step
             // behave differently. That is only acceptable if the panel says which one this string takes.
             if KeyboardEventEmitter.isTypableKeyByKey(text) {
                 footnote(
-                    "Gõ từng phím một, đúng như người gõ thật — hợp với game. "
-                    + "Trong lúc gõ, nguồn nhập tạm chuyển sang ABC rồi trả lại như cũ."
+                    localization(.stepTypePerKeyHint)
                 )
             } else {
                 footnote(
-                    "Có ký tự ngoài ASCII nên chuỗi được gửi theo khối, ứng dụng đích nhận cả khối như một phím. "
-                    + "Gõ được tiếng Việt và emoji, nhưng game phản ứng theo từng phím sẽ không nhận đúng."
+                    localization(.stepTypeChunkedHint)
                 )
             }
 
         case let .pressKey(stroke):
-            Picker("Phím", selection: keyName) {
+            Picker(localization(.stepKey), selection: keyName) {
                 ForEach(KeyCatalog.entries) { Text($0.title).tag($0.name) }
             }
             HStack {
-                Text("Phím bổ trợ")
+                Text(localization(.stepModifiers))
                 Spacer()
                 ForEach(KeyModifier.allCases) { modifier in
                     Toggle(modifier.symbol, isOn: modifierBinding(modifier))
                         .toggleStyle(.button)
                 }
             }
-            footnote("Sẽ gửi \(KeyCatalog.describe(stroke)).")
+            footnote(localization(.stepKeyPreview, KeyCatalog.describe(stroke)))
         }
 
         if step.action.isKeyboard {
             if let lockedApplicationName {
-                footnote("Trước khi gõ, Auto Click đưa \(lockedApplicationName) lên trước; không đưa lên được thì dừng.")
+                footnote(localization(.stepKeyActivationHint, lockedApplicationName))
             } else {
-                warning("Chưa khoá ứng dụng: phím sẽ đi vào bất kỳ cửa sổ nào đang ở trước.")
+                warning(localization(.stepKeyNoLockHint))
             }
         }
     }
@@ -132,22 +141,22 @@ struct StepDetailView: View {
 
     @ViewBuilder
     private func targetEditor(_ target: Binding<StepTarget>) -> some View {
-        Picker("Loại", selection: targetKind(target)) {
+        Picker(localization(.stepTargetKind), selection: targetKind(target)) {
             ForEach(TargetKind.allCases) { Text($0.title).tag($0) }
         }
 
         switch target.wrappedValue {
         case .cursor:
-            footnote("Đọc lại vị trí con trỏ ở mỗi lần lặp, nên chuỗi thao tác sẽ đi theo tay bạn.")
+            footnote(localization(.stepTargetCursorHint))
 
         case let .screenPoint(x, y):
             HStack {
-                Text("Toạ độ")
+                Text(localization(.stepTargetCoordinates))
                 Spacer()
                 Text("X: \(Int(x.rounded()))  Y: \(Int(y.rounded()))")
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
-                Button("Chọn điểm…") {
+                Button(localization(.stepTargetChoosePoint)) {
                     onPickScreenPoint { point in
                         target.wrappedValue = .screenPoint(x: point.x, y: point.y)
                     }
@@ -157,12 +166,12 @@ struct StepDetailView: View {
         case let .windowRelative(corner, dx, dy):
             if let lockedApplicationName {
                 HStack {
-                    Text("Lệch góc \(corner.title)")
+                    Text(localization(.stepTargetCornerOffset, corner.title))
                     Spacer()
                     Text("\(Int(dx.rounded())), \(Int(dy.rounded()))")
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
-                    Button("Chọn điểm…") {
+                    Button(localization(.stepTargetChoosePoint)) {
                         onPickWindowOffset { offset in
                             target.wrappedValue = .windowRelative(
                                 corner: offset.corner,
@@ -172,17 +181,19 @@ struct StepDetailView: View {
                         }
                     }
                 }
-                footnote("Bám vào góc gần điểm nhất của cửa sổ trước nhất thuộc \(lockedApplicationName), nên cửa sổ dịch chuyển hay phóng to vẫn đúng.")
+                footnote(localization(.stepTargetAnchorHint, lockedApplicationName))
             } else {
-                warning("Phải khoá kịch bản vào một ứng dụng thì mới neo được theo cửa sổ.")
+                warning(localization(.stepTargetAnchorNeedsLock))
             }
 
         case let .template(name, settings):
             HStack(alignment: .top) {
-                Text("Ảnh mẫu")
+                Text(localization(.stepTargetTemplate))
                 Spacer()
                 templateThumbnail(name)
-                Button(name.isEmpty ? "Chụp vùng…" : "Chụp lại…") {
+                Button(localization(
+                    name.isEmpty ? .stepTargetCaptureRegion : .stepTargetCaptureAgain
+                )) {
                     onCaptureTemplate { captured, suggestedRegion in
                         target.wrappedValue = .template(
                             name: captured,
@@ -198,16 +209,16 @@ struct StepDetailView: View {
                     }
                 }
             }
-            footnote("Khoanh được ở bất cứ đâu — kể cả từ một ảnh chụp màn hình đang mở trong ứng dụng khác, khi mục tiêu chưa hiện ra.")
+            footnote(localization(.stepTargetTemplateHint))
             thresholdField(target, settings: settings)
             recognitionFields(target, settings: settings)
 
         case let .text(text, settings):
-            TextField("Chữ cần tìm", text: Binding(
+            TextField(localization(.stepTargetText), text: Binding(
                 get: { text },
                 set: { target.wrappedValue = .text($0, settings: settings) }
             ))
-            footnote("Không phân biệt hoa thường. Bền hơn ảnh mẫu khi đổi giao diện sáng/tối hay cỡ chữ, nhưng chỉ nhắm được thứ có chữ.")
+            footnote(localization(.stepTargetTextHint))
             recognitionFields(target, settings: settings)
         }
     }
@@ -216,7 +227,7 @@ struct StepDetailView: View {
     @ViewBuilder
     private func templateThumbnail(_ name: String) -> some View {
         if name.isEmpty {
-            Text("Chưa chụp")
+            Text(localization(.stepTemplateNotCaptured))
                 .foregroundStyle(.secondary)
         } else if let image = templateImage(name) {
             Image(nsImage: image)
@@ -232,7 +243,7 @@ struct StepDetailView: View {
                 // The real pixel size is still needed: it determines the scan area and the matching speed.
                 .help("\(name) — \(Int(image.size.width))×\(Int(image.size.height)) pixel")
         } else {
-            Label("Thiếu tệp ảnh mẫu", systemImage: "exclamationmark.triangle.fill")
+            Label(localization(.stepTemplateFileMissing), systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
                 .font(.caption)
         }
@@ -246,7 +257,7 @@ struct StepDetailView: View {
         settings: RecognitionSettings
     ) -> some View {
         HStack {
-            Text("Ngưỡng khớp")
+            Text(localization(.stepThreshold))
             Slider(
                 value: Binding(
                     get: { settings.threshold },
@@ -254,7 +265,7 @@ struct StepDetailView: View {
                 ),
                 in: ScenarioLimits.recognitionThreshold
             )
-            Text(String(format: "%.2f", settings.threshold))
+            Text(localization.decimal(settings.threshold))
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .frame(width: 44, alignment: .trailing)
@@ -267,7 +278,7 @@ struct StepDetailView: View {
         settings: RecognitionSettings
     ) -> some View {
         labelledField(
-            "Chờ tối đa",
+            localization(.stepWaitAtMost),
             value: Binding(
                 get: { settings.waitMilliseconds },
                 set: { update(target, settings, wait: $0) }
@@ -277,44 +288,44 @@ struct StepDetailView: View {
         )
 
         Picker(
-            "Hết giờ thì",
+            localization(.stepOnTimeout),
             selection: Binding(
                 get: { settings.onTimeout },
                 set: { update(target, settings, onTimeout: $0) }
             )
         ) {
-            Text("Dừng kịch bản").tag(TimeoutBehaviour.stopScenario)
-            Text("Bỏ qua bước").tag(TimeoutBehaviour.skipStep)
+            Text(localization(.stepOnTimeoutStop)).tag(TimeoutBehaviour.stopScenario)
+            Text(localization(.stepOnTimeoutSkip)).tag(TimeoutBehaviour.skipStep)
         }
 
         HStack {
-            Text("Vùng tìm")
+            Text(localization(.stepSearchRegion))
             Spacer()
             Text(searchRegionDescription(settings.searchRegion))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             if settings.searchRegion != nil {
-                Button("Bỏ") { update(target, settings, searchRegion: .some(nil)) }
+                Button(localization(.stepSearchRegionClear)) { update(target, settings, searchRegion: .some(nil)) }
             }
-            Button("Khoanh…") {
+            Button(localization(.stepSearchRegionPick)) {
                 onPickSearchRegion { region in
                     update(target, settings, searchRegion: .some(region))
                 }
             }
         }
         if settings.waitMilliseconds > 0 {
-            footnote("Thử lại tới \(settings.waitMilliseconds) ms — đủ để đợi nút hiện ra sau khi trang tải.")
+            footnote(localization(.stepWaitHint, settings.waitMilliseconds))
         }
     }
 
     private func searchRegionDescription(_ region: SearchRegion?) -> String {
         switch region {
         case nil:
-            return "Cả màn hình (hoặc cửa sổ đã khoá)"
+            return localization(.stepRegionWholeScreen)
         case let .screenRect(_, _, width, height):
-            return "Tuyệt đối \(Int(width))×\(Int(height)) — trượt nếu cửa sổ dịch"
+            return localization(.stepRegionAbsolute, Int(width), Int(height))
         case let .windowRelative(_, _, _, width, height):
-            return "Theo cửa sổ \(Int(width))×\(Int(height))"
+            return localization(.stepRegionWindowRelative, Int(width), Int(height))
         }
     }
 
@@ -349,12 +360,12 @@ struct StepDetailView: View {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .click: return "Click / giữ nhấn"
-            case .scroll: return "Cuộn"
-            case .move: return "Di chuột"
-            case .drag: return "Kéo thả"
-            case .typeText: return "Gõ chuỗi"
-            case .pressKey: return "Tổ hợp phím"
+            case .click: return localized(.actionClick)
+            case .scroll: return localized(.actionScroll)
+            case .move: return localized(.actionMove)
+            case .drag: return localized(.actionDrag)
+            case .typeText: return localized(.actionType)
+            case .pressKey: return localized(.actionPressKey)
             }
         }
     }
@@ -364,11 +375,11 @@ struct StepDetailView: View {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .cursor: return "Theo con trỏ"
-            case .screenPoint: return "Điểm cố định"
-            case .windowRelative: return "Lệch theo cửa sổ"
-            case .template: return "Theo ảnh mẫu"
-            case .text: return "Theo chữ"
+            case .cursor: return localized(.targetCursor)
+            case .screenPoint: return localized(.targetFixedPoint)
+            case .windowRelative: return localized(.targetWindowRelative)
+            case .template: return localized(.targetTemplate)
+            case .text: return localized(.targetText)
             }
         }
     }
@@ -626,10 +637,10 @@ struct StepDetailView: View {
 extension WindowCorner {
     var title: String {
         switch self {
-        case .topLeft: return "trên-trái"
-        case .topRight: return "trên-phải"
-        case .bottomLeft: return "dưới-trái"
-        case .bottomRight: return "dưới-phải"
+        case .topLeft: return localized(.cornerTopLeft)
+        case .topRight: return localized(.cornerTopRight)
+        case .bottomLeft: return localized(.cornerBottomLeft)
+        case .bottomRight: return localized(.cornerBottomRight)
         }
     }
 }

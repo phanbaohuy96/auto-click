@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>editor.load_issues</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@scenarios@</string>
+		<key>scenarios</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>%d kịch bản có vấn đề</string>
+		</dict>
+	</dict>
+	<key>panel.gestures</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@gestures@</string>
+		<key>gestures</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>%d thao tác</string>
+		</dict>
+	</dict>
+	<key>record.finished</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@steps@</string>
+		<key>steps</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>Đã ghi %d bước.</string>
+		</dict>
+	</dict>
+	<key>record.in_progress</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@gestures@</string>
+		<key>gestures</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>Đang ghi %d thao tác — ⌥⌘R để kết thúc</string>
+		</dict>
+	</dict>
+	<key>record.warning.multiple_applications</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@applications@</string>
+		<key>applications</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>Bản ghi trải trên %d ứng dụng nên dùng toạ độ tuyệt đối; các bước sẽ trượt nếu cửa sổ dịch chuyển.</string>
+		</dict>
+	</dict>
+	<key>run.completed.iterations</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@loops@</string>
+		<key>loops</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>Hoàn tất %d vòng</string>
+		</dict>
+	</dict>
+	<key>run.completed.steps</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@steps@</string>
+		<key>steps</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>Hoàn tất %d bước</string>
+		</dict>
+	</dict>
+	<key>run.countdown</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@seconds@</string>
+		<key>seconds</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>Bắt đầu sau %d giây…</string>
+		</dict>
+	</dict>
+	<key>run.start</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@seconds@</string>
+		<key>seconds</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>Bắt đầu sau %d giây</string>
+		</dict>
+	</dict>
+	<key>scenario.summary.loops</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@loops@</string>
+		<key>loops</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>%d vòng</string>
+		</dict>
+	</dict>
+	<key>scenario.summary.steps</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@steps@</string>
+		<key>steps</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>d</string>
+			<key>other</key>
+			<string>%d bước</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

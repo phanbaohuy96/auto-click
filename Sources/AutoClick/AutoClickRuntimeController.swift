@@ -6,6 +6,7 @@ import SwiftUI
 final class AutoClickRuntimeController: ObservableObject {
     private let runner: ScenarioRunner
     private let recorder: ScenarioRecorder
+    private let localization: Localization
     private let activityPanel: RunningActivityPanelController
     private var hotKeys: [EventHotKeyRef?] = []
     private var hotKeyHandler: EventHandlerRef?
@@ -15,10 +16,15 @@ final class AutoClickRuntimeController: ObservableObject {
         case toggleRecording = 2
     }
 
-    init(runner: ScenarioRunner, recorder: ScenarioRecorder) {
+    init(runner: ScenarioRunner, recorder: ScenarioRecorder, localization: Localization) {
         self.runner = runner
         self.recorder = recorder
-        activityPanel = RunningActivityPanelController(runner: runner, recorder: recorder)
+        self.localization = localization
+        activityPanel = RunningActivityPanelController(
+            runner: runner,
+            recorder: recorder,
+            localization: localization
+        )
 
         runner.onRunningStateChanged = { [weak self] isRunning in
             self?.activityPanel.setVisible(isRunning || (self?.recorder.isRecording ?? false))
@@ -106,7 +112,7 @@ final class AutoClickRuntimeController: ObservableObject {
 private final class RunningActivityPanelController {
     private let panel: NSPanel
 
-    init(runner: ScenarioRunner, recorder: ScenarioRecorder) {
+    init(runner: ScenarioRunner, recorder: ScenarioRecorder, localization: Localization) {
         let panelSize = NSSize(width: 390, height: 86)
         panel = NSPanel(
             contentRect: NSRect(origin: .zero, size: panelSize),
@@ -122,7 +128,13 @@ private final class RunningActivityPanelController {
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.isMovableByWindowBackground = true
-        panel.contentView = NSHostingView(rootView: RunningActivityView(runner: runner, recorder: recorder))
+        panel.contentView = NSHostingView(
+            rootView: RunningActivityView(
+                runner: runner,
+                recorder: recorder,
+                localization: localization
+            )
+        )
     }
 
     func setVisible(_ isVisible: Bool) {
@@ -148,6 +160,7 @@ private final class RunningActivityPanelController {
 private struct RunningActivityView: View {
     @ObservedObject var runner: ScenarioRunner
     @ObservedObject var recorder: ScenarioRecorder
+    @ObservedObject var localization: Localization
 
     var body: some View {
         HStack(spacing: 12) {
@@ -157,7 +170,9 @@ private struct RunningActivityView: View {
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(recorder.isRecording ? "Đang ghi thao tác" : (runner.runningScenarioName ?? "Auto Click"))
+                Text(recorder.isRecording
+                    ? localization(.panelRecordingTitle)
+                    : (runner.runningScenarioName ?? "Auto Click"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -165,7 +180,9 @@ private struct RunningActivityView: View {
                     .font(.headline)
                     .lineLimit(1)
                 // The only way out while a click sequence has taken over the cursor (UI-15).
-                Text(recorder.isRecording ? "Kết thúc bằng ⌥⌘R" : "Dừng nhanh bằng ⌥⌘S")
+                Text(recorder.isRecording
+                    ? localization(.panelFinishHint)
+                    : localization(.panelStopHint))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -176,7 +193,7 @@ private struct RunningActivityView: View {
                 Button {
                     recorder.stop()
                 } label: {
-                    Label("Kết thúc", systemImage: "stop.circle")
+                    Label(localization(.panelFinish), systemImage: "stop.circle")
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.red)
@@ -184,7 +201,7 @@ private struct RunningActivityView: View {
                 Button {
                     runner.stop()
                 } label: {
-                    Label("Dừng", systemImage: "stop.fill")
+                    Label(localization(.panelStop), systemImage: "stop.fill")
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.red)
@@ -207,7 +224,7 @@ private struct RunningActivityView: View {
 
     private var title: String {
         if recorder.isRecording {
-            return "\(recorder.recordedGestureCount) thao tác"
+            return localization(.panelGestures, recorder.recordedGestureCount)
         }
         return runner.statusText
     }

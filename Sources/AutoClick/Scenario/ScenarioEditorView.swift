@@ -5,6 +5,7 @@ import SwiftUI
 struct ScenarioEditorView: View {
     @ObservedObject var store: ScenarioStore
     @ObservedObject var runner: ScenarioRunner
+    @ObservedObject var localization: Localization
 
     @State private var selectedStepID: UUID?
     @State private var pointSelector: ClickPointSelector?
@@ -34,18 +35,18 @@ struct ScenarioEditorView: View {
                 if let scenario = store.selectedScenario, !store.isReadOnly(scenario) {
                     stepDetail(store.binding(for: scenario.id))
                 } else {
-                    placeholder("Chọn một bước để sửa")
+                    placeholder(localization(.editorSelectAStep))
                 }
             }
             .navigationSplitViewColumnWidth(min: 340, ideal: 400)
         }
-        .navigationTitle("Soạn kịch bản")
+        .navigationTitle(localization(.editorTitle))
         .frame(minWidth: 940, minHeight: 520)
         .onAppear { runningApplications = RunningApplicationOption.current() }
         .disabled(runner.isRunning)
         .overlay(alignment: .top) {
             if runner.isRunning {
-                Label("Đang chạy — không sửa được", systemImage: "lock.fill")
+                Label(localization(.editorRunningNotice), systemImage: "lock.fill")
                     .font(.caption)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -69,17 +70,17 @@ struct ScenarioEditorView: View {
             Divider()
 
             HStack(spacing: 6) {
-                iconButton("plus", help: "Kịch bản mới") { store.create() }
+                iconButton("plus", help: localization(.editorNewScenario)) { store.create() }
                 iconButton(
                     "doc.on.doc",
-                    help: "Nhân bản",
+                    help: localization(.editorDuplicateScenario),
                     isDisabled: store.selectedScenario.map(store.isReadOnly) ?? true
                 ) {
                     if let scenario = store.selectedScenario { store.duplicate(scenario) }
                 }
                 iconButton(
                     "trash",
-                    help: "Xoá kịch bản và toàn bộ thư mục của nó",
+                    help: localization(.editorDeleteScenario),
                     isDisabled: store.selectedScenario == nil
                 ) {
                     if let scenario = store.selectedScenario { store.delete(scenario) }
@@ -90,8 +91,8 @@ struct ScenarioEditorView: View {
                 if !store.loadIssues.isEmpty {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
-                        .help(store.loadIssues.joined(separator: "\n"))
-                        .accessibilityLabel("\(store.loadIssues.count) kịch bản có vấn đề")
+                        .help(store.loadIssues.map(\.text).joined(separator: "\n"))
+                        .accessibilityLabel(localization(.editorLoadIssues, store.loadIssues.count))
                 }
             }
             .padding(8)
@@ -101,9 +102,9 @@ struct ScenarioEditorView: View {
     private func scenarioRow(_ scenario: Scenario) -> some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(scenario.name.isEmpty ? "Chưa đặt tên" : scenario.name)
+                Text(scenario.name.isEmpty ? localization(.editorUnnamed) : scenario.name)
                     .lineLimit(1)
-                Text(scenario.steps.count == 1 ? "1 bước" : "\(scenario.steps.count) bước")
+                Text(localization(.scenarioSummarySteps, scenario.steps.count))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -112,7 +113,7 @@ struct ScenarioEditorView: View {
                 Image(systemName: "lock.fill")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .help("Chỉ xem được")
+                    .help(localization(.editorReadOnlyBadge))
             }
         }
         .padding(.vertical, 2)
@@ -152,9 +153,9 @@ struct ScenarioEditorView: View {
             Image(systemName: "list.bullet.rectangle")
                 .font(.system(size: 34))
                 .foregroundStyle(.secondary)
-            Text("Chưa có kịch bản nào")
+            Text(localization(.editorEmptyTitle))
                 .font(.headline)
-            Button("Tạo kịch bản đầu tiên") { store.create() }
+            Button(localization(.editorEmptyAction)) { store.create() }
                 .buttonStyle(.borderedProminent)
             Spacer()
         }
@@ -167,9 +168,9 @@ struct ScenarioEditorView: View {
             Image(systemName: "lock.doc")
                 .font(.system(size: 34))
                 .foregroundStyle(.secondary)
-            Text("“\(scenario.name)” dùng định dạng mới hơn")
+            Text(localization(.editorNewerFormatTitle, scenario.name))
                 .font(.headline)
-            Text("Chỉ xem được, không sửa và không chạy được bằng bản Auto Click này.")
+            Text(localization(.editorNewerFormatDetail))
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Spacer()
@@ -192,18 +193,18 @@ struct ScenarioEditorView: View {
     /// is only about 380 points wide, and packing it horizontally squeezed a label to 0 points and stretched a checkbox into a stripe.
     private func scenarioSettings(_ scenario: Binding<Scenario>) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            TextField("Tên kịch bản", text: scenario.name)
+            TextField(localization(.editorScenarioName), text: scenario.name)
                 .textFieldStyle(.roundedBorder)
 
             HStack(spacing: 10) {
-                Toggle("Lặp đến khi dừng", isOn: Binding(
+                Toggle(localization(.editorRepeatUntilStopped), isOn: Binding(
                     get: { scenario.wrappedValue.runCount == .untilStopped },
                     set: { scenario.wrappedValue.runCount = $0 ? .untilStopped : .times(1) }
                 ))
                 .fixedSize()
 
                 if case let .times(count) = scenario.wrappedValue.runCount {
-                    Text("Số vòng").fixedSize()
+                    Text(localization(.editorIterationCount)).fixedSize()
                     integerField(
                         value: Binding(
                             get: { count },
@@ -216,18 +217,18 @@ struct ScenarioEditorView: View {
                 Spacer(minLength: 0)
             }
 
-            Toggle("Khoá vào ứng dụng", isOn: lockToggle(scenario))
+            Toggle(localization(.editorLockToggle), isOn: lockToggle(scenario))
                 .fixedSize()
 
             if scenario.wrappedValue.lockedApplication != nil {
                 HStack(spacing: 8) {
-                    Picker("Ứng dụng", selection: lockedBundleIdentifier(scenario)) {
-                        Text("Chọn ứng dụng…").tag("")
+                    Picker(localization(.editorLockApplication), selection: lockedBundleIdentifier(scenario)) {
+                        Text(localization(.editorLockChoose)).tag("")
                         ForEach(runningApplications) { Text($0.name).tag($0.bundleIdentifier) }
                     }
                     .labelsHidden()
 
-                    iconButton("arrow.clockwise", help: "Làm mới danh sách ứng dụng") {
+                    iconButton("arrow.clockwise", help: localization(.editorLockRefresh)) {
                         runningApplications = RunningApplicationOption.current()
                     }
                 }
@@ -255,7 +256,7 @@ struct ScenarioEditorView: View {
             get: { scenario.wrappedValue.lockedApplication != nil },
             set: { isOn in
                 scenario.wrappedValue.lockedApplication = isOn
-                    ? LockedApplication(bundleIdentifier: "", name: "Chưa chọn")
+                    ? LockedApplication(bundleIdentifier: "", name: localization(.editorNotChosen))
                     : nil
             }
         )
@@ -266,7 +267,7 @@ struct ScenarioEditorView: View {
             get: { scenario.wrappedValue.lockedApplication?.bundleIdentifier ?? "" },
             set: { bundleIdentifier in
                 let name = runningApplications
-                    .first { $0.bundleIdentifier == bundleIdentifier }?.name ?? "Chưa chọn"
+                    .first { $0.bundleIdentifier == bundleIdentifier }?.name ?? localization(.editorNotChosen)
                 scenario.wrappedValue.lockedApplication = LockedApplication(
                     bundleIdentifier: bundleIdentifier,
                     name: name
@@ -293,20 +294,20 @@ struct ScenarioEditorView: View {
             Divider()
 
             HStack(spacing: 6) {
-                iconButton("plus", help: "Thêm bước") { addStep(to: scenario) }
+                iconButton("plus", help: localization(.editorAddStep)) { addStep(to: scenario) }
                 iconButton(
                     "doc.on.doc",
-                    help: "Nhân bản bước",
+                    help: localization(.editorDuplicateStep),
                     isDisabled: selectedStepIndex(in: scenario.wrappedValue) == nil
                 ) { duplicateSelectedStep(in: scenario) }
                 iconButton(
                     "minus",
-                    help: "Xoá bước",
+                    help: localization(.editorDeleteStep),
                     isDisabled: selectedStepIndex(in: scenario.wrappedValue) == nil
                 ) { deleteSelectedStep(in: scenario) }
 
                 Spacer()
-                Text("Kéo để đổi thứ tự")
+                Text(localization(.editorDragToReorder))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -352,6 +353,7 @@ struct ScenarioEditorView: View {
         if let index = selectedStepIndex(in: scenario.wrappedValue) {
             StepDetailView(
                 step: scenario.steps[index],
+                localization: localization,
                 lockedApplicationName: lockedApplicationName(of: scenario.wrappedValue),
                 onPickScreenPoint: { apply in pickPoint { point, _ in apply(point) } },
                 onPickWindowOffset: { apply in
@@ -370,7 +372,7 @@ struct ScenarioEditorView: View {
                 }
             )
         } else {
-            placeholder("Chọn một bước để sửa")
+            placeholder(localization(.editorSelectAStep))
         }
     }
 
@@ -438,7 +440,7 @@ struct ScenarioEditorView: View {
         apply: @escaping (WindowAnchor.Offset) -> Void
     ) {
         guard let locked = scenario.lockedApplication, !locked.bundleIdentifier.isEmpty else {
-            pickError = "Hãy chọn ứng dụng khoá trước khi neo theo cửa sổ."
+            pickError = localization(.editorAnchorNeedsLock)
             return
         }
 
@@ -446,11 +448,11 @@ struct ScenarioEditorView: View {
             guard let processIdentifier = RunningApplicationOption.processIdentifier(
                 forBundleIdentifier: locked.bundleIdentifier
             ) else {
-                pickError = "\(locked.name) hiện không chạy."
+                pickError = localization(.editorLockedNotRunning, locked.name)
                 return
             }
             guard let frame = WindowAnchor.focusedWindowFrame(ofProcess: processIdentifier) else {
-                pickError = "Không lấy được cửa sổ nào của \(locked.name)."
+                pickError = localization(.editorNoWindowForLocked, locked.name)
                 return
             }
             apply(WindowAnchor.offset(for: point, in: frame))
@@ -524,7 +526,7 @@ struct ScenarioEditorView: View {
                 window?.makeKeyAndOrderFront(nil)
             }
             guard let rect = await captureCoordinator.selectRegion(
-                prompt: "Kéo để chọn vùng tìm  •  Esc để hủy"
+                prompt: localized(.overlaySearchRegion)
             ) else { return }
 
             apply(searchRegion(for: rect, in: scenario))
@@ -553,42 +555,44 @@ enum StepSummary {
         case let .click(button, count, hold):
             var text = "Click \(name(of: button))"
             if count > 1 { text += " ×\(count)" }
-            if hold > 0 { text += ", giữ \(hold) ms" }
+            if hold > 0 { text += localized(.summaryHold, hold) }
             return text
         case let .scroll(deltaX, deltaY):
-            return "Cuộn (\(deltaX), \(deltaY))"
+            return localized(.summaryScroll, deltaX, deltaY)
         case .move:
-            return "Di chuột"
+            return localized(.summaryMove)
         case let .drag(button, destination):
-            return "Kéo \(name(of: button)) tới \(target(destination))"
+            return localized(.summaryDrag, name(of: button), target(destination))
         case let .typeText(text):
-            return text.isEmpty ? "Gõ chuỗi (trống)" : "Gõ “\(text)”"
+            return text.isEmpty ? localized(.summaryTypeEmpty) : localized(.summaryType, text)
         case let .pressKey(stroke):
-            return "Phím \(KeyCatalog.describe(stroke))"
+            return localized(.summaryKey, KeyCatalog.describe(stroke))
         }
     }
 
     static func target(_ target: StepTarget) -> String {
         switch target {
         case .cursor:
-            return "Theo con trỏ"
+            return localized(.summaryTargetCursor)
         case let .screenPoint(x, y):
-            return "Điểm màn hình X: \(Int(x.rounded()))  Y: \(Int(y.rounded()))"
+            return localized(.summaryTargetPoint, Int(x.rounded()), Int(y.rounded()))
         case let .windowRelative(corner, dx, dy):
-            return "Lệch góc \(corner.title): \(Int(dx.rounded())), \(Int(dy.rounded()))"
+            return localized(
+                .summaryTargetCorner, corner.title, Int(dx.rounded()), Int(dy.rounded())
+            )
         case let .template(name, settings):
-            let label = name.isEmpty ? "chưa chụp" : name
-            return "Ảnh mẫu \(label) (ngưỡng \(String(format: "%.2f", settings.threshold)))"
+            let label = name.isEmpty ? localized(.summaryTargetTemplateMissing) : name
+            return localized(.summaryTargetTemplate, label, localizedDecimal(settings.threshold))
         case let .text(text, _):
-            return text.isEmpty ? "Chữ (chưa nhập)" : "Chữ “\(text)”"
+            return text.isEmpty ? localized(.summaryTargetTextEmpty) : localized(.summaryTargetText, text)
         }
     }
 
     static func name(of button: MouseButton) -> String {
         switch button {
-        case .left: return "trái"
-        case .right: return "phải"
-        case .center: return "giữa"
+        case .left: return localized(.buttonLeft)
+        case .right: return localized(.buttonRight)
+        case .center: return localized(.buttonMiddle)
         }
     }
 }

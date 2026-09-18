@@ -49,7 +49,7 @@ final class TemplateCaptureCoordinator {
     /// Draws a region, captures it, saves it to the library and returns the file name together with the area drawn.
     func captureTemplate(into library: TemplateLibrary) async throws -> Capture? {
         guard let rect = await selectRegion(
-            prompt: "Kéo để chọn vùng làm ảnh mẫu  •  Esc để hủy"
+            prompt: localized(.overlayTemplateRegion)
         ) else { return nil }
 
         try? await Task.sleep(for: .milliseconds(Self.overlayDismissDelayMilliseconds))

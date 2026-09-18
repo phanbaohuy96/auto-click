@@ -1,0 +1,236 @@
+/* Auto Click — English (the development language, LC-1).
+   This file is the source of truth: every other language is a translation of it, and any key missing
+   elsewhere falls back to here (LC-7). Keys are declared in Sources/AutoClick/Localization/StringKey.swift.
+   Strings carrying a count live in Localizable.stringsdict instead (LC-9). */
+
+/* MARK: Menu bar popover */
+"menu.subtitle" = "Click at the cursor, a fixed point, or run a scenario";
+"menu.mode.label" = "Mode";
+"menu.mode.simple" = "Simple";
+"menu.mode.scenario" = "Scenario";
+"menu.launch_at_login" = "Launch at login";
+"menu.quit" = "Quit";
+"menu.grant_accessibility" = "Grant Accessibility";
+"menu.grant_screen_recording" = "Grant Screen Recording";
+"menu.language" = "Language";
+"menu.language.follow_system" = "Follow system";
+
+/* MARK: Running */
+"run.stop" = "Stop";
+"run.ready" = "Ready";
+"run.stopped" = "Stopped";
+"run.progress.step" = "Step %1$d/%2$d";
+"run.progress.iteration_of_total" = "Loop %1$d/%2$d · %3$@";
+"run.progress.iteration" = "Loop %1$d · %2$@";
+"run.failed" = "Error: %@";
+
+/* MARK: Recording */
+"record.button" = "Record";
+"record.hint" = "finish with ⌥⌘R";
+"record.nothing_captured" = "No operation was recorded.";
+"record.tap_failed" = "Could not create the event listener.";
+"record.default_name" = "Recording";
+"record.warning.absolute_steps" = "%1$d of %2$d steps use absolute coordinates because no window could be read while recording; those steps will drift if the window moves.";
+
+/* MARK: Floating panel */
+"panel.recording_title" = "Recording operations";
+"panel.finish_hint" = "Finish with ⌥⌘R";
+"panel.stop_hint" = "Stop instantly with ⌥⌘S";
+"panel.finish" = "Finish";
+"panel.stop" = "Stop";
+
+/* MARK: Simple mode */
+"simple.interval" = "Time interval";
+"simple.repeat" = "Repeat";
+"simple.repeat.unit" = "times";
+"simple.scenario_name" = "Simple mode";
+"simple.position.label" = "Click position";
+"simple.position.cursor" = "At the cursor";
+"simple.position.fixed" = "Fixed point";
+"simple.point.none" = "No point chosen";
+"simple.point.coordinates" = "X: %1$d  Y: %2$d";
+"simple.point.choose" = "Choose point…";
+"simple.point.choose_again" = "Choose again…";
+"simple.cursor_hint" = "Takes the cursor position when the countdown ends";
+"simple.picking_point" = "Click where you want it saved; press Esc to cancel.";
+"simple.point_cancelled" = "Point selection cancelled.";
+"simple.point_saved" = "Click point saved: %@";
+"simple.lock.toggle" = "Only click inside one application";
+"simple.lock.application" = "Application";
+"simple.lock.choose" = "Choose an application…";
+"simple.lock.closed" = "%@ — closed";
+"simple.lock.refresh" = "Refresh the list of applications";
+"simple.lock.hint" = "Only clicks when the point belongs to the chosen application";
+"simple.application.fallback_name" = "Chosen application";
+
+/* MARK: Scenario section of the popover */
+"scenario.picker.label" = "Scenario";
+"scenario.picker.empty" = "No scenarios yet";
+"scenario.none_at_all" = "There are no scenarios yet.";
+"scenario.read_only_blocker" = "This scenario is read-only.";
+"scenario.needs_screen_recording" = "This scenario uses image or text recognition, so it needs the Screen Recording permission.";
+"scenario.open_editor" = "Edit scenarios";
+"scenario.open_editor_ellipsis" = "Edit scenarios…";
+"scenario.summary.with_loops" = "%1$@ · repeats %2$@";
+"scenario.summary.until_stopped" = "%@ · repeats until stopped";
+
+/* MARK: Editor window */
+"editor.title" = "Edit scenarios";
+"editor.running_notice" = "Running — editing is disabled";
+"editor.select_a_step" = "Select a step to edit";
+"editor.new_scenario" = "New scenario";
+"editor.duplicate_scenario" = "Duplicate";
+"editor.delete_scenario" = "Delete the scenario and its whole directory";
+"editor.unnamed" = "Unnamed";
+"editor.read_only_badge" = "Read-only";
+"editor.empty.title" = "No scenarios yet";
+"editor.empty.action" = "Create the first scenario";
+"editor.newer_format.title" = "“%@” uses a newer format";
+"editor.newer_format.detail" = "Read-only: this build of Auto Click can neither edit nor run it.";
+"editor.scenario_name" = "Scenario name";
+"editor.repeat_until_stopped" = "Repeat until stopped";
+"editor.iteration_count" = "Loops";
+"editor.lock.toggle" = "Lock to an application";
+"editor.lock.application" = "Application";
+"editor.lock.choose" = "Choose an application…";
+"editor.lock.refresh" = "Refresh the list of applications";
+"editor.not_chosen" = "Not chosen";
+"editor.add_step" = "Add a step";
+"editor.duplicate_step" = "Duplicate the step";
+"editor.delete_step" = "Delete the step";
+"editor.drag_to_reorder" = "Drag to reorder";
+"editor.anchor_needs_lock" = "Choose the locked application before anchoring to its window.";
+"editor.locked_not_running" = "%@ is not running.";
+"editor.no_window_for_locked" = "No window of %@ could be read.";
+
+/* MARK: Step summaries in the list */
+"summary.hold" = ", hold %d ms";
+"summary.scroll" = "Scroll (%1$d, %2$d)";
+"summary.move" = "Move the cursor";
+"summary.drag" = "Drag %1$@ to %2$@";
+"summary.type_empty" = "Type a string (empty)";
+"summary.type" = "Type “%@”";
+"summary.key" = "Key %@";
+"summary.target.cursor" = "At the cursor";
+"summary.target.point" = "Screen point X: %1$d  Y: %2$d";
+"summary.target.corner" = "Offset from the %1$@ corner: %2$d, %3$d";
+"summary.target.template" = "Template %1$@ (threshold %2$@)";
+"summary.target.template_missing" = "not captured";
+"summary.target.text_empty" = "Text (not entered)";
+"summary.target.text" = "Text “%@”";
+
+/* MARK: Step detail */
+"step.action.section" = "Action";
+"step.action.kind" = "Kind";
+"step.position" = "Position";
+"step.release_point" = "Release point";
+"step.repeat.section" = "Repeat and wait";
+"step.repeat.count" = "Repeat the step";
+"step.repeat.unit" = "times";
+"step.delay_after" = "Wait after each";
+"step.minimum_gap_hint" = "The runner always leaves at least %d ms between two events.";
+"step.button" = "Button";
+"step.click_count" = "Clicks";
+"step.hold" = "Hold";
+"step.double_click_hint" = "Two clicks in a row are marked as a double click, not as two separate clicks.";
+"step.hold_hint" = "The cursor stays still while held. Stopping part-way still releases the button.";
+"step.scroll.unit" = "lines";
+"step.scroll.horizontal" = "Horizontal";
+"step.scroll.vertical" = "Vertical";
+"step.scroll.hint" = "A positive vertical value scrolls up.";
+"step.move_hint" = "Only moves the cursor to the position; nothing is pressed.";
+"step.drag_hint" = "Presses at Position, drags through %d intermediate points, then releases at Release point.";
+"step.type.content" = "Content";
+"step.type.per_key_hint" = "Typed one key at a time, exactly like a real typist — which is what a game needs. While typing, the input source switches to ABC and is put back afterwards.";
+"step.type.chunked_hint" = "Contains a character outside ASCII, so the string is sent as one block and the destination receives it as a single key. Vietnamese and emoji work, but a game that reacts key by key will not read it correctly.";
+"step.key" = "Key";
+"step.modifiers" = "Modifiers";
+"step.key_preview" = "Will send %@.";
+"step.key_activation_hint" = "Before typing, Auto Click brings %@ to the front; if it cannot, it stops.";
+"step.key_no_lock_hint" = "No application is locked: the keys will go to whichever window is in front.";
+"step.target.kind" = "Kind";
+"step.target.cursor_hint" = "Reads the cursor position again on every repetition, so the sequence follows your hand.";
+"step.target.coordinates" = "Coordinates";
+"step.target.choose_point" = "Choose point…";
+"step.target.corner_offset" = "Offset from the %@ corner";
+"step.target.anchor_hint" = "Sticks to the corner of the frontmost window of %@ nearest the point, so moving or resizing the window keeps it correct.";
+"step.target.anchor_needs_lock" = "The scenario has to be locked to an application before it can anchor to a window.";
+"step.target.template" = "Template";
+"step.target.capture_region" = "Capture a region…";
+"step.target.capture_again" = "Capture again…";
+"step.target.template_hint" = "It can be cropped from anywhere — including from a screenshot open in another application, when the target is not on screen yet.";
+"step.target.text" = "Text to find";
+"step.target.text_hint" = "Case-insensitive. It survives a light/dark switch or a font-size change better than a template, but it can only aim at things that have text.";
+"step.template.not_captured" = "Not captured";
+"step.template.file_missing" = "The template file is missing";
+"step.threshold" = "Match threshold";
+"step.wait_at_most" = "Wait at most";
+"step.on_timeout" = "When it runs out";
+"step.on_timeout.stop" = "Stop the scenario";
+"step.on_timeout.skip" = "Skip the step";
+"step.search_region" = "Search region";
+"step.search_region.clear" = "Clear";
+"step.search_region.pick" = "Outline…";
+"step.wait_hint" = "Retries for up to %d ms — long enough to wait for a button to appear once the page has loaded.";
+"step.region.whole_screen" = "The whole screen (or the locked window)";
+"step.region.absolute" = "Absolute %1$d×%2$d — drifts if the window moves";
+"step.region.window_relative" = "Window-relative %1$d×%2$d";
+
+/* MARK: Actions and targets */
+"action.click" = "Click / hold";
+"action.scroll" = "Scroll";
+"action.move" = "Move the cursor";
+"action.drag" = "Drag";
+"action.type" = "Type a string";
+"action.press_key" = "Key combination";
+"target.cursor" = "At the cursor";
+"target.fixed_point" = "Fixed point";
+"target.window_relative" = "Offset from the window";
+"target.template" = "At a template";
+"target.text" = "At some text";
+"button.left" = "left";
+"button.right" = "right";
+"button.middle" = "middle";
+"corner.top_left" = "top-left";
+"corner.top_right" = "top-right";
+"corner.bottom_left" = "bottom-left";
+"corner.bottom_right" = "bottom-right";
+"key.numpad_enter" = "Enter (numeric keypad)";
+
+/* MARK: Overlays */
+"overlay.pick_point" = "Click to choose the point  •  Esc to cancel";
+"overlay.search_region" = "Drag to choose the search region  •  Esc to cancel";
+"overlay.template_region" = "Drag to choose the template region  •  Esc to cancel";
+
+/* MARK: Errors */
+"error.interval.not_an_integer" = "Interval has to be a whole number.";
+"error.interval.out_of_range" = "Interval has to be between %1$@ and %2$@ ms.";
+"error.repeat.not_an_integer" = "Repeat has to be a whole number.";
+"error.repeat.out_of_range" = "Repeat has to be between %1$@ and %2$@.";
+"error.lock.missing_selection" = "Choose the application to lock to.";
+"error.lock.not_running" = "The chosen application is not running.";
+"error.fixed_point_missing" = "Choose a fixed click point.";
+"error.empty_scenario" = "The scenario has no steps yet.";
+"error.accessibility_denied" = "Grant Auto Click the Accessibility permission and try again. If Auto Click is already in the list, switch it off and on again — an update invalidates the old grant.";
+"error.missing_locked_application" = "The scenario has a window-anchored step, so a locked application has to be chosen.";
+"error.locked_application_not_running" = "%@ is not running.";
+"error.locked_application_terminated" = "The destination application closed; Auto Click stopped.";
+"error.point_outside_locked_application" = "The point is outside the locked application; Auto Click stopped.";
+"error.anchor_window_unavailable" = "No window of %@ could be read as the coordinate origin — it may be minimised under the Dock.";
+"error.activation_failed" = "%@ could not be brought to the front to type into; Auto Click stopped.";
+"error.unknown_key" = "The key “%@” is not recognised.";
+"error.target_not_found" = "%@ was not found on screen; Auto Click stopped.";
+"error.launch_at_login" = "The login setting could not be changed: %@";
+"error.schema_too_new" = "The scenario uses format version %1$d, and this build of Auto Click only understands up to %2$d.";
+"error.unknown_action" = "The action “%@” is not recognised.";
+"error.unknown_target" = "The target “%@” is not recognised.";
+"error.screen_recording_denied" = "Grant Auto Click the Screen Recording permission and try again. If it is already granted, quit Auto Click and open it again.";
+"error.no_display" = "No display could be found to capture.";
+"error.pixel_scale_unreadable" = "The display's pixel scale could not be read, so it was skipped to avoid clicking in the wrong place.";
+"error.screen_capture_failed" = "The screen could not be captured.";
+"issue.schema_read_only" = "%1$@: format version %2$d, read-only.";
+"issue.unreadable" = "%@: scenario.json could not be read.";
+
+/* MARK: Names written into scenario.json (LC-11) — translated once, at creation, then frozen */
+"data.duplicate_suffix" = "%@ (copy)";
+"data.new_scenario_name" = "New scenario";

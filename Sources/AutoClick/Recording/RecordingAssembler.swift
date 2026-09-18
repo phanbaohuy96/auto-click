@@ -6,10 +6,28 @@ import Foundation
 /// A pure function, split off from event capture: this is where it is decided whether a recording is usable
 /// straight away or forces the user to fix every step by hand, so it has to be verifiable.
 enum RecordingAssembler {
+    /// Why a finished recording is not quite usable as it is (RC-14).
+    ///
+    /// LC-6: an enum rather than a sentence, so the warning is translated when it is drawn and not when the
+    /// recording ended.
+    enum Warning: Equatable {
+        case spansSeveralApplications(Int)
+        case someStepsAreAbsolute(absolute: Int, total: Int)
+
+        var text: String {
+            switch self {
+            case let .spansSeveralApplications(count):
+                return localized(.recordWarningMultipleApplications, count)
+            case let .someStepsAreAbsolute(absolute, total):
+                return localized(.recordWarningAbsoluteSteps, absolute, total)
+            }
+        }
+    }
+
     struct Result: Equatable {
         var scenario: Scenario
         /// The warning shown after recording ends; `nil` means the recording is usable as it is.
-        var warning: String?
+        var warning: Warning?
     }
 
     /// The single process the whole session touched, or `nil` if it spans several applications.
@@ -77,18 +95,16 @@ enum RecordingAssembler {
         return .windowRelative(corner: offset.corner, dx: offset.dx, dy: offset.dy)
     }
 
-    private static func warning(for recorded: [RecordedStep], anchoredCount: Int) -> String? {
+    private static func warning(for recorded: [RecordedStep], anchoredCount: Int) -> Warning? {
         guard !recorded.isEmpty else { return nil }
 
         let identifiers = Set(recorded.compactMap(\.processIdentifier))
         if identifiers.count > 1 {
             // RC-14: say so plainly rather than letting the user find out when the scenario fires wide.
-            return "Bản ghi trải trên \(identifiers.count) ứng dụng nên dùng toạ độ tuyệt đối; "
-                + "các bước sẽ trượt nếu cửa sổ dịch chuyển."
+            return .spansSeveralApplications(identifiers.count)
         }
         if anchoredCount < recorded.count {
-            return "\(recorded.count - anchoredCount)/\(recorded.count) bước dùng toạ độ tuyệt đối "
-                + "vì không lấy được cửa sổ lúc ghi; các bước đó sẽ trượt nếu cửa sổ dịch chuyển."
+            return .someStepsAreAbsolute(absolute: recorded.count - anchoredCount, total: recorded.count)
         }
         return nil
     }

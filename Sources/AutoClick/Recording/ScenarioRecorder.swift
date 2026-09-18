@@ -13,12 +13,40 @@ final class ScenarioRecorder: ObservableObject {
         didSet { onRecordingStateChanged?(isRecording) }
     }
     @Published private(set) var recordedGestureCount = 0
-    @Published private(set) var message: String?
-    /// Whether the current message is something the user has to act on.
-    ///
-    /// `"Đã ghi 3 bước."` is a **success**. Poured into the same line as the reasons a Scenario cannot run, it
-    /// appeared with an orange triangle and looked exactly like a failure — the same bug as `UI-16` on the status line.
-    @Published private(set) var messageNeedsAttention = false
+    /// LC-6: an enum, so the line is translated when it is drawn rather than when recording ended.
+    @Published private(set) var message: Message?
+
+    /// A piece of feedback from a Recording session.
+    enum Message: Equatable {
+        case accessibilityDenied
+        case eventTapFailed
+        case nothingCaptured
+        case recorded(Int)
+        case warning(RecordingAssembler.Warning)
+
+        var text: String {
+            switch self {
+            case .accessibilityDenied: return localized(.errorAccessibilityDenied)
+            case .eventTapFailed: return localized(.recordTapFailed)
+            case .nothingCaptured: return localized(.recordNothingCaptured)
+            case let .recorded(count): return localized(.recordFinished, count)
+            case let .warning(warning): return warning.text
+            }
+        }
+
+        /// Whether this is something the user has to act on.
+        ///
+        /// `"Recorded 3 steps."` is a **success**. Poured into the same line as the reasons a Scenario cannot
+        /// run, it appeared with an orange triangle and looked exactly like a failure — the same bug as
+        /// `UI-16` on the status line.
+        var needsAttention: Bool {
+            if case .recorded = self { return false }
+            return true
+        }
+    }
+
+    var messageText: String? { message?.text }
+    var messageNeedsAttention: Bool { message?.needsAttention ?? false }
 
     var onRecordingStateChanged: ((Bool) -> Void)?
     /// Called when a recording session ends with at least one Step (RC-16, RC-17).
@@ -43,8 +71,7 @@ final class ScenarioRecorder: ObservableObject {
     func start() -> Bool {
         guard !isRecording else { return false }
         guard AXIsProcessTrusted() else {
-            message = "Hãy cấp quyền Accessibility cho Auto Click rồi thử lại. Nếu Auto Click đã có trong danh sách, hãy tắt rồi bật lại — bản cập nhật làm quyền cũ hết hiệu lực."
-            messageNeedsAttention = true
+            message = .accessibilityDenied
             return false
         }
 
@@ -61,8 +88,7 @@ final class ScenarioRecorder: ObservableObject {
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            message = "Không tạo được bộ lắng nghe sự kiện."
-            messageNeedsAttention = true
+            message = .eventTapFailed
             return false
         }
 
@@ -76,7 +102,6 @@ final class ScenarioRecorder: ObservableObject {
         events.removeAll()
         recordedGestureCount = 0
         message = nil
-        messageNeedsAttention = false
         isRecording = true
         return true
     }
@@ -98,8 +123,7 @@ final class ScenarioRecorder: ObservableObject {
 
         guard !recorded.isEmpty else {
             // RC-17: no Step recorded means no Scenario is created.
-            message = "Không ghi được thao tác nào."
-            messageNeedsAttention = true
+            message = .nothingCaptured
             return
         }
 
@@ -108,8 +132,7 @@ final class ScenarioRecorder: ObservableObject {
             from: recorded,
             lockedApplication: lockedApplication(for: recorded)
         )
-        message = result.warning ?? "Đã ghi \(recorded.count) bước."
-        messageNeedsAttention = result.warning != nil
+        message = result.warning.map(Message.warning) ?? .recorded(recorded.count)
         onFinished?(result)
     }
 
@@ -243,7 +266,7 @@ final class ScenarioRecorder: ObservableObject {
         guard let processIdentifier = RecordingAssembler.singleProcessIdentifier(in: recorded),
               let application = environment.application(processIdentifier)
         else {
-            return "Bản ghi \(timestamp)"
+            return "\(localized(.recordDefaultName)) \(timestamp)"
         }
         return "\(application.name) \(timestamp)"
     }

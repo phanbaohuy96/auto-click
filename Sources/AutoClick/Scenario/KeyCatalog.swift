@@ -21,7 +21,7 @@ enum KeyCatalog {
     static let entries: [Entry] = {
         var result: [Entry] = [
             Entry(name: "return", title: "Return", keyCode: CGKeyCode(kVK_Return)),
-            Entry(name: "enter", title: "Enter (bàn số)", keyCode: CGKeyCode(kVK_ANSI_KeypadEnter)),
+            Entry(name: "enter", title: localized(.keyNumpadEnter), keyCode: CGKeyCode(kVK_ANSI_KeypadEnter)),
             Entry(name: "tab", title: "Tab", keyCode: CGKeyCode(kVK_Tab)),
             Entry(name: "space", title: "Space", keyCode: CGKeyCode(kVK_Space)),
             Entry(name: "delete", title: "Delete", keyCode: CGKeyCode(kVK_Delete)),
