@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Testing
 @testable import AutoClick
@@ -149,5 +150,106 @@ struct LanguageSelectionTests {
         #expect(localization(.menuQuit) == "終了")
         #expect(localization(.menuModeLabel) == "Mode", "a gap must reach en, not the raw key")
         #expect(localization(.menuModeLabel) != "menu.mode.label")
+    }
+}
+
+/// Does a translated row still fit the box it is drawn in? (`UI-24`, `UI-25`)
+///
+/// This is the half of `F2` a machine can answer. The eye is still needed for wrapping and for whether a
+/// sentence reads well, but "is it wider than the container" is arithmetic, and arithmetic does not have to
+/// wait for someone to notice. It has caught one real defect already: at a hard-coded 30 points the unit
+/// column cut `times` down to `tim…` in the **default** language.
+@MainActor
+@Suite("Row widths")
+struct RowWidthTests {
+    /// SwiftUI's `.body` on macOS, which is what both rows use.
+    private static let font = NSFont.preferredFont(forTextStyle: .body)
+
+    private static func width(_ text: String) -> CGFloat {
+        ceil((text as NSString).size(withAttributes: [.font: font]).width)
+    }
+
+    /// The popover is pinned to `340` points with `16` of padding on each side (`UI-22`).
+    private static let popoverContentWidth: CGFloat = 340 - 32
+
+    /// The editor's detail column can be dragged wider, but never narrower than `340` (`UI-18`); measured
+    /// inset is about `28` a side.
+    private static let detailContentWidth: CGFloat = 340 - 56
+
+    /// Default `HStack` spacing, counted twice: title | field | unit.
+    private static let spacing: CGFloat = 8 * 2
+
+    @Test("Simple mode's interval and repeat rows fit the popover", arguments: Localization.supportedCodes)
+    func simpleRowsFit(code: String) throws {
+        let localization = try Catalogs.localization(preference: code)
+        let unit = UnitColumn.width(of: "ms", localization(.simpleRepeatUnit))
+        let titles = [localization(.simpleInterval), localization(.simpleRepeat)]
+        let needed = (titles.map(Self.width).max() ?? 0) + Self.spacing + 110 + unit
+
+        #expect(
+            needed <= Self.popoverContentWidth,
+            """
+            \(code): the number rows need \(needed) points of \(Self.popoverContentWidth). \
+            Widest title \(titles.max(by: { Self.width($0) < Self.width($1) }) ?? ""), unit column \(unit).
+            """
+        )
+    }
+
+    @Test("The Step detail panel's number rows fit the narrowest column", arguments: Localization.supportedCodes)
+    func detailRowsFit(code: String) throws {
+        let localization = try Catalogs.localization(preference: code)
+        let unit = UnitColumn.width(
+            of: "ms", localization(.stepRepeatUnit), localization(.stepScrollUnit)
+        )
+        let titles: [String] = [
+            .stepRepeatCount, .stepDelayAfter, .stepClickCount, .stepHold,
+            .stepScrollHorizontal, .stepScrollVertical, .stepWaitAtMost
+        ].map { localization($0) }
+        let needed = (titles.map(Self.width).max() ?? 0) + Self.spacing + 90 + unit
+
+        #expect(
+            needed <= Self.detailContentWidth,
+            """
+            \(code): the number rows need \(needed) points of \(Self.detailContentWidth). \
+            Widest title \(titles.max(by: { Self.width($0) < Self.width($1) }) ?? ""), unit column \(unit).
+            """
+        )
+    }
+
+    @Test("A unit label is never cut off by its own column", arguments: Localization.supportedCodes)
+    func unitsFitTheirColumn(code: String) throws {
+        let localization = try Catalogs.localization(preference: code)
+        for key in [StringKey.simpleRepeatUnit, .stepRepeatUnit, .stepScrollUnit] {
+            let unit = localization(key)
+            #expect(
+                Self.width(unit) <= UnitColumn.width(of: unit),
+                "\(code): \(key.rawValue) = \(unit.debugDescription) is wider than its column"
+            )
+        }
+    }
+
+    /// Measured from Accessibility on the real button: a 116-point label sat in a 140-point button.
+    private static let buttonChrome: CGFloat = 24
+
+    /// The floor `UI-25` puts under the Template thumbnail.
+    private static let thumbnailFloor: CGFloat = 64
+
+    @Test("The Template row fits beside a thumbnail", arguments: Localization.supportedCodes)
+    func templateRowFits(code: String) throws {
+        let localization = try Catalogs.localization(preference: code)
+        for key in [StringKey.stepTargetCaptureRegion, .stepTargetCaptureAgain] {
+            let button = Self.width(localization(key)) + Self.buttonChrome
+            let needed = Self.width(localization(.stepTargetTemplate))
+                + Self.spacing + Self.thumbnailFloor + button
+
+            #expect(
+                needed <= Self.detailContentWidth,
+                """
+                \(code): \(key.rawValue) = \(localization(key).debugDescription) makes the row \(needed) \
+                points wide, past \(Self.detailContentWidth). The button keeps its label (`UI-25`), so what \
+                gives way is the picture of the Template.
+                """
+            )
+        }
     }
 }

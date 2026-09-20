@@ -517,20 +517,66 @@ own directory.
 
 ## Session F — Interface languages
 
-None of these can be automated: three of the four are judgements about what a human can read on a
-real screen, and the fourth needs a real `.app` with its `.lproj` directories installed.
+These need a real `.app` with its `.lproj` directories installed, and a real screen to draw on.
+
+Part of `F2` turned out **not** to be a judgement call after all: "is this label wider than the box"
+is arithmetic, and it is now a test (`UI-24`, `UI-25`). What is left for a person is the rest of it —
+whether a line wraps somewhere sensible, and whether the sentence is one a speaker of that language
+would write.
 
 | # | Do | Expect | Proves | Result |
 |---|---|---|---|---|
-| F1 | Open the popover, switch the language picker from *English* to *Tiếng Việt* | Every label changes **at once**, with no relaunch and no flicker of raw keys. The popover stays open | `LC-6`, `LC-7` | |
-| F2 | Switch to *Español*, then walk the popover **and** the editor window | No label is clipped, wrapped mid-word or squeezed to nothing — the popover is a hard `340` points wide and the editor's middle column about `380` (`UI-18`) | `LC-1` | |
-| F3 | Switch to *日本語*. Now find the way back to *Tiếng Việt* **without reading anything else on screen** | The picker lists `English`, `Tiếng Việt`, `中文（简体）`, `日本語`, `Español` in their own scripts, so the row is recognisable to someone who cannot read the interface around it | `LC-8` | |
-| F4 | Record a scenario while the interface is English, then switch to Vietnamese and reopen the editor | The saved name still reads `Recording 2026-…`, unchanged. New scenarios created afterwards are named in Vietnamese | `LC-11`, `RC-20` | |
+| F1 | Open the popover, switch the language picker from *English* to *Tiếng Việt* | Every label changes **at once**, with no relaunch and no flicker of raw keys. The popover stays open | `LC-6`, `LC-7` | **Pass** — the same process (`pid 83859`) and the **same popover window** (`id 370599`, `340×412` before and after), so nothing relaunched and nothing reopened. All 16 labels read back through OCR changed together: `Start in 3 seconds` → `Bắt đầu sau 3 giây`, `Launch at login` → `Khởi động cùng MacBook`. No raw key appeared at any point |
+| F2 | Switch to *Español*, then walk the popover **and** the editor window | No label is clipped, wrapped mid-word or squeezed to nothing — the popover is a hard `340` points wide and the editor's middle column about `380` (`UI-18`) | `LC-1` | **Fail, then Pass** — three defects, all fixed in this commit: the unit column cut `veces` to `ve…` **and `times` to `tim…`**, so the default language was clipped too (`UI-24`); `Capturar otra vez…` read `Capturar otra…` on the Template row (`UI-25`); and the popover did not shrink going Simple → Scenario (`UI-23`, reported separately, not a translation defect). Re-run after the fixes: both popover modes and the editor's three columns are clean in Spanish. Two things still truncate and **neither is a label** — a Scenario's own name in the `240`-point sidebar, and a Step summary carrying four coordinates. Both are data, and both truncate the same way in every language |
+| F3 | Switch to *日本語*. Now find the way back to *Tiếng Việt* **without reading anything else on screen** | The picker lists `English`, `Tiếng Việt`, `中文（简体）`, `日本語`, `Español` in their own scripts, so the row is recognisable to someone who cannot read the interface around it | `LC-8` | **Pass** — with the interface in Japanese the picker reads `システムに従う`, `English`, `Tiếng Việt`, `中文（简体）`, `日本語`, `Español`. Only the *follow the system* row is translated; the five names stay in their own script (`LC-8`). Read twice over, from a screenshot and from the Accessibility tree, then clicked `Tiếng Việt` without reading anything else on screen |
+| F4 | Record a scenario while the interface is English, then switch to Vietnamese and reopen the editor | The saved name still reads `Recording 2026-…`, unchanged. New scenarios created afterwards are named in Vietnamese | `LC-11`, `RC-20` | **Pass**, and the other half checked too. Recorded in English: `TextEdit 2026-09-18 17:05` and, across two applications, `Recording 2026-09-18 17:06` — `RC-16` names it after the Locked application when there is one, and only otherwise uses the translated word. Switched to Vietnamese: both names unchanged on disk and in the list, while the count beside them became `3 bước`. Created two new Scenarios there — `Kịch bản mới`, `Kịch bản mới 2` — then switched back to English: the names **stayed Vietnamese** and only `0 steps` changed. That is `LC-11` in both directions |
 
 `F2` is the reason `es` was taken knowing it stretches the layout — see
-[ADR-0010](adr/0010-strings-files-and-a-live-bundle-swap.md). `UI-18` records a previous occasion
-where a fixed-width column squeezed a label to zero points, so this is a repeat of a failure that
-has already happened once.
+[ADR-0010](adr/0010-strings-files-and-a-live-bundle-swap.md). `UI-18` recorded a previous occasion
+where a fixed-width column squeezed a label to zero points; `F2` found the same shape of failure
+twice more (`UI-24`, `UI-25`). Three times is not bad luck, which is why both are now under test.
+
+### Findings outside the checklist — session F
+
+- **`F2` failed on the default language, not only on Spanish.** The case was written expecting Spanish
+  to stretch the layout, and it did. What it was not expecting is that the same `30`-point box had been
+  clipping English `times` to `tim…` since the day the interface stopped being Vietnamese — `lần` is
+  `18` points and fitted, `times` is `33` and never did. The case that was predicted to fail found a
+  defect **nobody was looking for**, in the language everyone sees first.
+- **The popover's empty band was not a translation defect at all.** It was reported from use, and it
+  reproduces in every language: `MenuBarExtra(.window)` never gives back height (`UI-23`). Session F is
+  where it was measured, because measuring popover geometry is what session F was already doing.
+- **`ViewThatFits` does not do what the Template row needed.** An `HStack` containing a `Spacer()`
+  reports that it fits at any proposed width, so the one-line candidate always won. Recorded in
+  `UI-25`, because the next person to reach for it will reach for it for the same reason.
+- **`RC-16` names a recording after the application, not after the word "Recording".** The case as
+  written expected `Recording 2026-…`; a recording confined to one application is named
+  `TextEdit 2026-09-18 17:05`, and only one spanning several falls back to the translated word. That
+  branch is the one that proves `LC-11`, so `F4` now drives both.
+- **Two things truncate that are not labels** — a Scenario's name in the `240`-point sidebar, and a
+  Step summary carrying four coordinates. Both are data rather than interface text, both truncate
+  identically in all five languages, and widening a column to fit an arbitrary name is not a thing a
+  layout can promise.
+
+### Notes on how session F was run
+
+The rig from sessions A–E, plus two additions and one correction:
+
+- **OCR as the measurement.** Accessibility hands back the string a control *holds*, which is exactly
+  what a clipping test must not trust: `AXValue` still reads `Capturar otra vez…` while the screen
+  says `Capturar otra…`. So every claim about clipping here comes from `VNRecognizeTextRequest` over a
+  screenshot, with `usesLanguageCorrection = false` (`LC-13`) — what is **drawn**, not what is stored.
+- **`screencapture -l <windowid>`** for the editor, after a picture-in-picture window from another app
+  landed on top of a screen-region capture and was read as if it were the editor's content.
+- **The popover-open guard needed both proofs.** `findstart` looks for the accent-blue Start bar, and
+  it is not accent-coloured while Start is disabled; the window list stopped reporting the panel at all
+  after one app restart. Either alone aborted a run that was fine. The guard now accepts either.
+
+One thing went wrong and is worth writing down: a language-picker script picked *the last*
+`AXPopUpButton` in the tree, which with the editor window open is a Step's **On timeout** picker, not
+the language picker. It opened the wrong menu twice. Nothing was changed — the script looks for a row
+by name and escapes when it is not there — but the fix is to identify the control by **what its menu
+contains**, never by its position in the tree.
 
 There is deliberately **no** case here for "the app appears in System Settings → Language & Region →
 Applications". Whether an `LSUIElement` agent is listed there was never established, and `LC-6`

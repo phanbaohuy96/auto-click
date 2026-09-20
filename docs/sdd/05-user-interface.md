@@ -86,3 +86,41 @@
   Not in the editor window: someone who only ever uses **Simple mode** never opens it, and would
   have no way to find the setting at all. The full reasoning is in
   [`09-localisation.md`](./09-localisation.md) (`LC-5`…`LC-8`).
+
+## Fitting the words on the screen
+
+Slice 6 turned every label into five labels, and three defects fell straight out of the first run of
+session `F`. All three are the same shape: a size that was right for the wording it was written
+against, and wrong for the next one.
+
+- **UI-23** `[done]` The popover **shrinks** as well as grows. `MenuBarExtra(.window)` enlarges its
+  panel to fit a taller body and never gives the height back, so switching **Simple → Scenario** left
+  the panel at Simple's height — measured `602` points around a `412`-point body. An AppKit window is
+  anchored at its bottom-left, so the content sat at the bottom of the panel with a band of empty
+  chrome above it.
+
+  The height is measured with a `GeometryReader` over the body and pushed onto the window, keeping
+  the **top** edge fixed. Two things had to be measured before that worked:
+  `contentView.fittingSize` on SwiftUI's `MenuBarExtraHostingView` is `{0, 0}`, and an
+  `NSViewRepresentable` with no stored properties is never updated a second time.
+
+  This one is **not** a Slice 6 regression. It predates the translations and was reported from use.
+- **UI-24** `[Slice 6]` `[done]` The column holding a **unit** beside a number (`ms`, `times`,
+  `veces`, `回`) is as wide as the widest unit that surface can show **in the active language**, not a
+  hard-coded width. The popover's two number rows share one column, and so do the Step detail
+  panel's, so the text fields stay lined up.
+
+  The hard-coded width was `30` points. It fits `ms` and `lần`; it cut `times` down to `tim…` — in
+  the **default** language — and `veces` to `ve…`.
+- **UI-25** `[Slice 6]` `[done]` On the **Template** row the capture button keeps its whole label and
+  the thumbnail gives up the width, down to a floor of `64` points. Spanish does not fit a `340`-point
+  column and it was the button that gave way, so `Capturar otra vez…` read `Capturar otra…`. A picture
+  40 points narrower is still a picture; a verb that has lost its object is a guess.
+
+  `ViewThatFits` was tried first and does not work here: an `HStack` holding a `Spacer()` reports that
+  it fits at any width, so the one-line layout always won and the label was still cut.
+
+`UI-24` and `UI-25` are held by tests that measure the strings against the container they are drawn
+in (`RowWidthTests`), so a translation that stops fitting fails the suite instead of waiting to be
+noticed. What those tests cannot judge is wrapping, and whether a sentence reads well; that is still
+session `F`.
