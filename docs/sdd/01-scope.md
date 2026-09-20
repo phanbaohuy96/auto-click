@@ -77,6 +77,7 @@ documentation and the log messages were translated earlier, the interface was no
 - `en` as the development language, plus `vi`, `zh-Hans`, `ja`, `es` ([09](./09-localisation.md))
 - Switching language inside the application, without a relaunch
 - A boundary drawn between **interface text** and **names written into `scenario.json`**
+- Layouts that hold five wordings rather than one (`UI-24`, `UI-25`), under test
 
 Done when: adding a sixth language is adding one directory and no Swift.
 

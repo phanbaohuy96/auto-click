@@ -187,27 +187,19 @@ struct StepDetailView: View {
             }
 
         case let .template(name, settings):
+            // UI-25: the button keeps its whole label and the thumbnail gives up the width, down to a floor.
+            // In Spanish the row does not fit a 340-point column and it was the button that gave way, so
+            // `Capturar otra vez…` read `Capturar otra…`. A picture that is 40 points narrower is still a
+            // picture; a verb that has lost its object is a guess.
+            //
+            // `ViewThatFits` was tried first and does not work here: an `HStack` holding a `Spacer()` reports
+            // that it fits at any width, so the one-line layout always won and the label was still cut.
             HStack(alignment: .top) {
                 Text(localization(.stepTargetTemplate))
-                Spacer()
+                Spacer(minLength: 8)
                 templateThumbnail(name)
-                Button(localization(
-                    name.isEmpty ? .stepTargetCaptureRegion : .stepTargetCaptureAgain
-                )) {
-                    onCaptureTemplate { captured, suggestedRegion in
-                        target.wrappedValue = .template(
-                            name: captured,
-                            settings: RecognitionSettings(
-                                threshold: settings.threshold,
-                                // RG-23: the search region hugs the area just captured. On a recapture the
-                                // region follows the new image, since the old one was derived from the old image.
-                                searchRegion: suggestedRegion ?? settings.searchRegion,
-                                waitMilliseconds: settings.waitMilliseconds,
-                                onTimeout: settings.onTimeout
-                            )
-                        )
-                    }
-                }
+                captureButton(name, target, settings)
+                    .fixedSize(horizontal: true, vertical: false)
             }
             footnote(localization(.stepTargetTemplateHint))
             thresholdField(target, settings: settings)
@@ -223,6 +215,30 @@ struct StepDetailView: View {
         }
     }
 
+    private func captureButton(
+        _ name: String,
+        _ target: Binding<StepTarget>,
+        _ settings: RecognitionSettings
+    ) -> some View {
+        Button(localization(
+            name.isEmpty ? .stepTargetCaptureRegion : .stepTargetCaptureAgain
+        )) {
+            onCaptureTemplate { captured, suggestedRegion in
+                target.wrappedValue = .template(
+                    name: captured,
+                    settings: RecognitionSettings(
+                        threshold: settings.threshold,
+                        // RG-23: the search region hugs the area just captured. On a recapture the region
+                        // follows the new image, since the old one was derived from the old image.
+                        searchRegion: suggestedRegion ?? settings.searchRegion,
+                        waitMilliseconds: settings.waitMilliseconds,
+                        onTimeout: settings.onTimeout
+                    )
+                )
+            }
+        }
+    }
+
     /// Shows the Template itself rather than its file name: the name is `3f2a91c0.png`, which tells you nothing.
     @ViewBuilder
     private func templateThumbnail(_ name: String) -> some View {
@@ -234,7 +250,9 @@ struct StepDetailView: View {
                 .resizable()
                 .interpolation(.high)
                 .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: 160, maxHeight: 64)
+                // UI-25: a floor, so a long button label cannot squeeze the picture out of existence — the
+                // way a fixed-width column once squeezed a label to nothing (`UI-18`).
+                .frame(minWidth: 64, maxWidth: 160, maxHeight: 64)
                 .background(.quaternary)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
                 .overlay(
@@ -591,6 +609,11 @@ struct StepDetailView: View {
 
     // MARK: - Reusable components
 
+    /// Wide enough for every unit the panel can put beside a number, in the active language (`UI-24`).
+    private var unitColumnWidth: CGFloat {
+        UnitColumn.width(of: "ms", localization(.stepRepeatUnit), localization(.stepScrollUnit))
+    }
+
     private func labelledField(
         _ title: String,
         value: Binding<Int>,
@@ -614,7 +637,9 @@ struct StepDetailView: View {
             if let suffix {
                 Text(suffix)
                     .foregroundStyle(.secondary)
-                    .frame(width: 36, alignment: .leading)
+                    // UI-24: the width covers every unit this panel can show, so the fields line up down
+                    // the column whichever kind of Step is selected.
+                    .frame(width: unitColumnWidth, alignment: .leading)
             }
         }
     }

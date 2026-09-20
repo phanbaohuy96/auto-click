@@ -27,6 +27,9 @@ struct AutoClickMenuView: View {
 
     @AppStorage("popoverMode") private var rawMode = PopoverMode.simple.rawValue
 
+    /// What the body actually needs, which is not what the popover panel is currently given (`UI-23`).
+    @State private var contentHeight: CGFloat = 0
+
     private var mode: Binding<PopoverMode> {
         Binding(
             get: { PopoverMode(rawValue: rawMode) ?? .simple },
@@ -135,6 +138,16 @@ struct AutoClickMenuView: View {
         }
         .padding(16)
         .frame(width: 340)
+        // UI-23: SwiftUI hands the popover panel a height but never takes it back, so the height has to be
+        // measured here and pushed onto the window.
+        .background(
+            GeometryReader { proxy in
+                Color.clear.onChange(of: proxy.size.height, initial: true) { _, height in
+                    contentHeight = height
+                }
+            }
+        )
+        .background(PopoverSizer(contentHeight: contentHeight))
         .onAppear {
             clicker.refreshRunningApplications()
             store.reload()
@@ -453,7 +466,66 @@ struct AutoClickMenuView: View {
                 .frame(width: 110)
             Text(suffix)
                 .foregroundStyle(.secondary)
-                .frame(width: 30, alignment: .leading)
+                // UI-24: one column for both rows, so the two text fields line up, but a width measured
+                // from the words rather than guessed. The guess was 30 points, which fits `ms` and `lần`
+                // and cut `times` down to `tim…` — in the default language.
+                .frame(width: UnitColumn.width(of: "ms", localization(.simpleRepeatUnit)), alignment: .leading)
+        }
+    }
+}
+
+/// The width of the column a unit label sits in (`UI-24`).
+///
+/// A unit is one or two words next to a number — `ms`, `times`, `veces`, `回`. They are held to a common
+/// width so the fields above and below each other line up, and the width is **measured**: a hard-coded
+/// one was what clipped `times` to `tim…` and `veces` to `ve…`, a repeat of `UI-18`.
+enum UnitColumn {
+    static func width(of units: String...) -> CGFloat {
+        width(of: units)
+    }
+
+    static func width(of units: [String]) -> CGFloat {
+        let font = NSFont.preferredFont(forTextStyle: .body)
+        let widest = units
+            .map { ($0 as NSString).size(withAttributes: [.font: font]).width }
+            .max() ?? 0
+        // A little air on the right, and never narrower than `ms` — a narrow unit should not drag the
+        // text fields across the popover.
+        return max(30, ceil(widest) + 4)
+    }
+}
+
+/// Shrinks the popover back when its content gets shorter (`UI-23`).
+///
+/// `MenuBarExtra(.window)` grows its panel to fit a taller body but never shrinks it again. Switching
+/// **Simple → Scenario** therefore left the panel at Simple's height — measured at 602 points around a
+/// 412-point body — and because an AppKit window is anchored at its bottom-left, the content sat at the
+/// bottom of it with a band of empty chrome above.
+///
+/// Two things had to be measured before this worked. `contentView.fittingSize` on SwiftUI's
+/// `MenuBarExtraHostingView` is `{0, 0}`, so the height has to come from a `GeometryReader` over the body;
+/// and a representable with no stored properties is never re-`update`d, so the height is stored here to
+/// give SwiftUI a reason to call again.
+private struct PopoverSizer: NSViewRepresentable {
+    let contentHeight: CGFloat
+
+    func makeNSView(context: Context) -> NSView {
+        NSView(frame: .zero)
+    }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        let height = contentHeight
+        // After this layout pass, not during it.
+        DispatchQueue.main.async {
+            guard height > 0, let window = view.window else { return }
+            guard abs(window.frame.height - height) > 0.5 else { return }
+
+            // Keep the top edge under the menu-bar icon; AppKit holds the bottom-left origin, so shrinking
+            // without this walks the popover up the screen.
+            var frame = window.frame
+            frame.origin.y += frame.height - height
+            frame.size.height = height
+            window.setFrame(frame, display: true)
         }
     }
 }
