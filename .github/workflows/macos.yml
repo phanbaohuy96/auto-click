@@ -27,8 +27,10 @@ defaults:
 
 jobs:
   build-and-test:
-    # Package.swift declares swift-tools-version 6.0; the macos-14 image ships Xcode 15.
-    runs-on: macos-15
+    # macos-26 is the image whose toolchain this is developed against. macos-15 ships Swift 6.0,
+    # which is stricter about Sendable across the Objective-C frameworks this app links —
+    # see the @preconcurrency note in ScreenCapture.swift, which keeps 6.0 buildable anyway.
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Toolchain

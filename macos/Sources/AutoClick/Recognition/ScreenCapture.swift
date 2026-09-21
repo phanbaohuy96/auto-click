@@ -1,7 +1,11 @@
 import AppKit
 import CoreGraphics
 import Foundation
-import ScreenCaptureKit
+// `@preconcurrency`: ScreenCaptureKit is an Objective-C framework that has not been audited for
+// `Sendable`, and `SCShareableContent` is a class it returns across an `await`. Swift 6.0 rejects
+// that outright; later toolchains accept it. Without this the package builds on the machine it was
+// written on and nowhere else, including CI — which is the one place that has to agree.
+@preconcurrency import ScreenCaptureKit
 
 /// One captured piece of the screen, carrying enough information to convert pixel coordinates into `CGEvent` coordinates.
 struct CapturedImage: Sendable {
