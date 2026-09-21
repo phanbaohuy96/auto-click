@@ -41,11 +41,11 @@ jobs:
         uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
         with:
           build-root-directory: android
-      - name: Build
-        run: ./gradlew :app:assembleDebug
-      - name: Unit tests
-        run: ./gradlew test
-      - name: Quality
-        run: ./gradlew detekt spotlessCheck
-      - name: Coverage gate
-        run: ./gradlew koverVerify
+      # One invocation, which is how this is verified by hand. Split across four `gradlew`
+      # calls, the coverage gate failed here at 54.5% while passing locally at the same
+      # commit, on the same JDK, with the same commands in the same order.
+      - name: Build, test and check
+        run: ./gradlew :app:assembleDebug test detekt spotlessCheck koverVerify
+      - name: Coverage report on failure
+        if: failure()
+        run: ./gradlew koverLog || true
