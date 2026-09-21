@@ -27,10 +27,11 @@ defaults:
 
 jobs:
   build-and-test:
-    # macos-26 is the image whose toolchain this is developed against. macos-15 ships Swift 6.0,
-    # which is stricter about Sendable across the Objective-C frameworks this app links —
-    # see the @preconcurrency note in ScreenCapture.swift, which keeps 6.0 buildable anyway.
-    runs-on: macos-26
+    # macos-15 on purpose, although development happens on a 6.3 toolchain. Package.swift
+    # declares swift-tools-version 6.0, and this image ships exactly that — so the claim is
+    # checked rather than assumed. It is what caught the ScreenCaptureKit Sendable error that
+    # the newer toolchain accepts silently. macos-26 was tried and sat queued for 17 minutes.
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Toolchain
