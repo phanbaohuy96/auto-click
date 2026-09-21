@@ -32,6 +32,10 @@ jobs:
     # checked rather than assumed. It is what caught the ScreenCaptureKit Sendable error that
     # the newer toolchain accepts silently. macos-26 was tried and sat queued for 17 minutes.
     runs-on: macos-15
+    # A hung job holds a runner until GitHub's six-hour ceiling, and its log cannot be read
+    # until it ends — so a hang is both expensive and invisible. The suite takes twelve
+    # seconds on a developer machine and about a minute here.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Toolchain
@@ -39,4 +43,8 @@ jobs:
       - name: Build
         run: swift build
       - name: Tests
-        run: swift test
+        # --no-parallel is not a preference. `swift test` on its own ran for thirty minutes here
+        # without finishing, on a suite that takes twelve seconds locally; sequentially it takes
+        # about a minute. Something in it does not survive being run in parallel processes on
+        # this image, and that is worth its own investigation rather than its own six hours.
+        run: swift test --no-parallel
