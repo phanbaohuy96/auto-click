@@ -2,4 +2,14 @@
 .swiftpm/
 dist/
 .DS_Store
-tools/testing/events.jsonl
+macos/tools/testing/events.jsonl
+
+# Android
+build/
+.gradle/
+.kotlin/
+local.properties
+keystore.properties
+*.jks
+*.keystore
+.env

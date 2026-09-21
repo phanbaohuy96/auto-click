@@ -25,6 +25,10 @@ _Avoid_: event, operation, step kind
 Where an **Action** happens, resolved to concrete coordinates only at the moment that step runs.
 _Avoid_: destination, coordinates, point, anchor
 
+**Guard**:
+The condition deciding whether a **Step** runs at all, kept separate from the **Target** deciding where it acts.
+_Avoid_: condition, precondition, check, filter, if
+
 **Template**:
 A patch of screen the user cropped, used to find the target again at run time when coordinates cannot be trusted.
 _Avoid_: sample image, snapshot, pattern
@@ -64,6 +68,11 @@ _Avoid_: keyboard language, typing language
 - A **Scenario** holds one or more ordered **Step**s.
 - A **Step** pairs exactly one **Action** with exactly one **Target**; the two axes are independent.
 - A delay is a property of a **Step**, not an **Action**. There is no "wait" **Action**.
+- A **Guard** is a property of a **Step** in exactly the same way, and for the same reason. It is **not** a
+  third axis: a **Step** is still **Action** × **Target**.
+- A **Guard** gates only the **Step** carrying it, never the ones after it. A **Step** without one always runs.
+- A **Guard** tests presence **or absence**; a **Target** can only be resolved by presence, because a thing
+  that is not there has no coordinates. That asymmetry is the whole reason the two are separate.
 - A **Locked application** constrains the whole **Scenario**, not individual **Step**s.
 - A **Target** comes in four forms: at the cursor, an absolute screen point, an offset from a corner of the **Anchor window**, and the centre of a located **Template**.
 - A window-relative **Target** can only be resolved when a **Locked application** is set; without one the **Scenario** is invalid.
@@ -81,7 +90,10 @@ _Avoid_: keyboard language, typing language
 > **Domain expert:** "No, 'on an image' is a **Target**. The **Action** is still a click. That is what keeps 'scroll at an image' or 'double-click on an image' from being new concepts at all."
 >
 > **Dev:** "Then 'wait for the Save button to appear, then click it' needs a conditional loop?"
-> **Domain expert:** "No. That is a **Step** clicking a **Template** **Target** with a 10-second timeout. A **Scenario** has no branches and no conditions — only counters and timeouts."
+> **Domain expert:** "No. That is a **Step** clicking a **Template** **Target** with a 10-second timeout. A **Scenario** has no branches — a **Step** decides its own fate and never another **Step**'s."
+>
+> **Dev:** "And 'only tap here if the popup is **not** showing'? There is no popup to aim at."
+> **Domain expert:** "Which is exactly why that is a **Guard** and not a **Target**. The **Target** is the fixed point you already know. The **Guard** is the popup, tested for **absence**. Ask a **Target** to be absent and you have asked it for the coordinates of nothing."
 
 ## Flagged ambiguities
 
@@ -92,6 +104,14 @@ _Avoid_: keyboard language, typing language
 - "wait" was once listed as an **Action** — corrected: it is a property of a **Step**.
 - "long press" is settled as holding in place; **drag** is its own **Action**.
 - "wait until the button appears" is not control flow — it is the timeout on resolving a **Template** **Target**.
+- **Template** quietly carried two jobs: saying *where* to act, and saying *whether* to act. They looked like
+  one job because the answer was usually the same pixel. They split the moment the condition is an **absence**
+  — settled: a **Target** locates, a **Guard** withholds.
+- "a **Scenario** has no conditions" was never literally true: `skipStep` is a condition, and so is every
+  **Template** that may or may not resolve. Settled by a boundary rather than by the word — **a Step may
+  decide its own fate, never another Step's**. `skipStep` and `stopScenario` decide a Step's own fate;
+  `if`, jumps, loops over a range of Steps and subroutines decide other Steps' fates and stay out. An
+  `if`/`else` is written as two **Step**s each guarded by its own **Target**. See [ADR-0011].
 - "fixed point" once meant only absolute coordinates; it is now two distinct **Target** forms — absolute, and relative to the **Anchor window**.
 - "language" is the most overloaded word in the project: it means the **Interface language**, the **Recognition language**, or the **Input source**, depending on who is speaking. They look connected and are not — a Vietnamese menu says nothing about whether the game on screen is in Vietnamese, and neither says anything about what EVKey will do to a keystroke. Settled by naming all three; see `LC-13`.
 - "the layout fits" was a claim about **one** wording. Five wordings later it is three separate claims — a `30`-point box fits `ms` and `lần` and not `times`; a row that fits `Capture again…` does not fit `Capturar otra vez…`. Settled by measuring the strings against the container in a test (`UI-24`, `UI-25`) rather than by eye.

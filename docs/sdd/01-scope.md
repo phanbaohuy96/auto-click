@@ -6,22 +6,59 @@ Auto Click can currently emit only **one** kind of operation (a left click) repe
 one point. The goal is to grow it into a **Scenario** runner — an ordered sequence of varied
 operations — and to let scenarios be created by **recording** the user's real work.
 
-### Primary use case: games
+### No application is the use case
 
-The project owner uses Auto Click mainly to play games. That cannot be read out of the source but
-decides a fair number of things in the specification, so it is recorded here:
+Auto Click encodes **no knowledge of any application**. There is no list of supported apps, no
+per-app rule, and no scenario shipped in the box. The user supplies the points, the order, the
+timing and the **Template**s; the app supplies faithful execution and gets out of the way.
+Anything that could only ever be true of one application belongs inside a **Scenario**, never in
+the code.
 
-- What you need to aim at in a game has **almost no text** — it is an icon, a drawn button, an
-  item slot. **Text** recognition (`DM-15`) is therefore secondary; **template matching**
-  (`DM-14`) is what carries the feature. That is also why the `I1`…`I8` practice targets in the
+What the user automates is therefore not knowable here, and guessing at it is how a general tool
+turns into a bad special one. What *is* knowable, and what this specification is answerable to, is
+that the tool has to be **easy to author with** and **pleasant to reach for** — because a
+scenario that takes longer to build than to do by hand will never be built.
+
+### Three pressures, pulling against each other
+
+The design is decided by three pressures rather than by any use case. They matter because they do
+not merely differ — they **conflict**, and every serious decision in this document is a ruling
+about which one wins where.
+
+- **Repetition** — the same operation many times over, hands-free. Wants a high repeat count, a
+  steady interval, and a **Stop** that always works, including mid-press.
+- **Speed and exact order** — a short sequence that has to land fast and in the right order,
+  because something else is racing it. Wants the smallest possible gap between **Step**s and
+  **no recognition at all**: recognition costs far more time than the operation it would guard.
+- **Certainty** — act only when the screen proves it is safe to act. Wants recognition **before**
+  the press, and a defined behaviour when the target is not found (`DM-16`), so that a press on
+  the wrong screen does not set something else in motion.
+
+Certainty is a **brake**, and a brake is exactly what the racing sequence must not have.
+Recognition is therefore never a global mode and never a default: it is chosen per **Step**, by
+the user, with its cost visible at the point of choosing.
+
+Seen this way recognition has **two** jobs, not one. It **locates** something whose position is
+not known in advance — and it **withholds** an operation whose position is known perfectly well
+but whose screen might be the wrong screen. The second job is what keeps a misfire from doing
+damage, and it is why `skipStep` (`DM-16`) is not a minor option on a dropdown.
+
+### What games taught, and what still holds
+
+Most of the above was learned while automating games, and several requirements exist because of
+that. They stay — but as **general** consequences, not as a bet on games:
+
+- Things worth aiming at often carry **no text** — an icon, a drawn button, an item slot. **Text**
+  recognition (`DM-15`) is therefore the secondary route; **template matching** (`DM-14`) is what
+  carries the feature. That is also why the `I1`…`I8` practice targets in the
   [manual tests](../manual-e2e-tests.md) deliberately contain no text.
-- Game interfaces are full of **near-identical** things — five item slots in the same frame, two
-  buttons differing only in shade. Template matching has to tell them apart; "close enough" is
-  not good enough.
-- A game usually has **one** window, and often **renames** it per level. That is why `DM-23`
-  treats the window title as a **preference** rather than a hard requirement.
-- What you need to aim at almost always stays where it was cropped, so the default search region
-  hugs that spot (`RG-23`) instead of scanning the whole screen.
+- Interfaces are full of **near-identical** things — five item slots in the same frame, two
+  buttons differing only in shade. Matching has to tell them apart; "close enough" is not good
+  enough.
+- A window often **renames** itself while you work. That is why `DM-23` treats the window title as
+  a **preference** rather than a hard requirement.
+- What you aim at almost always stays where it was cropped, so the default search region hugs that
+  spot (`RG-23`) instead of scanning the whole screen.
 
 ## Slices
 
@@ -85,8 +122,13 @@ Done when: adding a sixth language is adding one directory and no Swift.
 
 Stated explicitly so it does not get proposed again:
 
-- **Control flow inside a Scenario.** No `if`, no branches, no conditional loops. "Wait until the
-  button appears" is the timeout on resolving a **Target**, not a loop.
+- **Control flow inside a Scenario.** No `if`, no branches, no conditional loops, no jumps, no
+  subroutines. "Wait until the button appears" is the timeout on resolving a **Target**, not a loop.
+  The boundary is one rule — **a Step may decide its own fate, never another Step's** — which is why
+  `skipStep` (`DM-16`) is allowed and "skip the next three Steps" is not. `if`/`else` is written as
+  two guarded **Step**s instead. This is a product position and not a postponement; the reasoning,
+  the rejected alternatives and what it costs are in
+  [ADR-0011](../adr/0011-a-scenario-has-no-branches.md).
 - **Keyboard capture.** See [ADR-0003](../adr/0003-no-keyboard-capture-when-recording.md).
 - **Capping idle time while recording.** See
   [ADR-0004](../adr/0004-recordings-keep-real-timing.md).

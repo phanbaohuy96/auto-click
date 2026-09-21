@@ -1,0 +1,99 @@
+# 01 — Scope and slices (Android)
+
+## The problem
+
+Auto Click exists on macOS. Its purpose, and the three pressures that decide its design, are stated
+once for the whole product in [`../../../docs/sdd/01-scope.md`](../../../docs/sdd/01-scope.md) and
+are not repeated here.
+
+What is different here is the machine. Android has no cursor, no window the user moves, and no way
+for an ordinary application to send a keystroke to another one. The only sanctioned way to touch
+another application is `AccessibilityService.dispatchGesture()`. Every decision below follows from
+that one sentence.
+
+The **Scenario / Step / Action × Target** model is unchanged ([ADR-0002]). What changes is the
+alphabet: five **Action**s instead of six, two **Target** forms instead of five, and one new
+**Step** property, the **Guard**.
+
+## Slices
+
+Every slice leaves a runnable, installable app, as on macOS.
+
+### A1 — Gestures and Markers
+
+The surface the whole app is built on, and enough to be useful on its own.
+
+- The accessibility service, the **Overlay**, and the floating control
+- **Marker**s: drag to place, tap to configure, numbered by **Step** order
+- **Action**s: `tap`, `swipe`, `multiTouch`, `globalAction`, `setText`
+- **Target**: a fixed point only
+- Per-**Step** repeat and delay; per-**Scenario** repeat; a countdown before the first **Step**
+- Raw pixels bound to a **Screen profile**; a mismatch blocks ([ADR-0013])
+- Every stroke terminated on every exit, and a one-tap **free the touch** recovery
+
+Done when a 15-step sequence of fixed taps runs in the right order, at speed, and Stop always works.
+
+### A2 — Recording
+
+Placing ten to fifteen **Marker**s by hand, **every time the Scenario is edited**, is the difference
+between a tool that works and one that gets used. Recording is therefore ahead of recognition here,
+the reverse of the macOS order.
+
+- A full-screen **Overlay** swallows each touch and records it
+- **Two modes, chosen when the session starts.** *Pass-through* re-emits each touch as a **Gesture**
+  so the application underneath still reacts, which is what a sequence spanning several screens
+  needs and is the default. *Silent* does not re-emit at all: nothing underneath moves, which is
+  faster and safer for marking several points on one screen, where a re-emitted touch would both
+  slow the work down and risk setting something off. The second is the first minus one step, so the
+  choice costs almost nothing to offer.
+- Real timing is kept, as on macOS ([ADR-0004])
+- The recorded sequence becomes ordinary **Marker**s, editable like any others
+
+Two things the interface must be honest about rather than hide:
+
+- While recording in *pass-through*, the application underneath is driven by synthetic touches, not
+  by a finger. One that rejects synthetic input behaves differently while being recorded.
+- `dispatchGesture` costs tens of milliseconds, so **taps record faithfully and swipes do not**: a
+  continuous drag has to be re-emitted segment by segment while the finger is still moving, and
+  arrives late and jerky. Swipes are better adjusted as **Marker**s afterwards. This is the
+  platform's limit, not a shortcut.
+
+### A3 — Recognition
+
+- A still frame via `takeScreenshot()` to crop a **Template**; MediaProjection for matching at speed
+- **Target** by **Template**; **Guard** by presence *or* absence
+- Threshold, search region, timeout, and what to do when it expires ([`DM-16`])
+- Port `TemplateMatcher.swift` and `GrayImage.swift`, including two-scale matching ([ADR-0008])
+
+### A4 — Interface languages
+
+`en`, `vi`, `zh-Hans`, `ja`, `es`, as on macOS. Last, as on macOS.
+
+The wrinkle to solve rather than inherit: the **Overlay** is not an Activity, so it does not receive
+a configuration change when the language changes. The problem [ADR-0010] solved on macOS returns
+here wearing different clothes.
+
+## Out of scope
+
+Stated explicitly so it does not get proposed again.
+
+- **Control flow.** No `if`, no jumps, no loops over a range of **Step**s. Permanent, and a product
+  position rather than a postponement — [ADR-0011].
+- **Root, ADB and Shizuku.** The app works on an unmodified phone or it does not ship.
+- **Google Play.** Play does not permit this use of the Accessibility API. Distribution is by APK.
+- **Node targets** — finding a control in the `AccessibilityNodeInfo` tree by id or text. Exact,
+  cheap and resolution-independent, and deliberately absent: it is empty in OpenGL games, which is
+  where it would be wanted most. Reconsider only when a real use case needs it.
+- **A cursor **Target** and a window-relative **Target**.** Neither has anything to attach to.
+- **Arbitrary key presses.** Android permits only the fixed set of **Global action**s.
+- **Key-by-key typing.** [ADR-0009] does not apply here; `setText` writes the whole string at once.
+  Restoring key-by-key means shipping an input method, and that gets its own ADR on the day.
+- **Running a Scenario made on another screen or another phone** — [ADR-0013].
+- **Sharing `scenario.json` with the macOS app.** Shared glossary, separate schema.
+- **Sharing a Scenario with another person.** [ADR-0013] makes a downloaded **Scenario** refuse to
+  run on a different screen, so what travels is only its shape — the **Step** order, the **Action**s
+  and the **Template**s, with every **Marker** to be placed again. Out of scope now; the
+  "export is a zip of a directory" property is kept so it stays cheap to add ([ADR-0014]).
+- **Wall-clock scheduling**, as on macOS. A countdown of X seconds is not a schedule: the user reads
+  the countdown the automated application is already showing, which is the server's clock, and the
+  whole problem of synchronising time disappears.

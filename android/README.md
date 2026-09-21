@@ -1,0 +1,40 @@
+# Auto Click for Android
+
+The Android member of Auto Click. See the [repository README](../README.md) for the product, and
+[`../CONTEXT.md`](../CONTEXT.md) for the shared language.
+
+**Status: in specification.** The module graph, theming, navigation and quality gates build and run
+end to end; no slice is implemented yet. `ScenarioListScreen` is a placeholder that says so.
+
+```bash
+./gradlew :app:assembleDebug     # build
+./gradlew test                   # JVM unit tests
+./gradlew spotlessApply detekt   # format and lint
+```
+
+## Where to read what
+
+| Document | Answers |
+|---|---|
+| [`CONTEXT.md`](CONTEXT.md) | The terms that exist only on Android — **Overlay**, **Marker**, **Gesture**, **Screen profile** |
+| [`docs/sdd/01-scope.md`](docs/sdd/01-scope.md) | The four slices, and what is deliberately out of scope |
+| [`docs/adr/`](docs/adr/) | Android decisions, numbered from 0012 in the product-wide sequence |
+| [`docs/landscape.md`](docs/landscape.md) | What the competing apps do, what users punish them for, and our answers |
+| [`docs/testing.md`](docs/testing.md) | Three tiers, and what is honestly not verified yet |
+
+## What this project is built on, and what it dropped
+
+Started from `android-base-structure`: Kotlin, Compose, Material 3, MVVM with unidirectional data
+flow, Hilt, Navigation Compose, and the Spotless / ktlint / detekt / Kover toolchain.
+
+Removed on purpose, so the absences are not read as oversights:
+
+- **Room** — a **Scenario** is a directory of files, [ADR-0014](docs/adr/0014-no-database.md).
+- **Retrofit, OkHttp, the `INTERNET` permission and the network security config** — Auto Click talks
+  to no server at all.
+- **The `dev`/`staging`/`prod` flavours** — they existed to point at three base URLs.
+- **The reference login and item features**, and the network- and auth-shaped `DomainError`
+  taxonomy that came with them. The failure cases this app really has are defined with slice A1.
+- **`BaseScreen` for the main surface.** It assumes an Activity, and most of this app's interface
+  lives in the **Overlay**, which is not one — [ADR-0015](docs/adr/0015-compose-in-the-overlay.md).
+  `BaseScreen` stays for the Activity screens; `BaseOverlayScreen` joins it in `:core` at A1.
