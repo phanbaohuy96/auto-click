@@ -1,0 +1,50 @@
+# The macOS app. Nothing here touches android/, so the path filter keeps an Android-only
+# change from spending a macOS runner — the two platforms share documents, not code.
+name: macOS
+
+on:
+  pull_request:
+    paths:
+      - "macos/**"
+      - ".github/workflows/macos.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "macos/**"
+      - ".github/workflows/macos.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: macos
+
+jobs:
+  build-and-test:
+    # macos-15 on purpose, although development happens on a 6.3 toolchain. Package.swift
+    # declares swift-tools-version 6.0, and this image ships exactly that — so the claim is
+    # checked rather than assumed. It is what caught the ScreenCaptureKit Sendable error that
+    # the newer toolchain accepts silently. macos-26 was tried and sat queued for 17 minutes.
+    runs-on: macos-15
+    # A hung job holds a runner until GitHub's six-hour ceiling, and its log cannot be read
+    # until it ends — so a hang is both expensive and invisible. The suite takes twelve
+    # seconds on a developer machine and about a minute here.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Toolchain
+        run: swift --version
+      - name: Build
+        run: swift build
+      - name: Tests
+        # --no-parallel is not a preference. `swift test` on its own ran for thirty minutes here
+        # without finishing, on a suite that takes twelve seconds locally; sequentially it takes
+        # about a minute. Something in it does not survive being run in parallel processes on
+        # this image, and that is worth its own investigation rather than its own six hours.
+        run: swift test --no-parallel

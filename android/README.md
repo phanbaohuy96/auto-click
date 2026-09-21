@@ -17,7 +17,9 @@ end to end; no slice is implemented yet. `ScenarioListScreen` is a placeholder t
 | Document | Answers |
 |---|---|
 | [`CONTEXT.md`](CONTEXT.md) | The terms that exist only on Android — **Overlay**, **Marker**, **Gesture**, **Screen profile** |
+| [`docs/sdd/`](docs/sdd/README.md) | The specification, and the requirement-identifier convention |
 | [`docs/sdd/01-scope.md`](docs/sdd/01-scope.md) | The four slices, and what is deliberately out of scope |
+| [`docs/sdd/02-permissions-and-onboarding.md`](docs/sdd/02-permissions-and-onboarding.md) | Why onboarding has to walk the user into a wall on purpose |
 | [`docs/adr/`](docs/adr/) | Android decisions, numbered from 0012 in the product-wide sequence |
 | [`docs/landscape.md`](docs/landscape.md) | What the competing apps do, what users punish them for, and our answers |
 | [`docs/testing.md`](docs/testing.md) | Three tiers, and what is honestly not verified yet |

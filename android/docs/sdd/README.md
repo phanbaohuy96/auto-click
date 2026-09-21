@@ -1,0 +1,26 @@
+# SDD — Auto Click for Android
+
+The specification comes **before** the code here too. The rules in
+[`../../../docs/sdd/README.md`](../../../docs/sdd/README.md) apply unchanged: every observable
+behaviour appears as a numbered requirement, the code cites the number where the behaviour is not
+obvious, identifiers are **never reused**, and a dropped requirement is struck through rather than
+deleted.
+
+## Requirement identifier convention
+
+Android identifiers use prefixes that **do not appear on macOS**, so a bare identifier is never
+ambiguous about which platform it belongs to.
+
+| Prefix | Scope | File |
+|---|---|---|
+| `PM` | Permissions and onboarding | [02](./02-permissions-and-onboarding.md) |
+
+macOS identifiers — `DM`, `EX`, `ST`, `UI`, `RC`, `RG`, `SF`, `LC` — keep their meaning when cited
+from here, and always link back to [`../../../docs/sdd/`](../../../docs/sdd/).
+
+## Status
+
+Every requirement carries the slice it belongs to, `[A1]`…`[A4]`, see [01](./01-scope.md).
+`[done]` means the code and its tests exist. It does **not** mean the behaviour has been seen on a
+real phone: per [`../testing.md`](../testing.md) no physical Android device is in use on this
+project, so anything that can only be proved on hardware stays listed there as unverified.
