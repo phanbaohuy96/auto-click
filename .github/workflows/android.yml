@@ -1,0 +1,51 @@
+# The Android app. No emulator here on purpose: android/docs/testing.md puts anything that
+# needs a real accessibility service in tier 2, which runs against a purpose-built target app
+# and is not wired into CI yet. This job is tier 1 — the JVM tests — plus the quality gates.
+name: Android
+
+on:
+  pull_request:
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: android
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+        with:
+          build-root-directory: android
+      - name: Build
+        run: ./gradlew :app:assembleDebug
+      - name: Unit tests
+        run: ./gradlew test
+      - name: Quality
+        run: ./gradlew detekt spotlessCheck
+      - name: Coverage gate
+        run: ./gradlew koverVerify

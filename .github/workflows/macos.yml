@@ -1,0 +1,39 @@
+# The macOS app. Nothing here touches android/, so the path filter keeps an Android-only
+# change from spending a macOS runner — the two platforms share documents, not code.
+name: macOS
+
+on:
+  pull_request:
+    paths:
+      - "macos/**"
+      - ".github/workflows/macos.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "macos/**"
+      - ".github/workflows/macos.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: macos
+
+jobs:
+  build-and-test:
+    # Package.swift declares swift-tools-version 6.0; the macos-14 image ships Xcode 15.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Toolchain
+        run: swift --version
+      - name: Build
+        run: swift build
+      - name: Tests
+        run: swift test
