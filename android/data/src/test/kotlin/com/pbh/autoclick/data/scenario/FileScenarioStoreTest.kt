@@ -4,6 +4,7 @@ import com.pbh.autoclick.core.common.DispatcherProvider
 import com.pbh.autoclick.domain.model.AppResult
 import com.pbh.autoclick.domain.model.DomainError
 import com.pbh.autoclick.domain.repository.StoredScenario
+import com.pbh.autoclick.domain.scenario.GesturePath
 import com.pbh.autoclick.domain.scenario.GlobalActionKind
 import com.pbh.autoclick.domain.scenario.RunCount
 import com.pbh.autoclick.domain.scenario.Scenario
@@ -351,6 +352,40 @@ class FileScenarioStoreTest {
 
             // Sorted by name, case-insensitively, so the list does not reorder itself on a capital.
             assertEquals(listOf("alpha", "Beta"), store.refresh().map { it.scenario.name })
+        }
+
+    @Test
+    fun `a multi-touch scenario survives the round trip with every path`() =
+        runTest(dispatcher) {
+            val store = store()
+            val paths =
+                listOf(
+                    GesturePath(ScreenPoint(100, 100), ScreenPoint(200, 200), 120),
+                    GesturePath(ScreenPoint(300, 300), ScreenPoint(400, 400), 180),
+                )
+            val original =
+                Scenario(
+                    name = "Chord",
+                    steps =
+                        listOf(
+                            Step(
+                                action = StepAction.MultiTouch(paths),
+                                target = StepTarget(ScreenPoint(100, 100)),
+                            ),
+                        ),
+                    screenProfile = profile,
+                )
+
+            store.save(original)
+            val loaded = store.load(original.id)
+
+            assertIs<AppResult.Success<StoredScenario>>(loaded)
+            val action =
+                loaded.data.scenario.steps
+                    .single()
+                    .action
+            assertIs<StepAction.MultiTouch>(action)
+            assertEquals(paths, action.paths)
         }
 
     @Test

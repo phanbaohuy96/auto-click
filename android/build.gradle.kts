@@ -85,9 +85,11 @@ extensions.configure<KoverProjectExtension>("kover") {
                     // Grows with each slice. Only classes that carry logic worth asserting on
                     // belong here; Compose screens, generated code and wiring are excluded below.
                     classes(
+                        "com.pbh.autoclick.core.ui.DomainErrorText*",
                         "com.pbh.autoclick.core.ui.UiText*",
-                        "com.pbh.autoclick.domain.model.*",
                         "com.pbh.autoclick.data.scenario.*",
+                        "com.pbh.autoclick.domain.model.*",
+                        "com.pbh.autoclick.domain.run.*",
                         "com.pbh.autoclick.domain.scenario.*",
                     )
                 }

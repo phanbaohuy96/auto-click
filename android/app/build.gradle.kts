@@ -63,6 +63,7 @@ dependencies {
     implementation(project(":domain"))
     implementation(platform(libs.compose.bom))
     implementation(libs.activity.compose)
+    implementation(libs.coroutines.android)
     implementation(libs.compose.material3)
     implementation(libs.compose.ui)
     implementation(libs.hilt.android)
