@@ -1,5 +1,6 @@
 package com.pbh.autoclick.core.overlay
 
+import android.view.Gravity
 import android.view.WindowManager
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -13,12 +14,13 @@ class OverlayLayoutParamsTest {
     private fun WindowManager.LayoutParams.has(flag: Int) = flags and flag == flag
 
     @Test
-    fun `no overlay window can ever take input focus`() {
+    fun `no overlay window takes input focus`() {
         val windows =
             listOf(
                 OverlayLayoutParams.floating(),
                 OverlayLayoutParams.markerLayer(interactive = true),
                 OverlayLayoutParams.markerLayer(interactive = false),
+                OverlayLayoutParams.stepPanel(typing = false),
             )
 
         windows.forEach {
@@ -27,6 +29,25 @@ class OverlayLayoutParamsTest {
                 "an overlay that takes focus sends every setText Step into Auto Click",
             )
         }
+    }
+
+    @Test
+    fun `the step panel is the one exception, and only while a field holds the caret`() {
+        // OV-20. The exception is narrow on purpose and is written down twice — here, and in the
+        // coordinator, which closes the panel before a run can start.
+        assertTrue(
+            !OverlayLayoutParams.stepPanel(typing = true).has(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE),
+            "a window that cannot take focus cannot open a keyboard, and setText needs one",
+        )
+    }
+
+    @Test
+    fun `the step panel spans the bottom edge`() {
+        val params = OverlayLayoutParams.stepPanel(typing = true)
+
+        assertEquals(WindowManager.LayoutParams.MATCH_PARENT, params.width)
+        assertEquals(WindowManager.LayoutParams.WRAP_CONTENT, params.height)
+        assertEquals(Gravity.BOTTOM or Gravity.START, params.gravity)
     }
 
     @Test
