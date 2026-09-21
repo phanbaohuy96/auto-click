@@ -73,6 +73,7 @@ subprojects {
 dependencies {
     kover(project(":app"))
     kover(project(":core"))
+    kover(project(":data"))
     kover(project(":domain"))
 }
 
@@ -86,6 +87,7 @@ extensions.configure<KoverProjectExtension>("kover") {
                     classes(
                         "com.pbh.autoclick.core.ui.UiText*",
                         "com.pbh.autoclick.domain.model.*",
+                        "com.pbh.autoclick.data.scenario.*",
                         "com.pbh.autoclick.domain.scenario.*",
                     )
                 }
