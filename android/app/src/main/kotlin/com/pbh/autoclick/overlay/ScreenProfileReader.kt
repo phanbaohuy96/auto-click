@@ -12,6 +12,11 @@ import com.pbh.autoclick.domain.scenario.ScreenRotation
  * Uses the **full** window metrics rather than the bounds left over after insets: a Gesture reaches
  * the whole display, including whatever a navigation bar is sitting on, so a coordinate has to mean
  * something there too.
+ *
+ * **Must be called on a visual Context** — an Activity, or the window context `OverlayService`
+ * creates. A Service's own Context is not associated with a display, and `Context.display` does not
+ * return null there, it throws `UnsupportedOperationException`. That is how this was found: not by
+ * a test, but by the process dying on the first tap that reached it on an emulator.
  */
 fun Context.currentScreenProfile(): ScreenProfile {
     val windowManager = getSystemService(WindowManager::class.java)

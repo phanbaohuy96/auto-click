@@ -2,6 +2,7 @@ package com.pbh.autoclick.overlay.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -24,10 +25,14 @@ import androidx.compose.ui.unit.dp
 import com.pbh.autoclick.domain.overlay.Marker
 import com.pbh.autoclick.domain.overlay.MarkerRole
 import com.pbh.autoclick.domain.scenario.ScreenPoint
+import java.util.UUID
 import kotlin.math.roundToInt
 
 /** How wide a Marker is. Large enough to hit with a thumb, small enough to see past. */
 private val MARKER_DIAMETER = 44.dp
+
+/** OV-21: how much wider the Marker being configured is drawn, so it can be picked out of fifteen. */
+private val EDITED_BORDER = 3.dp
 
 /**
  * Draws every Marker of the open Scenario, full screen (OV-5 to OV-9).
@@ -43,6 +48,8 @@ fun MarkerLayer(
     onMoved: (Marker, ScreenPoint) -> Unit,
     onTapped: (Marker) -> Unit,
     modifier: Modifier = Modifier,
+    /** OV-21: the Step open in the panel, drawn ringed so it is obvious which one is being edited. */
+    editedStepId: UUID? = null,
 ) {
     Box(modifier.fillMaxSize()) {
         // OV-8, OV-9: the line joining the two ends of a travelling contact, drawn once per pair.
@@ -64,6 +71,7 @@ fun MarkerLayer(
             MarkerHandle(
                 marker = marker,
                 interactive = interactive,
+                edited = marker.stepId == editedStepId,
                 onMoved = { onMoved(marker, it) },
                 onTapped = { onTapped(marker) },
             )
@@ -75,6 +83,7 @@ fun MarkerLayer(
 private fun MarkerHandle(
     marker: Marker,
     interactive: Boolean,
+    edited: Boolean,
     onMoved: (ScreenPoint) -> Unit,
     onTapped: () -> Unit,
 ) {
@@ -91,7 +100,8 @@ private fun MarkerHandle(
                     )
                 }.size(diameter)
                 .clip(CircleShape)
-                .background(marker.colour(interactive))
+                .background(marker.colour(interactive || edited))
+                .then(if (edited) Modifier.border(EDITED_BORDER, Color.White, CircleShape) else Modifier)
                 .pointerInput(marker.stepId, marker.role, marker.pathIndex, interactive) {
                     if (!interactive) return@pointerInput
                     detectDragGestures { change, _ ->
