@@ -14,6 +14,7 @@ ambiguous about which platform it belongs to.
 | Prefix | Scope | File |
 |---|---|---|
 | `PM` | Permissions and onboarding | [02](./02-permissions-and-onboarding.md) |
+| `SM` | Scenario model | [03](./03-scenario-model.md) |
 
 macOS identifiers — `DM`, `EX`, `ST`, `UI`, `RC`, `RG`, `SF`, `LC` — keep their meaning when cited
 from here, and always link back to [`../../../docs/sdd/`](../../../docs/sdd/).

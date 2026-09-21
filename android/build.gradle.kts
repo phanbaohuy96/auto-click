@@ -86,6 +86,7 @@ extensions.configure<KoverProjectExtension>("kover") {
                     classes(
                         "com.pbh.autoclick.core.ui.UiText*",
                         "com.pbh.autoclick.domain.model.*",
+                        "com.pbh.autoclick.domain.scenario.*",
                     )
                 }
                 excludes {
