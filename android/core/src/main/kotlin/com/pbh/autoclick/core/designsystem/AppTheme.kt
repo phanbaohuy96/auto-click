@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Complete theme configuration injected into [AndroidBaseTheme]. */
+/** Complete theme configuration injected into [AutoClickTheme]. */
 @Immutable
 data class AppThemeConfig(
     val colorScheme: ColorScheme,
@@ -194,7 +194,7 @@ private fun appTypography(): Typography =
 
 /** Provides [config] to Compose and applies the matching Material theme. */
 @Composable
-fun AndroidBaseTheme(
+fun AutoClickTheme(
     config: AppThemeConfig = AppThemeDefaults.light(),
     content: @Composable () -> Unit,
 ) {
