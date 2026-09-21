@@ -30,6 +30,8 @@ The surface the whole app is built on, and enough to be useful on its own.
 - Per-**Step** repeat and delay; per-**Scenario** repeat; a countdown before the first **Step**
 - Raw pixels bound to a **Screen profile**; a mismatch blocks ([ADR-0013])
 - Every stroke terminated on every exit, and a one-tap **free the touch** recovery
+- Onboarding through the accessibility and overlay permissions, including the Android 13
+  restricted-settings wall ([02](./02-permissions-and-onboarding.md))
 
 Done when a 15-step sequence of fixed taps runs in the right order, at speed, and Stop always works.
 
@@ -97,3 +99,13 @@ Stated explicitly so it does not get proposed again.
 - **Wall-clock scheduling**, as on macOS. A countdown of X seconds is not a schedule: the user reads
   the countdown the automated application is already showing, which is the server's clock, and the
   whole problem of synchronising time disappears.
+
+[ADR-0002]: ../../../docs/adr/0002-step-is-action-times-target.md
+[ADR-0004]: ../../../docs/adr/0004-recordings-keep-real-timing.md
+[ADR-0008]: ../../../docs/adr/0008-match-templates-at-two-scales.md
+[ADR-0009]: ../../../docs/adr/0009-type-ascii-key-by-key.md
+[ADR-0010]: ../../../docs/adr/0010-strings-files-and-a-live-bundle-swap.md
+[ADR-0011]: ../../../docs/adr/0011-a-scenario-has-no-branches.md
+[ADR-0013]: ../adr/0013-coordinates-are-raw-pixels-bound-to-a-screen-profile.md
+[ADR-0014]: ../adr/0014-no-database.md
+[`DM-16`]: ../../../docs/sdd/02-data-model.md

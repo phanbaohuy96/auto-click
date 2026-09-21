@@ -25,6 +25,10 @@ behaviour is not obvious from the code itself.
 | `SF` | Permissions and safety | [08](./08-permissions-and-safety.md) |
 | `LC` | Localisation | [09](./09-localisation.md) |
 
+Android has its own registry in
+[`../../android/docs/sdd/README.md`](../../android/docs/sdd/README.md), using prefixes that do
+not appear above, so a bare identifier never means two things.
+
 Requirement identifiers are **never reused**. A dropped requirement is marked `~~DM-7~~
 (dropped)`, never deleted and never renumbered.
 
