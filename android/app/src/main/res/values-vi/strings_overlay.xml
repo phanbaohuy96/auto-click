@@ -1,0 +1,21 @@
+<resources>
+    <string name="overlay_start">Chạy</string>
+    <string name="overlay_stop">Dừng</string>
+    <string name="overlay_add_step">Thêm bước</string>
+    <string name="overlay_place_markers">Di chuyển điểm</string>
+    <string name="overlay_finish_placing">Xong</string>
+    <string name="overlay_free_the_touch">Gỡ chạm kẹt</string>
+    <string name="overlay_collapse">Thu gọn</string>
+    <string name="overlay_expand">Mở Auto Click</string>
+    <string name="overlay_starting_in">Chạy sau %1$d</string>
+    <string name="overlay_step_of">Bước %1$d / %2$d</string>
+    <string name="overlay_stopping">Đang dừng…</string>
+    <string name="overlay_finished">Đã xong</string>
+    <string name="overlay_stopped">Đã dừng</string>
+    <string name="overlay_screen_changed">Màn hình đã thay đổi so với lúc tạo kịch bản này</string>
+    <string name="overlay_gesture_cancelled">Bước %1$d bị gián đoạn</string>
+    <string name="overlay_no_field">Bước %1$d không tìm thấy ô nhập</string>
+    <string name="overlay_action_refused">Bước %1$d bị hệ thống từ chối</string>
+    <string name="run_channel_name">Đang chạy kịch bản</string>
+    <string name="run_notification_title">Auto Click đang chạy</string>
+</resources>

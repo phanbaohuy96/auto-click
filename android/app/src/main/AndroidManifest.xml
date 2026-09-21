@@ -1,4 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The Overlay is the only surface this app has while another application is in front. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- GX-7: a run lives in a foreground service, so it cannot be killed and cannot be invisible. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".MainApplication"
         android:allowBackup="true"
@@ -6,7 +14,7 @@
         android:fullBackupContent="@xml/backup_rules"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AndroidBase">
+        android:theme="@style/Theme.AutoClick">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -17,5 +25,32 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- PM-2: the consent dialogue Android shows says this service "can observe your actions".
+             The description resource is the rest of that sentence. -->
+        <service
+            android:name=".service.AutoClickAccessibilityService"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <service
+            android:name=".overlay.OverlayService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <!-- None of the defined types fits: nothing is played, located, synced or projected.
+                 The app replays touches the user recorded, which is its own thing. -->
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Replays the user's own recorded taps while another app is in front" />
+        </service>
     </application>
 </manifest>

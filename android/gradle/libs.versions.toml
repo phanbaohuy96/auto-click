@@ -1,7 +1,6 @@
 [versions]
 activity = "1.13.0"
 agp = "8.13.2"
-androidx-security = "1.1.0"
 coil = "3.5.0"
 compose-bom = "2026.06.01"
 coroutines = "1.10.2"
@@ -19,15 +18,16 @@ lifecycle = "2.10.0"
 mockk = "1.14.6"
 navigation = "2.9.8"
 robolectric = "4.15.1"
+savedstate = "1.4.0"
 spotless = "8.8.0"
 truth = "1.4.5"
 turbine = "1.2.1"
 
 [libraries]
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
-androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidx-security" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
+compose-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-ui = { module = "androidx.compose.ui:ui" }
 compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
@@ -49,6 +49,7 @@ lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+savedstate = { module = "androidx.savedstate:savedstate", version.ref = "savedstate" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 

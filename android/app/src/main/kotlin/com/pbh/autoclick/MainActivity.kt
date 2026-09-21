@@ -5,8 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
-import com.pbh.autoclick.core.designsystem.AndroidBaseTheme
 import com.pbh.autoclick.core.designsystem.AppThemeDefaults
+import com.pbh.autoclick.core.designsystem.AutoClickTheme
 import com.pbh.autoclick.navigation.AppNavHost
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     AppThemeDefaults.light()
                 }
-            AndroidBaseTheme(config = themeConfig) {
+            AutoClickTheme(config = themeConfig) {
                 AppNavHost()
             }
         }

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  canPerformGestures is the whole point: it is what dispatchGesture() needs (GX-1).
+
+  isAccessibilityTool is false on purpose (PM-3). Only software built to help people overcome a
+  disability may claim true, and Auto Click is an automation tool. PM-11 records what that honesty
+  costs under Advanced Protection Mode, and accepts it.
+
+  canRetrieveWindowContent is required for ACTION_SET_TEXT to reach the focused field (GX-17).
+  Nothing else is read, and nothing leaves the device.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault"
+    android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/accessibility_service_description"
+    android:isAccessibilityTool="false"
+    android:notificationTimeout="100"
+    android:summary="@string/accessibility_service_summary" />
