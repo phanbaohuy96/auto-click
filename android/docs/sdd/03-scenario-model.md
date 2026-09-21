@@ -71,8 +71,14 @@ reasoning; the consequence is `SM-15`.
 the density in dpi, and the rotation.
 
 **SM-14** `[A1]` A **Scenario** captures the **Screen profile** in force when its first **Marker**
-is placed, and keeps it. A **Scenario** with no **Step**s has no profile yet and adopts whichever
-is in force when it gains one.
+is placed, and keeps it — it is not re-captured when a later **Step** is edited on a different
+screen, because that would swap it for one the coordinates were never measured against and the
+mismatch at `SM-15` would never be reported at all.
+
+It **forgets** the profile when its last **Marker** goes, whether by the **Step** being deleted or
+by its **Action** changing to one that ignores its **Target**. The profile exists to make
+coordinates meaningful; with no coordinates there is nothing left to protect, and a profile kept
+past its last **Marker** would block a run that could not press anything wrong.
 
 **SM-15** `[A1]` Before the countdown starts, the current **Screen profile** is compared with the
 **Scenario**'s. Any difference **blocks the run**, with a message naming what changed. The block is

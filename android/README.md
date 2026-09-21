@@ -3,18 +3,21 @@
 The Android member of Auto Click. See the [repository README](../README.md) for the product, and
 [`../CONTEXT.md`](../CONTEXT.md) for the shared language.
 
-**Status: slice A1, mostly built.** The app installs, lists Scenarios, draws its **Marker**s over
-whatever is in front, drags them, and runs a **Scenario** through the accessibility service. What
-is missing is the **Step** editor — tapping a **Marker** cannot yet change what its **Step** does —
-and the onboarding flow, so permissions are granted by being sent to the right Settings screen
-rather than being explained first.
+**Status: slice A1, built except onboarding.** The app installs, lists **Scenario**s, draws and
+drags its **Marker**s over whatever is in front, configures a **Step** in the panel, and runs a
+**Scenario** through the accessibility service. What is missing is the onboarding flow, so
+permissions are granted by being sent to the right Settings screen rather than being explained
+first.
+
+It has been run on an emulator (Pixel 10 Pro XL, API 37) and **never on a physical device**;
+[`docs/testing.md`](docs/testing.md) records exactly what that has and has not shown.
 
 | Built | Not built yet |
 |---|---|
-| **Scenario / Step / Action × Target**, limits, validation ([03](docs/sdd/03-scenario-model.md)) | The **Step** panel: tap a **Marker** to configure it ([06](docs/sdd/06-overlay-and-markers.md)) |
-| One directory per **Scenario** on disk ([04](docs/sdd/04-storage.md)) | Onboarding, including the Android 13 wall ([02](docs/sdd/02-permissions-and-onboarding.md)) |
-| The runner, and every exit path releasing ([05](docs/sdd/05-gesture-execution.md)) | Adding a **Step** from the floating control |
-| The **Overlay**, **Marker**s and the floating control ([06](docs/sdd/06-overlay-and-markers.md)) | Recording (A2), recognition (A3), languages (A4) |
+| **Scenario / Step / Action × Target**, limits, validation ([03](docs/sdd/03-scenario-model.md)) | Onboarding, including the Android 13 wall ([02](docs/sdd/02-permissions-and-onboarding.md)) |
+| One directory per **Scenario** on disk ([04](docs/sdd/04-storage.md)) | Reordering a **Scenario** anywhere but in the **Step** panel |
+| The runner, and every exit path releasing ([05](docs/sdd/05-gesture-execution.md)) | Remembering where the floating control was left (`OV-14`) |
+| The **Overlay**, **Marker**s, the floating control and the **Step** panel ([06](docs/sdd/06-overlay-and-markers.md)) | Recording (A2), recognition (A3), languages (A4) |
 
 ## Where to read what
 
