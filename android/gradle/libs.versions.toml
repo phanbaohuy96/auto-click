@@ -18,6 +18,7 @@ lifecycle = "2.10.0"
 mockk = "1.14.6"
 navigation = "2.9.8"
 robolectric = "4.15.1"
+savedstate = "1.4.0"
 spotless = "8.8.0"
 truth = "1.4.5"
 turbine = "1.2.1"
@@ -47,6 +48,7 @@ lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+savedstate = { module = "androidx.savedstate:savedstate", version.ref = "savedstate" }
 truth = { module = "com.google.truth:truth", version.ref = "truth" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 

@@ -42,9 +42,13 @@ jobs:
         with:
           build-root-directory: android
       # One invocation, which is how this is verified by hand.
+      # The coverage gate names its modules. A root aggregate reported a different number here
+      # than on a developer machine while every per-module number matched exactly, so each
+      # module now answers for its own execution data.
       - name: Build, test and check
-        run: ./gradlew :app:assembleDebug test detekt spotlessCheck
-      # No coverage gate yet. The root aggregate reported a different number here than on a
-      # developer machine while every per-module number matched, and at this point the include
-      # list covers barely a dozen lines, so the rule was measuring rounding. It comes back with
-      # slice A1, verified per module, where there is enough code for it to mean something.
+        run: >-
+          ./gradlew :app:assembleDebug test detekt spotlessCheck
+          :core:koverVerify :data:koverVerify :domain:koverVerify
+      - name: Coverage report on failure
+        if: failure()
+        run: ./gradlew koverLog || true

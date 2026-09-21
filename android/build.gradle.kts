@@ -70,52 +70,58 @@ subprojects {
     }
 }
 
-dependencies {
-    kover(project(":app"))
-    kover(project(":core"))
-    kover(project(":data"))
-    kover(project(":domain"))
-}
+/**
+ * Coverage is verified **per module**, against that module's own execution data.
+ *
+ * The root aggregate was tried first and reported a different number on CI than on a developer
+ * machine while every per-module number matched exactly, so the aggregation — not the code — was
+ * what moved. `:app` is left out: after the filters below it holds nothing but Compose and wiring,
+ * and a rule over an empty set measures nothing.
+ */
+val coveredModules = setOf(":core", ":data", ":domain")
 
-extensions.configure<KoverProjectExtension>("kover") {
-    reports {
-        total {
-            filters {
-                includes {
-                    // Grows with each slice. Only classes that carry logic worth asserting on
-                    // belong here; Compose screens, generated code and wiring are excluded below.
-                    classes(
-                        "com.pbh.autoclick.core.ui.DomainErrorText*",
-                        "com.pbh.autoclick.core.ui.UiText*",
-                        "com.pbh.autoclick.data.scenario.*",
-                        "com.pbh.autoclick.domain.model.*",
-                        "com.pbh.autoclick.domain.run.*",
-                        "com.pbh.autoclick.domain.scenario.*",
-                    )
+configure(subprojects.filter { it.path in coveredModules }) {
+    extensions.configure<KoverProjectExtension>("kover") {
+        reports {
+            total {
+                filters {
+                    includes {
+                        // Grows with each slice. Only classes that carry logic worth asserting on
+                        // belong here; Compose screens, generated code and wiring are excluded.
+                        classes(
+                            "com.pbh.autoclick.core.overlay.*",
+                            "com.pbh.autoclick.core.ui.DomainErrorText*",
+                            "com.pbh.autoclick.core.ui.UiText*",
+                            "com.pbh.autoclick.data.scenario.*",
+                            "com.pbh.autoclick.domain.model.*",
+                            "com.pbh.autoclick.domain.run.*",
+                            "com.pbh.autoclick.domain.scenario.*",
+                        )
+                    }
+                    excludes {
+                        // Composables need a Robolectric or instrumented UI test, which
+                        // android/docs/testing.md places in tier 2, not in this JVM tier.
+                        annotatedBy("androidx.compose.runtime.Composable")
+                        classes(
+                            "*.BuildConfig",
+                            "*.R",
+                            "*.R\$*",
+                            "*ComposableSingletons*",
+                            "*Hilt_*",
+                            "*_Factory",
+                            "*_HiltModules*",
+                            "com.pbh.autoclick.core.common.*",
+                            "com.pbh.autoclick.core.designsystem.AppTheme",
+                            "com.pbh.autoclick.core.designsystem.AppThemeKt",
+                            "com.pbh.autoclick.core.designsystem.components.*",
+                            "*ScreenKt*",
+                        )
+                    }
                 }
-                excludes {
-                    // Composables need a Robolectric or instrumented UI test, which
-                    // android/docs/testing.md places in tier 2, not in this JVM tier.
-                    annotatedBy("androidx.compose.runtime.Composable")
-                    classes(
-                        "*.BuildConfig",
-                        "*.R",
-                        "*.R\$*",
-                        "*ComposableSingletons*",
-                        "*Hilt_*",
-                        "*_Factory",
-                        "*_HiltModules*",
-                        "com.pbh.autoclick.core.common.*",
-                        "com.pbh.autoclick.core.designsystem.AppTheme",
-                        "com.pbh.autoclick.core.designsystem.AppThemeKt",
-                        "com.pbh.autoclick.core.designsystem.components.*",
-                        "*ScreenKt*",
-                    )
-                }
-            }
-            verify {
-                rule("Line coverage must stay at or above 80% for app logic") {
-                    minBound(80, CoverageUnit.LINE, AggregationType.COVERED_PERCENTAGE)
+                verify {
+                    rule("Line coverage must stay at or above 80% for app logic") {
+                        minBound(80, CoverageUnit.LINE, AggregationType.COVERED_PERCENTAGE)
+                    }
                 }
             }
         }

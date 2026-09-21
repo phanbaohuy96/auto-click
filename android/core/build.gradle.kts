@@ -22,6 +22,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    testOptions {
+        // OverlayWindow is an Android window host, so its tests need real resources.
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -39,8 +44,10 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.savedstate)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.junit)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.mockk)
+    testImplementation(libs.robolectric)
 }
