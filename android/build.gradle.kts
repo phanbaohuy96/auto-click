@@ -81,23 +81,17 @@ extensions.configure<KoverProjectExtension>("kover") {
         total {
             filters {
                 includes {
+                    // Grows with each slice. Only classes that carry logic worth asserting on
+                    // belong here; Compose screens, generated code and wiring are excluded below.
                     classes(
-                        "com.pbh.autoclick.core.network.NetworkErrorMapper",
                         "com.pbh.autoclick.core.ui.UiText*",
-                        "com.pbh.autoclick.domain.entity.*",
                         "com.pbh.autoclick.domain.model.*",
-                        "com.pbh.autoclick.domain.usecase.*UseCase",
-                        "com.pbh.autoclick.feature.auth.ui.LoginEffect*",
-                        "com.pbh.autoclick.feature.auth.ui.LoginUiState*",
-                        "com.pbh.autoclick.feature.auth.ui.LoginViewModel*",
-                        "com.pbh.autoclick.feature.home.ui.detail.ItemDetailUiState*",
-                        "com.pbh.autoclick.feature.home.ui.detail.ItemDetailViewModel*",
-                        "com.pbh.autoclick.feature.home.ui.list.HomeListEffect*",
-                        "com.pbh.autoclick.feature.home.ui.list.HomeListUiState*",
-                        "com.pbh.autoclick.feature.home.ui.list.HomeViewModel*",
                     )
                 }
                 excludes {
+                    // Composables need a Robolectric or instrumented UI test, which
+                    // android/docs/testing.md places in tier 2, not in this JVM tier.
+                    annotatedBy("androidx.compose.runtime.Composable")
                     classes(
                         "*.BuildConfig",
                         "*.R",
@@ -110,8 +104,6 @@ extensions.configure<KoverProjectExtension>("kover") {
                         "com.pbh.autoclick.core.designsystem.AppTheme",
                         "com.pbh.autoclick.core.designsystem.AppThemeKt",
                         "com.pbh.autoclick.core.designsystem.components.*",
-                        "com.pbh.autoclick.core.network.ApiResponse*",
-                        "com.pbh.autoclick.core.network.RetrofitFactory",
                         "*ScreenKt*",
                     )
                 }
