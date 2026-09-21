@@ -1,0 +1,4 @@
+<resources>
+    <!-- Central DomainError -> text policy (see DomainErrorText.kt). -->
+    <string name="core_error_generic">Đã xảy ra lỗi. Vui lòng thử lại.</string>
+</resources>
