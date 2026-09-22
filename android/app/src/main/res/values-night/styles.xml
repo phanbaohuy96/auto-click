@@ -1,0 +1,5 @@
+<resources>
+    <!-- The window background behind Compose. Without this the app flashes white on launch in
+         dark mode, and shows a white bar behind a translucent system bar. -->
+    <style name="Theme.AutoClick" parent="android:style/Theme.Material.NoActionBar" />
+</resources>
