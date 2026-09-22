@@ -228,4 +228,56 @@ counting down says so and has no **Step** number to give; running names the **St
 *Stop*. A countdown ticking every hundred milliseconds must not rewrite the shade thirty times on
 the way to the first **Step**.
 
+**OV-32** `[A2]` The panel is laid out against the **display** and keeps its own content clear of
+the navigation bar.
+
+A bottom-anchored overlay window is laid out inside the system bars, so it stops short of the
+screen by the height of the navigation bar. On the test device that was seventy-two pixels of
+somebody else's application showing through beneath a sheet whose whole job is to sit on the edge
+of the phone. `FLAG_LAYOUT_IN_SCREEN` is not enough by itself — it does not move the parent frame's
+bottom edge, so `Gravity.BOTTOM` still resolved to the top of the bar. It takes a negative `y` of
+the inset's height as well, which `FLAG_LAYOUT_NO_LIMITS` is what permits.
+
+The control is placed in the other space, inside the bars (`OV-14`), so what it is told to keep
+clear of the panel is the panel's height **less that inset**. Otherwise it is held a navigation
+bar too high and a strip of the application shows between the two.
+
+**OV-33** `[A2]` The control is one row, and one of its buttons means *I am finished*.
+
+It was two rows — a caption above the buttons — and measured 840×228 pixels on the test device
+while a **Scenario** was being built. One row is 792×144: a third of the height, with a button
+gained rather than lost. The **Scenario**'s name moves to the panel, where there is room to change
+it as well as read it.
+
+*Done* writes nothing, because every edit reached the disk when it was made (`FS-15`). What was
+missing was a way to put the editor away in one press instead of closing the panel, collapsing the
+control, and leaving the **Marker**s behind. It closes the panel, collapses the control and hides
+the **Marker**s — and collapsing alone now hides them too, because "get out of my way" cannot mean
+leaving a dozen handles scattered over the screen.
+
+**OV-34** `[A2]` The panel is a bottom sheet that is dragged open, then scrolled.
+
+Two phases, in this order, because it is what a sheet on this platform does. A swipe up grows the
+sheet towards its full extent and the body does not move while there is sheet left to gain; once
+there is none, the same unbroken swipe scrolls the body. Coming back down, the body scrolls to its
+top first and only then does the sheet shrink. The handoff is a nested-scroll connection rather
+than two gestures, so one finger movement crosses between them with nothing to re-grab.
+
+**The sheet is sized by the window, not by an offset inside it.** A window covering the display
+with the sheet placed inside would take every touch on the screen, and `OV-21` needs the opposite:
+**Marker**s stay draggable while the panel is open, which is the only way to place a swipe's
+destination while looking at the swipe's settings. So the window stays `WRAP_CONTENT` and it is the
+content that changes height — and the content is bounded by a maximum rather than given a height,
+so a **Step** with two fields is a short sheet with no empty space to expand into.
+
+Dragging down does not dismiss. A **Step** being edited holds unsaved changes (`OV-24`), and a
+gesture that discarded them by being slightly too long could not be used with confidence.
+
+**OV-35** `[A2]` The **Action** chips carry a heading and a sentence.
+
+Five unlabelled chips at the top of a sheet read as filters, which is what chips usually are;
+nothing said that choosing one changes what the **Step** *does*. The heading says what the row is
+and the line beneath it describes the chosen **Action** in the **Step**'s own terms, so the answer
+is on screen before the question is asked.
+
 [ADR-0015]: ../adr/0015-compose-in-the-overlay.md

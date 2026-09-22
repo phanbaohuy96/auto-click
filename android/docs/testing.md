@@ -95,6 +95,40 @@ because the bug in `OV-31` is exactly the size of a status bar and the eye does 
   `"delayMillisecondsAfter": 4045` on the first — the measured pause, not a rounded one. Gmail
   **advanced to its next screen while being recorded**, which is `RD-5` working. A 400ms swipe
   recorded as a `swipe` of `407` milliseconds, which is what it actually took.
+- `PK-1` to `PK-3`, end to end: *add a step* took the editor off the screen, a 700-pixel drag
+  became a `swipe` between exactly its two ends, and the **Step** carried the default 200ms travel
+  rather than the 400ms the drag took — which is `PK-2`'s whole point.
+- `OV-32`, by `dumpsys`: the panel's frame is now `[0,1616][1344,2992]`. It was `[0,1582][1344,2920]`
+  — seventy-two pixels short of the display, with the application underneath showing through below
+  the sheet. Adding the flags alone did **not** fix it; the frame stayed at 2920 until the negative
+  offset went in too.
+- `OV-33`: the control window measured 840×228 and now measures 792×144, with six buttons instead
+  of five. *Done* took the Overlay from fourteen windows to one.
+- `OV-34`, both phases. With twelve **Step**s the sheet opened at its peek of 1376 pixels, a drag
+  on the grabber took it to 2753 — its full extent — and a further swipe in the body left the
+  window at 2753 while the content moved. With five **Step**s the same drag settled at 1791,
+  because that is all the content there was: the sheet is bounded, not sized.
+- `DS-7`: the grey wedge at the control's bottom corners is gone. Where the old build measured 159
+  and 204 against a white application, the same points now read 240 and 241 — the wallpaper — and
+  the darkening above and below the window differs by six levels rather than being offset downward.
+
+### What the emulator disproved
+
+`DS-6` is here rather than above because the emulator **refuted** a design decision rather than
+confirming one.
+
+- **Cross-window blur is unusable in this application.** `supports_background_blur` is 1 and
+  `isCrossWindowBlurEnabled` returns true, so the control's `FLAG_BLUR_BEHIND` was accepted. Every
+  other Overlay window then stopped answering touches: `InputDispatcher` logged
+  `Untrusted touch due to occlusion by /1000` and named `Dim Layer for - Display 0 …
+  mode=BLOCK_UNTRUSTED`. Asking for a blur creates that layer, and Android's untrusted-touch rules
+  drop touches to any untrusted window beneath it. Removing the blur restored input immediately,
+  which is how it was proved rather than guessed.
+- **The blur was not happening anyway.** Before that was found, a row of Gmail's body text sampled
+  through the control gave two values, 92 and 43, in the same proportion as the sharp text beside
+  it — unblurred text at the surface alpha, not a frost. Whether a device that really does blur
+  would also block the touches is untested and now moot.
+
 - `RD-5`'s failure mode, before it was fixed: one tap produced `recorded a touch of 0ms` and
   `recorded a touch of 1ms`, 41ms apart — the layer recording its own re-emission. Two guards
   rather than one, and the same test then gave two touches for two taps.
@@ -131,6 +165,11 @@ untested until one is:
   leaves at speeds `input` does not reproduce, and `RD-3`'s tap-versus-swipe decision is made on
   exactly that. The 24ms window in which `RD-5` drops a touch has also only ever been met by taps
   arriving seconds apart.
+- **The sheet under a real finger.** `adb shell input swipe` with a 400ms duration produced too
+  few motion events for Compose to recognise a drag at all, and the sheet did not move; the same
+  gesture over 900ms worked. A finger produces far more events than either, so this is an artefact
+  of the harness rather than a defect — but it means `OV-34`'s drag has only ever been driven by a
+  synthetic gesture slow enough to be seen.
 - **Whether a re-emitted swipe is good enough to use.** `RD-5` says plainly that it will arrive
   late; nobody has yet recorded a drag in an application that cares.
 
