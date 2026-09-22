@@ -24,7 +24,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -72,10 +71,9 @@ fun StepPanel(
     LaunchedEffect(typing) { actions.onTypingChanged(typing) }
     val onFocus: (Boolean) -> Unit = { gained -> focusedFields += if (gained) 1 else -1 }
 
-    Surface(
+    OverlaySurface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        tonalElevation = 3.dp,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
     ) {
         Column(
             modifier =

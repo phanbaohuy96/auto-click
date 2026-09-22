@@ -30,6 +30,8 @@ It has been run on an emulator (Pixel 10 Pro XL, API 37) and **never on a physic
 | [`docs/sdd/03-scenario-model.md`](docs/sdd/03-scenario-model.md) | The five **Action**s, the one **Target**, and which limits Android owns |
 | [`docs/sdd/04-storage.md`](docs/sdd/04-storage.md) | What `scenario.json` looks like, and what happens when it is wrong |
 | [`docs/sdd/05-gesture-execution.md`](docs/sdd/05-gesture-execution.md) | What happens when the user presses Stop, and why that is most of the code |
+| [`docs/sdd/06-overlay-and-markers.md`](docs/sdd/06-overlay-and-markers.md) | Why a Marker is a window of its own, and why Stop is re-attached last |
+| [`docs/sdd/07-design-system.md`](docs/sdd/07-design-system.md) | Why the Overlay is dark at every hour of the day |
 | [`docs/adr/`](docs/adr/) | Android decisions, numbered from 0012 in the product-wide sequence |
 | [`docs/landscape.md`](docs/landscape.md) | What the competing apps do, what users punish them for, and our answers |
 | [`docs/testing.md`](docs/testing.md) | Three tiers, and what is honestly not verified yet |

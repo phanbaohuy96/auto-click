@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The themed-icon variant (API 33+). One colour, tinted by the launcher, so the shapes have to hold
+  up with no colour to help them — which is why the mark is a ring and a dot rather than a picture.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108"
+    android:tint="#FFFFFFFF">
+    <path
+        android:pathData="M54,20 A34,34 0 1 1 30,30"
+        android:strokeWidth="3"
+        android:strokeColor="#59FFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M54,32 A22,22 0 1 1 53.98,32 Z"
+        android:strokeWidth="6"
+        android:strokeColor="#FFFFFFFF" />
+    <path
+        android:pathData="M54,44 A10,10 0 1 1 53.99,44 Z"
+        android:fillColor="#FFFFFFFF" />
+</vector>

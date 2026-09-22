@@ -4,7 +4,7 @@ import android.content.Context
 import android.view.WindowManager
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pbh.autoclick.core.designsystem.AutoClickTheme
+import com.pbh.autoclick.core.designsystem.OverlayTheme
 import com.pbh.autoclick.core.overlay.OverlayLayoutParams
 import com.pbh.autoclick.core.overlay.OverlayWindow
 import com.pbh.autoclick.domain.overlay.Marker
@@ -52,7 +52,7 @@ class MarkerWindows(
 
         val profile = context.currentScreenProfile()
         lines.show(OverlayLayoutParams.markerLines(profile.widthPixels, profile.heightPixels)) {
-            AutoClickTheme {
+            OverlayTheme {
                 val live by state.collectAsStateWithLifecycle()
                 MarkerLines(markers = live.markers)
             }
@@ -85,7 +85,7 @@ class MarkerWindows(
         val window = OverlayWindow(context, windowManager)
         handles[key] = window
         window.show(params) {
-            AutoClickTheme {
+            OverlayTheme {
                 val live by state.collectAsStateWithLifecycle()
                 // Read back out of the live state rather than closing over the Marker, so a
                 // handle redraws when its Step changes instead of when its window is rebuilt.

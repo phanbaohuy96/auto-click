@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pbh.autoclick.core.overlay.windowDragHandle
@@ -26,8 +27,11 @@ import com.pbh.autoclick.domain.scenario.ScreenPoint
 /** How wide a Marker is. Large enough to hit with a thumb, small enough to see past. */
 val MARKER_DIAMETER: Dp = 44.dp
 
-/** OV-21: how much wider the Marker being configured is drawn, so it can be picked out of fifteen. */
+/** OV-21: the ring that picks the Marker being configured out of fifteen. */
 private val EDITED_BORDER = 3.dp
+
+/** The line every Marker is drawn with, so it has an edge over light content as well as dark. */
+private val MARKER_EDGE = 2.dp
 
 /**
  * One Marker, in a window of its own (OV-7, OV-27).
@@ -46,14 +50,21 @@ fun MarkerHandle(
     onTapped: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val accent = MaterialTheme.colorScheme.primary
+    val ink = MaterialTheme.colorScheme.surface
+    val arrival = marker.isArrival
+
     Box(
         contentAlignment = Alignment.Center,
         modifier =
             modifier
                 .size(MARKER_DIAMETER)
                 .clip(CircleShape)
-                .background(marker.colour())
-                .then(if (edited) Modifier.border(EDITED_BORDER, Color.White, CircleShape) else Modifier)
+                // DS-2: one accent. Which end of a travelling contact this is is told by whether
+                // the disc is filled or hollow, not by a second and third hue — a Marker has to
+                // stay legible over a game's own colours, and three of ours is two too many.
+                .background(if (arrival) ink.copy(alpha = 0.92f) else accent)
+                .border(if (edited) EDITED_BORDER else MARKER_EDGE, if (edited) Color.White else accent, CircleShape)
                 .windowDragHandle(
                     onDragBy = onDragBy,
                     onDragFinished = onDragFinished,
@@ -62,8 +73,11 @@ fun MarkerHandle(
     ) {
         Text(
             text = marker.label(),
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.White,
+            // The body face rather than the display one. A Marker's number is read at a glance
+            // over somebody else's artwork, and Space Grotesk's figures are drawn to be
+            // distinctive — which is the opposite of what is wanted here.
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = if (arrival) accent else MaterialTheme.colorScheme.onPrimary,
         )
     }
 }
@@ -79,13 +93,14 @@ fun MarkerLines(
     markers: List<Marker>,
     modifier: Modifier = Modifier,
 ) {
+    val accent = MaterialTheme.colorScheme.primary
     Canvas(modifier.fillMaxSize()) {
         markers
             .filter { it.role == MarkerRole.SWIPE_START || it.role == MarkerRole.TOUCH_START }
             .forEach { marker ->
                 val end = marker.connectedTo ?: return@forEach
                 drawLine(
-                    color = Color.White.copy(alpha = 0.9f),
+                    color = accent,
                     start = Offset(marker.point.x.toFloat(), marker.point.y.toFloat()),
                     end = Offset(end.x.toFloat(), end.y.toFloat()),
                     strokeWidth = Stroke.HairlineWidth + 4f,
@@ -98,15 +113,8 @@ fun MarkerLines(
 fun Marker.handleOrigin(diameterPixels: Int): ScreenPoint = ScreenPoint(x = point.x - diameterPixels / 2, y = point.y - diameterPixels / 2)
 
 /** OV-8: the end of a swipe is an arrow, not a second copy of the number. */
-private fun Marker.label(): String =
-    when (role) {
-        MarkerRole.SWIPE_END, MarkerRole.TOUCH_END -> "→"
-        else -> stepNumber.toString()
-    }
+private fun Marker.label(): String = if (isArrival) "\u2192" else stepNumber.toString()
 
-private fun Marker.colour(): Color =
-    when (role) {
-        MarkerRole.POINT -> Color(0xFF2962FF)
-        MarkerRole.SWIPE_START, MarkerRole.SWIPE_END -> Color(0xFF00897B)
-        MarkerRole.TOUCH_START, MarkerRole.TOUCH_END -> Color(0xFF6A1B9A)
-    }
+/** Where a travelling contact ends up, as opposed to where it starts (OV-8, OV-9). */
+private val Marker.isArrival: Boolean
+    get() = role == MarkerRole.SWIPE_END || role == MarkerRole.TOUCH_END

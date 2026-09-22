@@ -4,20 +4,13 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 /** Complete theme configuration injected into [AutoClickTheme]. */
 @Immutable
@@ -37,7 +30,7 @@ data class AppSpacing(
     val medium: Dp = 12.dp,
     val large: Dp = 16.dp,
     val extraLarge: Dp = 24.dp,
-    val screen: Dp = 24.dp,
+    val screen: Dp = 20.dp,
 )
 
 /** Shared non-color decoration tokens used by app components. */
@@ -46,16 +39,40 @@ data class AppDecoration(
     val minTouchTarget: Dp = 48.dp,
     val loadingIndicatorSize: Dp = 18.dp,
     val loadingIndicatorStrokeWidth: Dp = 2.dp,
-    val cardElevation: Dp = 1.dp,
+    val cardElevation: Dp = 0.dp,
     val focusedBorderWidth: Dp = 2.dp,
+    /** DS-3: the hairline that replaces a card border on the dark scheme. */
+    val hairline: Dp = 1.dp,
 )
+
+/**
+ * DS-3: the radius tightens as things get smaller, rather than one number everywhere.
+ *
+ * A chip inside a panel inside a rounded window with the same corner at all three depths reads as
+ * a mistake. The container is soft; what sits inside it is not.
+ */
+private fun appShapes(): Shapes =
+    Shapes(
+        extraSmall =
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(6.dp),
+        small =
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(10.dp),
+        medium =
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(14.dp),
+        large =
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(20.dp),
+        extraLarge =
+            androidx.compose.foundation.shape
+                .RoundedCornerShape(28.dp),
+    )
 
 private val LocalAppSpacing = staticCompositionLocalOf { AppSpacing() }
 private val LocalAppDecoration = staticCompositionLocalOf { AppDecoration() }
-private val LocalAppThemeConfig =
-    staticCompositionLocalOf {
-        AppThemeDefaults.light()
-    }
+private val LocalAppThemeConfig = staticCompositionLocalOf { AppThemeDefaults.light() }
 
 /** Composition-local accessors for the active app theme tokens. */
 object AppTheme {
@@ -96,101 +113,31 @@ object AppTheme {
         get() = LocalAppThemeConfig.current
 }
 
-/** Default light and dark theme configurations for the starter app. */
+/** The three schemes this app has: the Activity's two, and the Overlay's one. */
 object AppThemeDefaults {
-    /** Returns the default light theme configuration. */
-    fun light(): AppThemeConfig =
-        AppThemeConfig(
-            colorScheme =
-                lightColorScheme(
-                    primary = Color(0xFF1D5B79),
-                    onPrimary = Color.White,
-                    primaryContainer = Color(0xFFD2ECF7),
-                    onPrimaryContainer = Color(0xFF062E40),
-                    secondary = Color(0xFF7A4E2D),
-                    onSecondary = Color.White,
-                    secondaryContainer = Color(0xFFFFDBC5),
-                    tertiary = Color(0xFF2D6A4F),
-                    background = Color(0xFFF8F9FB),
-                    onBackground = Color(0xFF171C20),
-                    surface = Color.White,
-                    onSurface = Color(0xFF171C20),
-                    surfaceVariant = Color(0xFFE1E6EA),
-                    onSurfaceVariant = Color(0xFF41484D),
-                    error = Color(0xFFBA1A1A),
-                ),
-            typography = appTypography(),
-            shapes = Shapes(),
-            spacing = AppSpacing(),
-            decoration = AppDecoration(),
-        )
+    fun light(): AppThemeConfig = config(lightScheme())
 
-    /** Returns the default dark theme configuration. */
-    fun dark(): AppThemeConfig =
+    fun dark(): AppThemeConfig = config(darkScheme())
+
+    /**
+     * DS-2: the Overlay's scheme, which is the dark one at every hour of the day.
+     *
+     * Not a preference. The Overlay is drawn on top of something it does not own, so it cannot
+     * borrow contrast from the background — a light control over a dark game is a white slab, and
+     * a light control over a white form disappears. One high-contrast dark scheme is the only
+     * answer that works over both.
+     */
+    fun overlay(): AppThemeConfig = config(darkScheme())
+
+    private fun config(scheme: ColorScheme) =
         AppThemeConfig(
-            colorScheme =
-                darkColorScheme(
-                    primary = Color(0xFF8CCCE8),
-                    onPrimary = Color(0xFF003548),
-                    primaryContainer = Color(0xFF004D67),
-                    onPrimaryContainer = Color(0xFFC2E8FF),
-                    secondary = Color(0xFFE0B28A),
-                    onSecondary = Color(0xFF452A14),
-                    secondaryContainer = Color(0xFF604027),
-                    tertiary = Color(0xFF95D5B2),
-                    background = Color(0xFF111417),
-                    onBackground = Color(0xFFE1E3E6),
-                    surface = Color(0xFF1A1E22),
-                    onSurface = Color(0xFFE1E3E6),
-                    surfaceVariant = Color(0xFF41484D),
-                    onSurfaceVariant = Color(0xFFC1C7CD),
-                    error = Color(0xFFFFB4AB),
-                ),
+            colorScheme = scheme,
             typography = appTypography(),
-            shapes = Shapes(),
+            shapes = appShapes(),
             spacing = AppSpacing(),
             decoration = AppDecoration(),
         )
 }
-
-private fun appTypography(): Typography =
-    Typography(
-        headlineMedium =
-            TextStyle(
-                fontFamily = FontFamily.Default,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 28.sp,
-                lineHeight = 36.sp,
-            ),
-        headlineSmall =
-            TextStyle(
-                fontFamily = FontFamily.Default,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 24.sp,
-                lineHeight = 32.sp,
-            ),
-        titleMedium =
-            TextStyle(
-                fontFamily = FontFamily.Default,
-                fontWeight = FontWeight.Medium,
-                fontSize = 16.sp,
-                lineHeight = 24.sp,
-            ),
-        bodyLarge =
-            TextStyle(
-                fontFamily = FontFamily.Default,
-                fontWeight = FontWeight.Normal,
-                fontSize = 16.sp,
-                lineHeight = 24.sp,
-            ),
-        bodyMedium =
-            TextStyle(
-                fontFamily = FontFamily.Default,
-                fontWeight = FontWeight.Normal,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-            ),
-    )
 
 /** Provides [config] to Compose and applies the matching Material theme. */
 @Composable
@@ -210,4 +157,17 @@ fun AutoClickTheme(
             content = content,
         )
     }
+}
+
+/**
+ * The theme every Overlay window uses (`DS-2`).
+ *
+ * Its own entry point rather than an argument, so that "the Overlay is dark" is something the
+ * window cannot forget rather than something each call site has to remember. Every window went
+ * through `AutoClickTheme` with its default before this, which is how the floating control came to
+ * be a white slab on a dark launcher.
+ */
+@Composable
+fun OverlayTheme(content: @Composable () -> Unit) {
+    AutoClickTheme(config = AppThemeDefaults.overlay(), content = content)
 }
