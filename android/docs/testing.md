@@ -90,6 +90,14 @@ because the bug in `OV-31` is exactly the size of a status bar and the eye does 
   Stop.
 - `OV-25`, the bug that started this round: the run notification no longer offers Stop when there
   is nothing to stop, and the state refuses the transition regardless.
+- **Recording, end to end** (`RD-2` to `RD-5`, `RD-8`). Two taps four seconds apart, in Gmail,
+  produced exactly two Steps at exactly the coordinates touched, with
+  `"delayMillisecondsAfter": 4045` on the first — the measured pause, not a rounded one. Gmail
+  **advanced to its next screen while being recorded**, which is `RD-5` working. A 400ms swipe
+  recorded as a `swipe` of `407` milliseconds, which is what it actually took.
+- `RD-5`'s failure mode, before it was fixed: one tap produced `recorded a touch of 0ms` and
+  `recorded a touch of 1ms`, 41ms apart — the layer recording its own re-emission. Two guards
+  rather than one, and the same test then gave two touches for two taps.
 
 **Currently unverified — no physical Android device is in use on this project.** Everything below is
 untested until one is:
@@ -118,6 +126,13 @@ untested until one is:
 - Whether an application detects the accessibility service and refuses to run.
 - Whether one window per **Marker** (`OV-27`) stays smooth at fifteen **Step**s. The emulator was
   fine at one and two; nothing has drawn a full-sized **Scenario** yet.
+- **Recording with a real finger.** Everything above went in through `adb shell input`, which
+  produces a clean synthetic touch. A finger is messier: it wanders inside the slop, it arrives and
+  leaves at speeds `input` does not reproduce, and `RD-3`'s tap-versus-swipe decision is made on
+  exactly that. The 24ms window in which `RD-5` drops a touch has also only ever been met by taps
+  arriving seconds apart.
+- **Whether a re-emitted swipe is good enough to use.** `RD-5` says plainly that it will arrive
+  late; nobody has yet recorded a drag in an application that cares.
 
 ### Platform behaviour worth knowing about
 

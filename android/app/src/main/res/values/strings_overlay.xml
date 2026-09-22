@@ -42,4 +42,10 @@
     <string name="run_notification_ready">Ready — nothing is running</string>
     <string name="tile_free_the_touch">Free the touch</string>
     <string name="run_notification_about_to_start">About to start</string>
+    <string name="overlay_record">Record</string>
+    <string name="overlay_stop_recording">Finish recording</string>
+    <plurals name="overlay_recorded">
+        <item quantity="one">Recording · %1$d touch</item>
+        <item quantity="other">Recording · %1$d touches</item>
+    </plurals>
 </resources>

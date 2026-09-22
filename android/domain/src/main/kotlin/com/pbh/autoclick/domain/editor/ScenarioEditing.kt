@@ -33,6 +33,18 @@ fun Scenario.withStepAdded(
 ): Scenario = copy(steps = steps + step).withProfileFollowingMarkers(profile)
 
 /**
+ * RD-8: a recording is **added** to the Scenario rather than replacing it.
+ *
+ * Recording more onto something half-built is the ordinary case — the user records, tries it,
+ * records the next part — and a session that silently threw away the earlier work would make the
+ * button too dangerous to press.
+ */
+fun Scenario.withStepsAdded(
+    added: List<Step>,
+    profile: ScreenProfile,
+): Scenario = if (added.isEmpty()) this else copy(steps = steps + added).withProfileFollowingMarkers(profile)
+
+/**
  * The Step with the same identifier replaced by [step].
  *
  * [profile] is needed because a replacement can *create* the first Marker — changing a `setText`

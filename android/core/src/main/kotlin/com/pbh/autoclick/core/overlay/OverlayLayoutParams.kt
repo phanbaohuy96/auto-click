@@ -118,6 +118,39 @@ object OverlayLayoutParams {
             flags = if (typing) PASS_THROUGH_OUTSIDE else NEVER_FOCUSABLE or PASS_THROUGH_OUTSIDE
         }
 
+    /**
+     * RD-1: the layer that swallows a touch so it can be recorded, covering the whole display.
+     *
+     * [listening] is the whole of pass-through recording (`RD-5`). While it is true this window
+     * takes every touch, which is how a touch gets recorded at all. While it is false it takes
+     * none — and it has to be false for the moment Auto Click **re-emits** that touch to the
+     * application underneath, because a `dispatchGesture` is delivered to the topmost window that
+     * accepts touches and that window would otherwise be this one. Recording its own re-emission
+     * is a loop with no end.
+     *
+     * In display coordinates for the same reason the Marker layer is (`OV-31`): a touch is
+     * recorded by its raw screen position and replayed at that position, and the two have to be
+     * the same number.
+     */
+    fun recordingLayer(
+        displayWidth: Int,
+        displayHeight: Int,
+        listening: Boolean,
+    ): WindowManager.LayoutParams =
+        base().apply {
+            width = displayWidth
+            height = displayHeight
+            x = 0
+            y = 0
+            gravity = Gravity.TOP or Gravity.START
+            flags =
+                if (listening) {
+                    NEVER_FOCUSABLE or IN_DISPLAY_COORDINATES
+                } else {
+                    NEVER_FOCUSABLE or PASS_THROUGH_ENTIRELY or IN_DISPLAY_COORDINATES
+                }
+        }
+
     private fun positioned(
         x: Int,
         y: Int,

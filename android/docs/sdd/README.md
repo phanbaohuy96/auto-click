@@ -18,6 +18,7 @@ ambiguous about which platform it belongs to.
 | `FS` | Storage | [04](./04-storage.md) |
 | `GX` | Gesture execution | [05](./05-gesture-execution.md) |
 | `OV` | The Overlay and Markers | [06](./06-overlay-and-markers.md) |
+| `RD` | Recording | [08](./08-recording.md) |
 | `DS` | The design system | [07](./07-design-system.md) |
 | `AP` | Settings that are not a Scenario | [04](./04-storage.md) |
 
