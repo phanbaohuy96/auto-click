@@ -1,0 +1,42 @@
+<resources>
+    <string name="step_panel_title">Bước %1$d / %2$d</string>
+    <string name="step_previous">Bước trước</string>
+    <string name="step_next">Bước sau</string>
+    <string name="step_move_up">Lên trước</string>
+    <string name="step_move_down">Xuống sau</string>
+    <string name="step_delete">Xoá bước</string>
+    <string name="step_cancel">Huỷ</string>
+    <string name="step_save">Lưu</string>
+
+    <string name="step_kind_tap">Chạm</string>
+    <string name="step_kind_swipe">Vuốt</string>
+    <string name="step_kind_multi_touch">Đa chạm</string>
+    <string name="step_kind_global">Hệ thống</string>
+    <string name="step_kind_text">Nhập chữ</string>
+
+    <string name="step_hold">Giữ (ms)</string>
+    <string name="step_duration">Thời lượng (ms)</string>
+    <string name="step_repeat">Lặp lại</string>
+    <string name="step_delay">Rồi chờ (ms)</string>
+    <string name="step_text">Nội dung</string>
+    <string name="step_contact">Điểm chạm %1$d (ms)</string>
+    <string name="step_add_contact">Thêm điểm chạm</string>
+    <string name="step_remove_contact">Bỏ điểm chạm %1$d</string>
+    <string name="step_points_hint">Kéo các điểm trên màn hình để đổi vị trí.</string>
+    <string name="step_range">%1$d đến %2$d</string>
+
+    <string name="global_back">Quay lại</string>
+    <string name="global_home">Màn hình chính</string>
+    <string name="global_recents">Ứng dụng gần đây</string>
+    <string name="global_notifications">Thông báo</string>
+    <string name="global_quick_settings">Cài đặt nhanh</string>
+    <string name="global_lock_screen">Khoá màn hình</string>
+    <string name="global_screenshot">Chụp màn hình</string>
+
+    <string name="violation_too_many_paths">%1$d điểm chạm vượt quá mức máy này cho phép (%2$d)</string>
+    <string name="violation_too_few_paths">Đa chạm cần ít nhất %1$d điểm chạm</string>
+    <string name="violation_duration_too_long">%1$d ms dài hơn mức máy này cho phép (%2$d ms)</string>
+    <string name="violation_zero_duration">Vuốt phải có thời lượng — bằng 0 thì là chạm</string>
+    <string name="violation_point_outside">Điểm %1$d, %2$d nằm ngoài màn hình</string>
+    <string name="violation_text_too_long">%1$d ký tự vượt quá mức %2$d cho phép</string>
+</resources>

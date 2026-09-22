@@ -1,17 +1,24 @@
 package com.pbh.autoclick.overlay
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.hardware.display.DisplayManager
 import android.os.IBinder
 import android.util.Log
+import android.view.Display
 import android.view.WindowManager
-import com.pbh.autoclick.R
+import com.pbh.autoclick.domain.editor.StepDraft
+import com.pbh.autoclick.domain.editor.newStep
+import com.pbh.autoclick.domain.editor.previewing
+import com.pbh.autoclick.domain.editor.toDraft
+import com.pbh.autoclick.domain.editor.toStep
+import com.pbh.autoclick.domain.editor.withPointsFrom
+import com.pbh.autoclick.domain.editor.withStepAdded
+import com.pbh.autoclick.domain.editor.withStepMoved
+import com.pbh.autoclick.domain.editor.withStepRemoved
+import com.pbh.autoclick.domain.editor.withStepReplaced
 import com.pbh.autoclick.domain.model.AppResult
 import com.pbh.autoclick.domain.overlay.Marker
 import com.pbh.autoclick.domain.overlay.withMarkerMoved
@@ -21,6 +28,7 @@ import com.pbh.autoclick.domain.run.GestureDispatcher
 import com.pbh.autoclick.domain.run.RunEvent
 import com.pbh.autoclick.domain.run.ScenarioRunner
 import com.pbh.autoclick.domain.run.freeTheTouchGesture
+import com.pbh.autoclick.domain.scenario.GestureLimits
 import com.pbh.autoclick.domain.scenario.Scenario
 import com.pbh.autoclick.domain.scenario.ScreenPoint
 import com.pbh.autoclick.service.AutoClickAccessibilityService
@@ -47,6 +55,20 @@ class OverlayService : Service() {
     lateinit var scenarios: ScenarioRepository
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    /**
+     * The Context every Overlay window and every screen measurement goes through.
+     *
+     * A window context rather than the Service's own, and not as a formality: a Service Context is
+     * not associated with a display, so `Context.display` throws on it and
+     * [currentScreenProfile] with it. It is also what `TYPE_APPLICATION_OVERLAY` has wanted since
+     * API 30 — the same fix answers both.
+     *
+     * Built from an explicit [Display], because the two-argument `createWindowContext` needs a
+     * display-associated Context to begin with and a Service has none. Naming the display is the
+     * only way in from here.
+     */
+    private lateinit var overlayContext: Context
     private var coordinator: OverlayCoordinator? = null
     private var runner: ScenarioRunner? = null
     private var runJob: Job? = null
@@ -56,11 +78,13 @@ class OverlayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
+        createRunNotificationChannel()
+        val display = getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)
+        overlayContext = createWindowContext(display, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, null)
         coordinator =
             OverlayCoordinator(
-                context = this,
-                windowManager = getSystemService(WindowManager::class.java),
+                context = overlayContext,
+                windowManager = overlayContext.getSystemService(WindowManager::class.java),
                 callbacks = callbacks,
             )
     }
@@ -72,7 +96,7 @@ class OverlayService : Service() {
     ): Int {
         startForeground(
             NOTIFICATION_ID,
-            buildNotification(),
+            buildRunNotification(),
             ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
         )
 
@@ -114,12 +138,16 @@ class OverlayService : Service() {
         object : OverlayCoordinator.Callbacks {
             override fun onStart() {
                 val current = scenario ?: return
+                // OV-20: belt as well as braces. OverlayUiState.showStepPanel already refuses to
+                // draw the panel once a run exists; closing it here means the focusable window is
+                // gone before the first Gesture rather than one state update later.
+                coordinator?.update { copy(editing = null) }
                 val dispatcher = accessibilityDispatcher() ?: return
                 val activeRunner = ScenarioRunner(dispatcher, dispatcher.gestureLimits)
                 runner = activeRunner
                 runJob =
                     scope.launch {
-                        activeRunner.run(current, currentScreenProfile()) { event ->
+                        activeRunner.run(current, overlayContext.currentScreenProfile()) { event ->
                             coordinator?.update { applied(event, current.steps.size) }
                         }
                     }
@@ -130,10 +158,19 @@ class OverlayService : Service() {
                 coordinator?.update { copy(run = OverlayUiState.RunState.Stopping) }
             }
 
+            /**
+             * A new Step in the middle of the screen, then the panel open on it (`OV-23`).
+             *
+             * The middle because it is the one place guaranteed to be visible and not under the
+             * floating control, and because the Marker is meant to be dragged from there to
+             * wherever it belongs — it is a starting position, not a guess at the user's intent.
+             */
             override fun onAddStep() {
-                // The Step editor is the next piece of A1; until it exists this does nothing
-                // rather than pretending to.
-                Log.i(TAG, "add step: not built yet")
+                val current = scenario ?: return
+                val profile = current.screenProfile ?: overlayContext.currentScreenProfile()
+                val added = newStep(ScreenPoint(profile.widthPixels / 2, profile.heightPixels / 2))
+                applyEdit(current.withStepAdded(added, profile))
+                openPanel(added.id)
             }
 
             /**
@@ -153,70 +190,136 @@ class OverlayService : Service() {
                 }
             }
 
+            /**
+             * OV-21: while the panel is open, a drag edits the **draft**, like everything else in
+             * it. Closed, it edits the Scenario and is saved at once, as dragging always has.
+             *
+             * One rule, and the reason for it is that the other way loses work: the draft is
+             * written over the Step on Save, so a drag that went straight to disk would be
+             * silently undone by a Save the user thought was unrelated.
+             */
             override fun onMarkerMoved(
                 marker: Marker,
                 to: ScreenPoint,
             ) {
                 val current = scenario ?: return
-                val moved = current.withMarkerMoved(marker, to)
-                scenario = moved
-                coordinator?.show(moved)
-                scope.launch { scenarios.save(moved) }
+                val draft =
+                    coordinator
+                        ?.state
+                        ?.value
+                        ?.editing
+                        ?.draft
+                if (draft != null && draft.stepId == marker.stepId) {
+                    val movedStep =
+                        current
+                            .previewing(draft.toStep())
+                            .withMarkerMoved(marker, to)
+                            .steps
+                            .firstOrNull { it.id == draft.stepId } ?: return
+                    coordinator?.update {
+                        copy(editing = editing?.copy(draft = draft.withPointsFrom(movedStep)))
+                    }
+                } else {
+                    applyEdit(current.withMarkerMoved(marker, to))
+                }
             }
 
+            /** OV-7: a Marker is placed by dragging and configured by tapping. This is the tap. */
             override fun onMarkerTapped(marker: Marker) {
-                Log.i(TAG, "configure step ${marker.stepNumber}: not built yet")
+                openPanel(marker.stepId)
+            }
+
+            override fun onStepSaved(draft: StepDraft) {
+                val current = scenario ?: return
+                applyEdit(current.withStepReplaced(draft.toStep(), current.screenProfile ?: overlayContext.currentScreenProfile()))
+                coordinator?.update { copy(editing = null) }
+            }
+
+            override fun onStepDeleted(stepId: UUID) {
+                val current = scenario ?: return
+                applyEdit(current.withStepRemoved(stepId))
+                coordinator?.update { copy(editing = null) }
+            }
+
+            /**
+             * OV-6: the order changes at once, and the open panel renumbers with it.
+             *
+             * The draft is carried over rather than rebuilt from disk. Moving a Step changes where
+             * it sits, not what it does, and losing half-finished edits for pressing an arrow
+             * would be a punishment for using the button.
+             */
+            override fun onStepMoved(
+                stepId: UUID,
+                by: Int,
+            ) {
+                val current = scenario ?: return
+                val moved = current.withStepMoved(stepId, by)
+                applyEdit(moved)
+                val index = moved.steps.indexOfFirst { it.id == stepId }
+                coordinator?.update {
+                    copy(editing = editing?.copy(stepNumber = index + 1, stepCount = moved.steps.size))
+                }
+            }
+
+            /**
+             * OV-24: the only route to a Step that draws no Marker (`SM-8`).
+             *
+             * The panel refuses to walk away from unsaved edits, so nothing is discarded here —
+             * [EditingStep.canGoBack] has already said no.
+             */
+            override fun onStepNavigated(
+                stepId: UUID,
+                by: Int,
+            ) {
+                val current = scenario ?: return
+                val index = current.steps.indexOfFirst { it.id == stepId }
+                current.steps.getOrNull(index + by)?.let { openPanel(it.id) }
             }
         }
+
+    /** FS-15: there is no Save button for the Scenario itself — editing it *is* saving it. */
+    private fun applyEdit(edited: Scenario) {
+        scenario = edited
+        coordinator?.show(edited)
+        scope.launch { scenarios.save(edited) }
+    }
+
+    /**
+     * Opens the Step panel on one Step (`OV-21`).
+     *
+     * [GestureLimits] come from the connected service rather than from the defaults, because
+     * `SM-17` judges a Step against **this** device: a panel using the defaults would let a Step
+     * through on a phone whose limits are lower, and that Step would silently do nothing.
+     */
+    private fun openPanel(stepId: UUID) {
+        val current = scenario ?: return
+        val index = current.steps.indexOfFirst { it.id == stepId }
+        if (index < 0) return
+        val limits = AutoClickAccessibilityService.instance?.gestureLimits ?: GestureLimits()
+        coordinator?.update {
+            copy(
+                editing =
+                    EditingStep(
+                        draft = current.steps[index].toDraft(current.screenProfile),
+                        original = current.steps[index],
+                        stepNumber = index + 1,
+                        stepCount = current.steps.size,
+                        limits = limits,
+                        profile = current.screenProfile,
+                    ),
+            )
+        }
+    }
 
     private fun accessibilityDispatcher(): AutoClickAccessibilityService? =
         AutoClickAccessibilityService.instance
             ?: null.also { Log.w(TAG, "no accessibility service connected") }
 
-    private fun createNotificationChannel() {
-        val channel =
-            NotificationChannel(
-                CHANNEL_ID,
-                getString(R.string.run_channel_name),
-                NotificationManager.IMPORTANCE_LOW,
-            )
-        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
-    }
-
-    private fun buildNotification(): Notification =
-        Notification
-            .Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.run_notification_title))
-            .setSmallIcon(android.R.drawable.ic_menu_manage)
-            .setOngoing(true)
-            // OV-15, GX-12: both actions are here as well as on the control, because a latched
-            // touch is exactly the situation in which the control cannot be tapped.
-            .addAction(action(ACTION_STOP, R.string.overlay_stop))
-            .addAction(action(ACTION_FREE_TOUCH, R.string.overlay_free_the_touch))
-            .build()
-
-    private fun action(
-        action: String,
-        label: Int,
-    ): Notification.Action =
-        Notification.Action
-            .Builder(
-                null,
-                getString(label),
-                PendingIntent.getService(
-                    this,
-                    action.hashCode(),
-                    Intent(this, OverlayService::class.java).setAction(action),
-                    PendingIntent.FLAG_IMMUTABLE,
-                ),
-            ).build()
-
     private fun Intent.scenarioId(): UUID? = getStringExtra(EXTRA_SCENARIO_ID)?.let { runCatching { UUID.fromString(it) }.getOrNull() }
 
     companion object {
         private const val TAG = "OverlayService"
-        private const val CHANNEL_ID = "auto-click-run"
-        private const val NOTIFICATION_ID = 1
+        internal const val NOTIFICATION_ID = 1
 
         const val ACTION_OPEN = "com.pbh.autoclick.OPEN"
         const val ACTION_STOP = "com.pbh.autoclick.STOP"

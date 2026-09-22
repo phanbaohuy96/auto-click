@@ -21,10 +21,11 @@ the system:
 touch that is not on one of its own controls. The application underneath must behave exactly as it
 does without Auto Click installed; a tool that intercepts stray taps is worse than no tool.
 
-**OV-3** `[A1]` **No Overlay window ever takes input focus.** `FLAG_NOT_FOCUSABLE` is not an
-optimisation here. `setText` finds the field with `findFocus(FOCUS_INPUT)` (`GX-17`), so an
-**Overlay** that takes focus makes every `setText` **Step** write into Auto Click instead of the
-application being automated — a failure that looks like the other application's fault.
+**OV-3** `[A1]` **No Overlay window takes input focus**, with the single narrow exception in
+`OV-20`. `FLAG_NOT_FOCUSABLE` is not an optimisation here. `setText` finds the field with
+`findFocus(FOCUS_INPUT)` (`GX-17`), so an **Overlay** that takes focus makes every `setText`
+**Step** write into Auto Click instead of the application being automated — a failure that looks
+like the other application's fault.
 
 **OV-4** `[A1]` A window is removed from `WindowManager` when it stops being needed, not hidden.
 An **Overlay** left attached keeps drawing, keeps a `ViewModelStore` alive, and is what turns
@@ -92,5 +93,45 @@ wrong.
 
 **OV-19** `[A1]` Opening and closing an **Overlay** window many times leaks nothing. This is
 checkable without a device and is therefore under test, not left to inspection.
+
+## The Step panel
+
+**OV-20** `[A1]` The **Step** panel is the one window permitted to take input focus, and only
+while a field inside it holds the caret. A `setText` **Step**'s string has to be typed somewhere,
+and a window that cannot take focus cannot open a keyboard. The two alternatives are worse for the
+same reason: an Activity takes focus just the same, and editing the string only in the main
+application means leaving the screen being automated.
+
+What makes the exception safe is **when the panel exists**, not the flag itself. The panel is drawn
+only while nothing is running — it is derived from the state, not closed by a call somebody
+remembers to make — so the window `findFocus(FOCUS_INPUT)` would find during a `setText` **Step**
+is never this one. Both halves are under test: the flag in `:core`, the state rule in the
+coordinator.
+
+**OV-21** `[A1]` The panel edits everything about a **Step** **except where it touches**. Points
+are dragged on the **Marker** layer, where the user can see what they are aiming at (`OV-7`); a
+pair of coordinate boxes would be a worse way to set the same value and would disagree with the
+layer about it.
+
+The **Marker**s show the **draft**, not the **Step** last written to disk, so choosing `swipe`
+draws the destination immediately rather than after a save. While the panel is open a drag
+therefore edits the draft too — one rule, *everything in the panel is a draft until Save* — because
+the alternative loses work: a drag written straight to disk would be silently undone by the next
+Save.
+
+**OV-22** `[A1]` Save is offered only when the **Step** has no violations (`SM-17`), and every
+violation is listed at once rather than one at a time. Cancel discards. Delete and the two move
+buttons apply immediately: they change the **Scenario**'s shape rather than this **Step**'s fields,
+which is the same immediacy dragging a **Marker** already has.
+
+**OV-23** `[A1]` A **Step** added from the floating control lands in the middle of the screen and
+opens the panel on itself. The middle because it is the one place certain to be visible and not
+under the control — it is a starting position to be dragged from, not a guess at what was meant.
+
+**OV-24** `[A1]` Every **Step** is reachable from the panel, including the ones that draw no
+**Marker**. `globalAction` and `setText` have nothing to tap (`SM-8`), so without a way to walk the
+**Scenario** they would be writable once and never openable again. Walking away is refused while
+there are unsaved edits, rather than silently discarding or silently saving them: both are guesses,
+and Save and Cancel are already on screen to be asked.
 
 [ADR-0015]: ../adr/0015-compose-in-the-overlay.md

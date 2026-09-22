@@ -27,7 +27,7 @@ object OverlayLayoutParams {
     private const val PASS_THROUGH_ENTIRELY = WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
 
     /**
-     * A small window the user interacts with: the floating control, the Step panel.
+     * A small window the user interacts with: the floating control.
      *
      * [x] and [y] are where the user last left it (`OV-14`), as a `Gravity.TOP or Gravity.START`
      * offset so the value means the same thing on every screen size.
@@ -65,6 +65,27 @@ object OverlayLayoutParams {
                 } else {
                     NEVER_FOCUSABLE or PASS_THROUGH_OUTSIDE or PASS_THROUGH_ENTIRELY
                 }
+        }
+
+    /**
+     * The Step panel (`OV-1`), anchored to the bottom edge where the thumb already is.
+     *
+     * [typing] is the **one** place in this application where [NEVER_FOCUSABLE] is dropped,
+     * and `OV-20` is the requirement that says why it may be. A `setText` Step's string has to be
+     * typed somewhere, and a window that cannot take input focus cannot open a keyboard — so the
+     * flag goes while a text field in the panel holds the caret, and comes straight back when it
+     * does not.
+     *
+     * What makes that safe is not this function but when it is called: the panel is closed before
+     * a run can start, so the window `findFocus(FOCUS_INPUT)` would find during a `setText` Step
+     * is never this one. `OverlayCoordinator` is where that is enforced.
+     */
+    fun stepPanel(typing: Boolean): WindowManager.LayoutParams =
+        base().apply {
+            width = WindowManager.LayoutParams.MATCH_PARENT
+            height = WindowManager.LayoutParams.WRAP_CONTENT
+            gravity = Gravity.BOTTOM or Gravity.START
+            flags = if (typing) PASS_THROUGH_OUTSIDE else NEVER_FOCUSABLE or PASS_THROUGH_OUTSIDE
         }
 
     private fun base(): WindowManager.LayoutParams =
