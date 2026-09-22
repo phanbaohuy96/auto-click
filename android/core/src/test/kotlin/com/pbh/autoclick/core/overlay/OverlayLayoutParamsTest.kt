@@ -18,9 +18,9 @@ class OverlayLayoutParamsTest {
         val windows =
             listOf(
                 OverlayLayoutParams.floating(),
-                OverlayLayoutParams.markerLayer(interactive = true),
-                OverlayLayoutParams.markerLayer(interactive = false),
-                OverlayLayoutParams.stepPanel(typing = false),
+                OverlayLayoutParams.markerHandle(x = 10, y = 10),
+                OverlayLayoutParams.markerLines(1_344, 2_992),
+                OverlayLayoutParams.panel(typing = false),
             )
 
         windows.forEach {
@@ -32,18 +32,18 @@ class OverlayLayoutParamsTest {
     }
 
     @Test
-    fun `the step panel is the one exception, and only while a field holds the caret`() {
+    fun `the panel is the one exception, and only while a field holds the caret`() {
         // OV-20. The exception is narrow on purpose and is written down twice — here, and in the
         // coordinator, which closes the panel before a run can start.
         assertTrue(
-            !OverlayLayoutParams.stepPanel(typing = true).has(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE),
+            !OverlayLayoutParams.panel(typing = true).has(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE),
             "a window that cannot take focus cannot open a keyboard, and setText needs one",
         )
     }
 
     @Test
-    fun `the step panel spans the bottom edge`() {
-        val params = OverlayLayoutParams.stepPanel(typing = true)
+    fun `the panel spans the bottom edge`() {
+        val params = OverlayLayoutParams.panel(typing = true)
 
         assertEquals(WindowManager.LayoutParams.MATCH_PARENT, params.width)
         assertEquals(WindowManager.LayoutParams.WRAP_CONTENT, params.height)
@@ -65,23 +65,55 @@ class OverlayLayoutParamsTest {
         )
     }
 
+    /**
+     * OV-27. A Marker handle is a window of its own so that it can answer touches without the
+     * whole screen having to, and the full-screen layer left over draws only.
+     */
     @Test
-    fun `the marker layer takes no touches at all unless it is being used`() {
-        val watching = OverlayLayoutParams.markerLayer(interactive = false)
-        val placing = OverlayLayoutParams.markerLayer(interactive = true)
+    fun `a marker handle answers touches and the layer behind it never does`() {
+        val handle = OverlayLayoutParams.markerHandle(x = 0, y = 0)
+        val lines = OverlayLayoutParams.markerLines(1_344, 2_992)
 
-        // Full screen and touchable would make the phone unusable with Auto Click open.
-        assertTrue(watching.has(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE))
-        assertTrue(!placing.has(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE))
+        assertTrue(!handle.has(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE))
+        assertTrue(handle.has(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL))
+        assertTrue(lines.has(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE))
     }
 
     @Test
-    fun `the marker layer covers the screen and the control does not`() {
-        assertEquals(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            OverlayLayoutParams.markerLayer(interactive = true).width,
-        )
+    fun `a marker handle is only as big as itself, and the line layer covers the display`() {
+        assertEquals(WindowManager.LayoutParams.WRAP_CONTENT, OverlayLayoutParams.markerHandle(0, 0).width)
+        assertEquals(1_344, OverlayLayoutParams.markerLines(1_344, 2_992).width)
+        assertEquals(2_992, OverlayLayoutParams.markerLines(1_344, 2_992).height)
         assertEquals(WindowManager.LayoutParams.WRAP_CONTENT, OverlayLayoutParams.floating().width)
+    }
+
+    /**
+     * OV-31, and the reason it is asserted rather than trusted: without these flags a window's
+     * origin is below the status bar, so a Marker at y = 1496 is drawn at 1655 while the Gesture
+     * it describes still lands at 1496. The Marker is what the user aims with.
+     */
+    @Test
+    fun `marker windows are measured against the display, and the control is not`() {
+        val handle = OverlayLayoutParams.markerHandle(x = 0, y = 0)
+        val lines = OverlayLayoutParams.markerLines(1_344, 2_992)
+
+        listOf(handle, lines).forEach {
+            assertTrue(it.has(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN))
+            assertTrue(it.has(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS))
+        }
+        // The control and the panel are reached for rather than aimed with, and are better off
+        // inside the system bars where nothing covers them.
+        assertTrue(!OverlayLayoutParams.floating().has(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS))
+        assertTrue(!OverlayLayoutParams.panel(typing = false).has(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS))
+    }
+
+    @Test
+    fun `a marker handle sits where its marker is`() {
+        val params = OverlayLayoutParams.markerHandle(x = 540, y = 1_820)
+
+        assertEquals(540, params.x)
+        assertEquals(1_820, params.y)
+        assertEquals(Gravity.TOP or Gravity.START, params.gravity)
     }
 
     @Test

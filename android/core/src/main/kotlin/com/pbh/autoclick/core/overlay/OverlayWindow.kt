@@ -1,6 +1,7 @@
 package com.pbh.autoclick.core.overlay
 
 import android.content.Context
+import android.view.View
 import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
@@ -45,6 +46,16 @@ class OverlayWindow(
 
     val isShowing: Boolean get() = composeView != null
 
+    /**
+     * How large the attached window turned out to be, or zero before it has been measured.
+     *
+     * `WRAP_CONTENT` means only the view knows this, and a caller keeping a window inside the
+     * screen (`OV-14`) has to ask rather than assume.
+     */
+    val measuredWidth: Int get() = composeView?.width ?: 0
+
+    val measuredHeight: Int get() = composeView?.height ?: 0
+
     /** Attaches the window. Calling this while already showing only updates [params]. */
     fun show(
         params: WindowManager.LayoutParams,
@@ -67,6 +78,11 @@ class OverlayWindow(
                 setContent(content)
             }
 
+        view.addOnLayoutChangeListener { changed, _, _, _, _, oldLeft, oldTop, oldRight, oldBottom ->
+            val resized = changed.width != oldRight - oldLeft || changed.height != oldBottom - oldTop
+            if (resized) onResized?.invoke(changed.width, changed.height)
+        }
+
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         windowManager.addView(view, params)
         composeView = view
@@ -75,6 +91,49 @@ class OverlayWindow(
     /** Moves an already-attached window without rebuilding it (`OV-14`). */
     fun move(params: WindowManager.LayoutParams) {
         composeView?.let { windowManager.updateViewLayout(it, params) }
+    }
+
+    /**
+     * Called whenever the attached window's size changes, including the first time it has one.
+     *
+     * Set once by the owner rather than passed to [show], because a window is re-shown on every
+     * state change and a listener added each time would be added many times over.
+     */
+    var onResized: ((width: Int, height: Int) -> Unit)? = null
+
+    /**
+     * Runs [block] once the window has a size, which is the first moment anything can be said
+     * about where its edges are.
+     *
+     * `WRAP_CONTENT` means the size is not known at `addView`, so a caller placing the window
+     * against an edge (`OV-14`) has to wait rather than guess — and guessing puts it off-screen.
+     * Fires immediately if the window is already laid out.
+     */
+    fun onceMeasured(block: () -> Unit) {
+        val view = composeView ?: return
+        if (view.width > 0) {
+            block()
+            return
+        }
+        view.addOnLayoutChangeListener(
+            object : View.OnLayoutChangeListener {
+                override fun onLayoutChange(
+                    changed: View,
+                    left: Int,
+                    top: Int,
+                    right: Int,
+                    bottom: Int,
+                    oldLeft: Int,
+                    oldTop: Int,
+                    oldRight: Int,
+                    oldBottom: Int,
+                ) {
+                    if (changed.width <= 0) return
+                    changed.removeOnLayoutChangeListener(this)
+                    block()
+                }
+            },
+        )
     }
 
     /**
