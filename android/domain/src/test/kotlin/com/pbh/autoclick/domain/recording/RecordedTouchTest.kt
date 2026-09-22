@@ -1,5 +1,6 @@
 package com.pbh.autoclick.domain.recording
 
+import com.pbh.autoclick.domain.editor.DEFAULT_TRAVEL_MILLISECONDS
 import com.pbh.autoclick.domain.scenario.GestureLimits
 import com.pbh.autoclick.domain.scenario.ScenarioLimits
 import com.pbh.autoclick.domain.scenario.ScreenPoint
@@ -128,5 +129,55 @@ class RecordedTouchTest {
             ).toSteps()
 
         assertEquals(listOf(1, 2, 3), steps.map { it.target.point.x })
+    }
+
+    // PK-2: the same touch, read as aim rather than as performance.
+
+    @Test
+    fun `an aimed tap lands on the point the finger touched`() {
+        val step = touch(from = ScreenPoint(447, 1081)).toPickedStep()
+
+        assertIs<StepAction.Tap>(step.action)
+        assertEquals(ScreenPoint(447, 1081), step.target.point)
+    }
+
+    @Test
+    fun `an aimed drag becomes a swipe between its two ends`() {
+        val step = touch(from = ScreenPoint(672, 2000), to = ScreenPoint(672, 1000)).toPickedStep()
+
+        val action = assertIs<StepAction.Swipe>(step.action)
+        assertEquals(ScreenPoint(672, 2000), step.target.point)
+        assertEquals(ScreenPoint(672, 1000), action.destination)
+    }
+
+    /**
+     * The difference between aiming and recording, stated as a test.
+     *
+     * Three seconds with a finger on the screen while deciding where to put a Step is hesitation,
+     * not an instruction to hold for three seconds. Recording keeps that duration on purpose
+     * (`RD-3`); picking must not, or every Step made this way would carry however long its author
+     * took to make up their mind.
+     */
+    @Test
+    fun `aiming throws the timing away where recording keeps it`() {
+        val slow = touch(duration = 3_000)
+
+        assertEquals(3_000L, assertIs<StepAction.Tap>(listOf(slow).toSteps().single().action).holdMilliseconds)
+        assertEquals(0L, assertIs<StepAction.Tap>(slow.toPickedStep().action).holdMilliseconds)
+    }
+
+    @Test
+    fun `an aimed swipe travels for as long as one drafted by hand`() {
+        val step = touch(from = ScreenPoint(0, 0), to = ScreenPoint(500, 0), duration = 4_000).toPickedStep()
+
+        assertEquals(DEFAULT_TRAVEL_MILLISECONDS, assertIs<StepAction.Swipe>(step.action).durationMilliseconds)
+    }
+
+    @Test
+    fun `a finger that wandered inside the slop is still an aimed tap`() {
+        val step = touch(from = ScreenPoint(100, 200), to = ScreenPoint(110, 205)).toPickedStep(slopPixels = 24)
+
+        assertIs<StepAction.Tap>(step.action)
+        assertEquals(ScreenPoint(100, 200), step.target.point)
     }
 }

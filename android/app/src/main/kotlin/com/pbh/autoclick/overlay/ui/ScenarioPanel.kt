@@ -6,13 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
@@ -48,9 +43,6 @@ import com.pbh.autoclick.domain.scenario.ScenarioLimits
 import com.pbh.autoclick.domain.scenario.Step
 import java.util.UUID
 
-/** Tall enough for a scrollable list of Steps, short enough to leave the screen underneath usable. */
-private val MAX_PANEL_HEIGHT = 440.dp
-
 private const val MILLISECONDS_PER_SECOND = 1_000
 
 /**
@@ -74,21 +66,15 @@ fun ScenarioPanel(
     LaunchedEffect(typing) { actions.onTypingChanged(typing) }
     val onFocus: (Boolean) -> Unit = { gained -> focusedFields += if (gained) 1 else -1 }
 
-    OverlaySurface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+    OverlayBottomSheet(
+        modifier = modifier,
+        header = { Header(scenario, actions) },
+        footer = { Footer(actions) },
     ) {
         Column(
-            modifier =
-                Modifier
-                    .imePadding()
-                    .heightIn(max = MAX_PANEL_HEIGHT)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(bottom = 12.dp),
         ) {
-            Header(scenario, actions)
-
             key(scenario.id) {
                 NameField(scenario, actions, onFocus)
                 RunSettings(scenario, actions, onFocus)
@@ -96,8 +82,6 @@ fun ScenarioPanel(
 
             HorizontalDivider()
             StepList(scenario, actions)
-            HorizontalDivider()
-            Footer(actions)
         }
     }
 }
@@ -124,12 +108,25 @@ private fun Header(
     scenario: Scenario,
     actions: ScenarioPanelActions,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = pluralStringResource(R.plurals.overlay_steps, scenario.steps.size, scenario.steps.size),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Spacer(Modifier.weight(1f))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp),
+    ) {
+        // OV-33: the Scenario's name lives here now. The floating control gave it up to become one
+        // row tall, and this is the screen where the name can also be changed.
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = scenario.name,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = pluralStringResource(R.plurals.overlay_steps, scenario.steps.size, scenario.steps.size),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         IconButton(onClick = actions.onAddStep) {
             Icon(Icons.Default.Add, contentDescription = stringResource(R.string.overlay_add_step))
         }

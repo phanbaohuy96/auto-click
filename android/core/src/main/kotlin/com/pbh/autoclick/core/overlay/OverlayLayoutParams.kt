@@ -46,6 +46,10 @@ object OverlayLayoutParams {
      *
      * [x] and [y] are where the user last left it (`OV-14`), as a `Gravity.TOP or Gravity.START`
      * offset so the value means the same thing on every screen size.
+     *
+     * **No `FLAG_BLUR_BEHIND`**, however much the control would suit one — see
+     * [com.pbh.autoclick.core.designsystem.OverlayGlass]. The blur costs this app every other
+     * window's touch input, and there is a test below that says so.
      */
     fun floating(
         x: Int = 0,
@@ -110,12 +114,34 @@ object OverlayLayoutParams {
      * a run can start, so the window `findFocus(FOCUS_INPUT)` would find during a `setText` Step
      * is never this one. `OverlayCoordinator` is where that is enforced.
      */
-    fun panel(typing: Boolean): WindowManager.LayoutParams =
+    fun panel(
+        typing: Boolean,
+        displayWidth: Int,
+        bottomInsetPixels: Int,
+    ): WindowManager.LayoutParams =
         base().apply {
-            width = WindowManager.LayoutParams.MATCH_PARENT
+            // OV-32: the panel owns the bottom edge of the **display**, not of what is left of it.
+            //
+            // A bottom-anchored overlay window is laid out inside the system bars, so it stopped
+            // short of the screen by the height of the navigation bar — seventy-two pixels of
+            // somebody else's application showing through beneath a sheet that is supposed to be
+            // sitting on the edge of the phone.
+            //
+            // The flags alone do not fix it: `FLAG_LAYOUT_IN_SCREEN` does not move the parent
+            // frame's bottom edge, so `Gravity.BOTTOM` still resolved to the top of the navigation
+            // bar. It takes the negative offset as well, which `FLAG_LAYOUT_NO_LIMITS` is what
+            // permits. The content pads itself back off the bar, as every bottom sheet does.
+            width = displayWidth
             height = WindowManager.LayoutParams.WRAP_CONTENT
+            x = 0
+            y = -bottomInsetPixels
             gravity = Gravity.BOTTOM or Gravity.START
-            flags = if (typing) PASS_THROUGH_OUTSIDE else NEVER_FOCUSABLE or PASS_THROUGH_OUTSIDE
+            flags =
+                if (typing) {
+                    PASS_THROUGH_OUTSIDE or IN_DISPLAY_COORDINATES
+                } else {
+                    NEVER_FOCUSABLE or PASS_THROUGH_OUTSIDE or IN_DISPLAY_COORDINATES
+                }
         }
 
     /**

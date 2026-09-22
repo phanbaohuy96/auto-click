@@ -1,33 +1,45 @@
 package com.pbh.autoclick.overlay.ui
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -38,15 +50,29 @@ import com.pbh.autoclick.core.overlay.windowDragHandle
 import com.pbh.autoclick.domain.run.FinishReason
 import com.pbh.autoclick.overlay.OverlayUiState
 
+/** One row, and the row is the control. Everything is sized from this. */
+private val CONTROL_HEIGHT = 48.dp
+
+/** Smaller than Material's 48dp default, which is what made six buttons unaffordable. */
+private val BUTTON_SIZE = 40.dp
+
+private val ICON_SIZE = 22.dp
+
 /**
- * The control that is always reachable, in both of its shapes (OV-12, OV-13, OV-14).
+ * The control that is always reachable (OV-12, OV-13, OV-14).
  *
- * Stop is the largest target while running, and nothing is ever drawn over it: a run that cannot
- * be stopped is the failure this whole app is written around.
+ * **One row.** It was two — a caption above a row of buttons — and the window measured 840×228
+ * pixels on the test device while the user was building a Scenario. It is 792×144 now: a third of
+ * the height gone, and it gained a button on the way. The caption is gone rather than shrunk,
+ * because the Scenario's name belongs in the panel where there is room to change it, and
+ * repeating it over somebody's game earns nothing.
  *
- * Four buttons and no more. `landscape.md` ranks "controls that sit on top of what you are
- * automating" seventh among the category's complaints and "steep learning curve" ninth, and both
- * are paid for in width. Everything that is not Start, Add, Steps or Collapse lives one tap away
+ * The exception is a failed run. [FinishReason] appears as a second line, because it is the one
+ * thing the control has to say that the user did not already know (`OV-17`), and it goes away by
+ * itself on the next action.
+ *
+ * Six buttons and no more. `landscape.md` ranks "controls that sit on top of what you are
+ * automating" seventh among the category's complaints; everything not on this row is one tap away
  * in the panel.
  */
 @Composable
@@ -60,41 +86,37 @@ fun FloatingControl(
         return
     }
 
-    OverlaySurface(modifier = modifier.widthIn(max = 340.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            DragGrip(onDragBy = actions.onDragBy, onDragFinished = actions.onDragFinished)
-
-            Column(
-                modifier = Modifier.padding(end = 10.dp, top = 6.dp, bottom = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+    OverlaySurface(modifier = modifier.widthIn(max = 360.dp), glass = true) {
+        Column {
+            FinishLine(state)
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(CONTROL_HEIGHT)) {
+                DragGrip(
+                    onDragBy = actions.onDragBy,
+                    onDragFinished = actions.onDragFinished,
+                    height = CONTROL_HEIGHT,
+                )
                 when (val run = state.run) {
                     OverlayUiState.RunState.Stopped ->
-                        if (state.isRecording) {
-                            RecordingColumn(touches = state.recording?.touches ?: 0, actions = actions)
-                        } else {
-                            Caption(state)
-                            StoppedRow(actions)
+                        when {
+                            state.isPicking -> PickingRow(actions)
+                            state.isRecording -> RecordingRow(state.recording?.touches ?: 0, actions)
+                            else -> IdleRow(actions)
                         }
 
                     is OverlayUiState.RunState.CountingDown ->
-                        RunningColumn(
+                        RunningRow(
                             caption = stringResource(R.string.overlay_starting_in, run.remainingMilliseconds / 1000 + 1),
                             actions = actions,
                         )
 
                     is OverlayUiState.RunState.Running ->
-                        RunningColumn(
+                        RunningRow(
                             caption = stringResource(R.string.overlay_step_of, run.stepNumber, run.stepCount),
                             actions = actions,
                         )
 
                     OverlayUiState.RunState.Stopping ->
-                        RunningColumn(
-                            caption = stringResource(R.string.overlay_stopping),
-                            actions = actions,
-                            onStop = null,
-                        )
+                        RunningRow(caption = stringResource(R.string.overlay_stopping), actions = actions, onStop = null)
                 }
             }
         }
@@ -109,8 +131,13 @@ data class FloatingControlActions(
     val onRecord: () -> Unit,
     /** RD-3: ends the session and turns what was caught into Steps. */
     val onStopRecording: () -> Unit,
+    /** PK-1: hides the Overlay so one Step can be aimed at the screen underneath. */
     val onAddStep: () -> Unit,
+    /** PK-3: the way out of aiming without leaving a Step behind. */
+    val onCancelPick: () -> Unit,
     val onOpenPanel: () -> Unit,
+    /** OV-33: nothing is written here that was not written already — this is "I am finished". */
+    val onDone: () -> Unit,
     val onFreeTheTouch: () -> Unit,
     val onToggleCollapsed: () -> Unit,
     /** OV-14: a delta in raw screen pixels, because the window moves out from under the finger. */
@@ -118,162 +145,197 @@ data class FloatingControlActions(
     val onDragFinished: () -> Unit,
 )
 
+/** OV-17: why the last run ended. Shown only when there is something to say. */
 @Composable
-private fun Caption(state: OverlayUiState) {
-    val finish = state.lastFinish
-    if (finish != null) {
-        // OV-17: the reason is shown here, not only in a notification.
-        Text(
-            text = finish.describeFinish(),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        return
-    }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = state.scenarioName,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(weight = 1f, fill = false),
-        )
-        Text(
-            text = "  ${pluralStringResource(R.plurals.overlay_steps, state.stepCount, state.stepCount)}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-        )
-    }
+private fun FinishLine(state: OverlayUiState) {
+    val finish = state.lastFinish ?: return
+    Text(
+        text = finish.describeFinish(),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.padding(start = 20.dp, end = 12.dp, top = 8.dp),
+    )
 }
 
 @Composable
-private fun StoppedRow(actions: FloatingControlActions) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // The one accent on the control: Start is what it is for, and everything else on the row
-        // is a way of getting ready to press it.
-        IconButton(onClick = actions.onStart) {
-            Icon(
-                imageVector = Icons.Default.PlayArrow,
-                contentDescription = stringResource(R.string.overlay_start),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-        }
-        // RD-1: next to Start, because recording and running are the two things this app does and
-        // everything else on the row is preparation for one of them.
-        IconButton(onClick = actions.onRecord) {
+private fun IdleRow(actions: FloatingControlActions) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        // The one accent on the row: Start is what the control is for, and everything beside it is
+        // a way of getting ready to press it.
+        ControlButton(Icons.Default.PlayArrow, R.string.overlay_start, MaterialTheme.colorScheme.primary, actions.onStart)
+        // RD-1. Deliberately **not** red while idle. A red dot is the universal sign that
+        // recording is already happening, and a button that claims that while nothing is being
+        // recorded teaches the user to distrust the one indicator that matters.
+        IconButton(onClick = actions.onRecord, modifier = Modifier.size(BUTTON_SIZE)) {
             Icon(
                 painter = painterResource(R.drawable.ic_record),
                 contentDescription = stringResource(R.string.overlay_record),
-                tint = MaterialTheme.colorScheme.error,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(ICON_SIZE),
             )
         }
-        IconButton(onClick = actions.onAddStep) {
-            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.overlay_add_step))
-        }
-        IconButton(onClick = actions.onOpenPanel) {
-            Icon(Icons.AutoMirrored.Filled.List, contentDescription = stringResource(R.string.overlay_open_panel))
-        }
-        IconButton(onClick = actions.onToggleCollapsed) {
-            Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.overlay_collapse))
-        }
+        ControlButton(Icons.Default.Add, R.string.overlay_add_step, onClick = actions.onAddStep)
+        ControlButton(Icons.AutoMirrored.Filled.List, R.string.overlay_open_panel, onClick = actions.onOpenPanel)
+        ControlButton(Icons.Default.Check, R.string.overlay_done, onClick = actions.onDone)
+        ControlButton(Icons.Default.KeyboardArrowDown, R.string.overlay_collapse, onClick = actions.onToggleCollapsed)
+        Spacer(Modifier.width(4.dp))
     }
 }
 
 /**
  * OV-13: Stop is the largest target on the control at every moment of a run.
  *
+ * A pill rather than the circle it used to be, and still larger: 96 by 40 is more area than a
+ * 64dp disc, and it fits in one row instead of forcing a second one. It also carries the word,
+ * which the circle could not.
+ *
  * [onStop] is null once the runner has been asked and is finishing its last stroke (`GX-8`) —
  * asking twice does nothing, and a button that does nothing should not look pressable.
- *
- * "Free the touch" sits beside it because a run is when a latched touch happens (`GX-11`). It is
- * small on purpose: the notification and the Quick Settings tile are the copies meant for the
- * moment when no Overlay can be tapped at all.
  */
 @Composable
-private fun RunningColumn(
+private fun RunningRow(
     caption: String,
     actions: FloatingControlActions,
     onStop: (() -> Unit)? = actions.onStop,
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = caption,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Filled rather than outlined, and in the error colour: this is the button whose whole
-            // job is to be found without being looked for.
-            Surface(
-                onClick = { onStop?.invoke() },
-                enabled = onStop != null,
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError,
-                modifier = Modifier.size(64.dp),
+        Surface(
+            onClick = { onStop?.invoke() },
+            enabled = onStop != null,
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.error,
+            contentColor = MaterialTheme.colorScheme.onError,
+            modifier = Modifier.size(width = 96.dp, height = 40.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(horizontal = 8.dp),
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(R.string.overlay_stop),
-                        modifier = Modifier.size(34.dp),
-                    )
-                }
-            }
-            IconButton(onClick = actions.onFreeTheTouch) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_free_the_touch),
-                    contentDescription = stringResource(R.string.overlay_free_the_touch),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.overlay_stop), style = MaterialTheme.typography.labelLarge, maxLines = 1)
             }
         }
+        // GX-11: a latched touch happens during a run, which is why this lives here. Small on
+        // purpose — the notification and the Quick Settings tile are the copies meant for the
+        // moment when no Overlay can be tapped at all.
+        IconButton(onClick = actions.onFreeTheTouch, modifier = Modifier.size(BUTTON_SIZE)) {
+            Icon(
+                painter = painterResource(R.drawable.ic_free_the_touch),
+                contentDescription = stringResource(R.string.overlay_free_the_touch),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(ICON_SIZE),
+            )
+        }
+        Spacer(Modifier.width(4.dp))
     }
 }
 
 /**
  * RD-6: what the control says while it is swallowing the user's touches.
  *
- * The count is there because a recording session gives no other feedback — the application
- * underneath reacts exactly as it would to a finger, which is the point of `RD-5` and also the
- * reason nothing on screen would otherwise say the session is still running.
+ * A pulsing red dot and a count, in the same one row as everything else. The count is there
+ * because a recording session gives no other feedback — the application underneath reacts exactly
+ * as it would to a finger (`RD-5`), so without it nothing on screen says the session is still
+ * running.
  *
- * Finishing is a **tick and the accent colour**, not a red cross. Stopping a recording keeps what
- * was caught; a cross would promise the opposite.
+ * Finishing is a **word**, and the accent colour rather than red. Stopping a recording keeps what
+ * was caught; the tick this used to be was a 64dp amber disc that read as a warning.
  */
 @Composable
-private fun RecordingColumn(
+private fun RecordingRow(
     touches: Int,
     actions: FloatingControlActions,
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        RecordingDot()
         Text(
-            text = pluralStringResource(R.plurals.overlay_recorded, touches, touches),
+            text = pluralStringResource(R.plurals.overlay_touches, touches, touches),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
         )
         Surface(
             onClick = actions.onStopRecording,
-            shape = CircleShape,
+            shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(64.dp),
+            modifier = Modifier.size(width = 92.dp, height = 40.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Default.Done,
-                    contentDescription = stringResource(R.string.overlay_stop_recording),
-                    modifier = Modifier.size(34.dp),
+                Text(
+                    text = stringResource(R.string.overlay_stop_recording),
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
                 )
             }
         }
+        Spacer(Modifier.width(4.dp))
+    }
+}
+
+/**
+ * PK-3: what the control says while the screen is armed for one gesture.
+ *
+ * The hint is on the control rather than on the picking layer itself, and that is not a layout
+ * preference. The layer's entire job is to take the next touch; a Cancel button drawn inside it
+ * would be a target the layer is also trying to record, and the two readings of one tap cannot
+ * both be right. The control is a separate window, so a tap on Cancel is unambiguous.
+ */
+@Composable
+private fun PickingRow(actions: FloatingControlActions) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(R.string.pick_hint),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.widthIn(max = 196.dp),
+        )
+        TextButton(onClick = actions.onCancelPick) { Text(stringResource(R.string.pick_cancel)) }
+        Spacer(Modifier.width(4.dp))
+    }
+}
+
+/** The one thing on screen that says a touch is being taken rather than passed on (`RD-6`). */
+@Composable
+private fun RecordingDot() {
+    val transition = rememberInfiniteTransition(label = "recording")
+    val pulse by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.2f,
+        animationSpec = infiniteRepeatable(tween(durationMillis = 700), RepeatMode.Reverse),
+        label = "pulse",
+    )
+    Box(
+        modifier =
+            Modifier
+                .padding(start = 4.dp)
+                .size(10.dp)
+                .alpha(pulse)
+                .background(MaterialTheme.colorScheme.error, CircleShape),
+    )
+}
+
+@Composable
+private fun ControlButton(
+    icon: ImageVector,
+    description: Int,
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: () -> Unit,
+) {
+    IconButton(onClick = onClick, modifier = Modifier.size(BUTTON_SIZE)) {
+        Icon(icon, contentDescription = stringResource(description), tint = tint, modifier = Modifier.size(ICON_SIZE))
     }
 }
 
@@ -294,9 +356,9 @@ private fun CollapsedBubble(
         contentAlignment = Alignment.Center,
         modifier =
             modifier
-                .size(50.dp)
+                .size(48.dp)
                 .clip(CircleShape)
-                .background(if (state.running || state.isRecording) colours.error else colours.surfaceContainer)
+                .background(if (state.running || state.isRecording) colours.error else colours.surfaceContainerHigh)
                 .border(1.dp, colours.outline, CircleShape)
                 .windowDragHandle(
                     onDragBy = actions.onDragBy,

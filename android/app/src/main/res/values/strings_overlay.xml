@@ -43,9 +43,15 @@
     <string name="tile_free_the_touch">Free the touch</string>
     <string name="run_notification_about_to_start">About to start</string>
     <string name="overlay_record">Record</string>
-    <string name="overlay_stop_recording">Finish recording</string>
-    <plurals name="overlay_recorded">
-        <item quantity="one">Recording · %1$d touch</item>
-        <item quantity="other">Recording · %1$d touches</item>
+    <string name="overlay_stop_recording">Finish</string>
+    <!-- The pulsing dot beside this says "recording"; the words only have to say how much. -->
+    <plurals name="overlay_touches">
+        <item quantity="one">%1$d touch</item>
+        <item quantity="other">%1$d touches</item>
     </plurals>
+    <!-- OV-33: nothing is written that was not written already. This closes the editor. -->
+    <string name="overlay_done">Done</string>
+    <!-- PK-1: shown over the screen the user is aiming at. -->
+    <string name="pick_hint">Tap where the step should touch, or drag for a swipe</string>
+    <string name="pick_cancel">Cancel</string>
 </resources>

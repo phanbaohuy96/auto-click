@@ -19,6 +19,15 @@ import android.view.WindowManager
 data class OverlayBounds(
     val width: Int,
     val height: Int,
+    /**
+     * OV-32: the navigation bar, in pixels, for the one window that is laid out past it.
+     *
+     * The panel owns the bottom edge of the **display**, so it is the panel's own content that has
+     * to keep its buttons off the gesture bar. Read from the window metrics rather than from
+     * Compose's `WindowInsets`, because an overlay window with `FLAG_LAYOUT_NO_LIMITS` is not
+     * reliably dispatched insets and a zero here would put Save under the user's thumb.
+     */
+    val bottomInset: Int = 0,
 )
 
 fun Context.overlayBounds(): OverlayBounds {
@@ -27,5 +36,6 @@ fun Context.overlayBounds(): OverlayBounds {
     return OverlayBounds(
         width = (metrics.bounds.width() - bars.left - bars.right).coerceAtLeast(1),
         height = (metrics.bounds.height() - bars.top - bars.bottom).coerceAtLeast(1),
+        bottomInset = bars.bottom,
     )
 }

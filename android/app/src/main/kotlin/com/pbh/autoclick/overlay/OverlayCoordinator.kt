@@ -14,7 +14,6 @@ import com.pbh.autoclick.domain.scenario.Scenario
 import com.pbh.autoclick.domain.scenario.ScreenPoint
 import com.pbh.autoclick.overlay.ui.FloatingControl
 import com.pbh.autoclick.overlay.ui.FloatingControlActions
-import com.pbh.autoclick.overlay.ui.RecordingLayer
 import com.pbh.autoclick.overlay.ui.ScenarioPanel
 import com.pbh.autoclick.overlay.ui.StepPanel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +39,13 @@ class OverlayCoordinator(
 ) {
     private val control = OverlayWindow(context, windowManager)
     private val panel = OverlayWindow(context, windowManager)
-    private val recordingLayer = OverlayWindow(context, windowManager)
+    private val captures =
+        CaptureWindows(
+            context = context,
+            windowManager = windowManager,
+            onRecordingEvent = callbacks::onRecordingEvent,
+            onPickEvent = callbacks::onPickEvent,
+        )
 
     private val _state = MutableStateFlow(OverlayUiState())
     val state: StateFlow<OverlayUiState> = _state.asStateFlow()
@@ -49,7 +54,12 @@ class OverlayCoordinator(
         ControlPlacement(context, control, callbacks::onControlMoved).also {
             // OV-13: the panel and the control both want the bottom of the screen, and the
             // control is the one drawn on top. It moves; the panel does not.
-            panel.onResized = { _, height -> it.keepClearOf(height) }
+            //
+            // The inset comes off because the two live in different coordinate spaces (`OV-32`):
+            // the panel is measured against the display and reaches past the navigation bar, while
+            // the control is placed inside the system bars. Without this the control is held a
+            // navigation bar's height too high and a strip of the application shows between them.
+            panel.onResized = { _, height -> it.keepClearOf(height - context.overlayBounds().bottomInset) }
         }
     private val markers =
         MarkerWindows(
@@ -95,7 +105,7 @@ class OverlayCoordinator(
     fun placeControl(remembered: ScreenPoint?) = placement.place(remembered)
 
     fun hide() {
-        recordingLayer.dismiss()
+        captures.dismiss()
         panel.dismiss()
         markers.dismiss()
         control.dismiss()
@@ -120,42 +130,15 @@ class OverlayCoordinator(
         val current = _state.value
         markers.refresh(current)
         refreshPanel(current)
-        refreshRecording(current)
+        captures.refresh(current)
 
-        val signature = "${markers.signature}|${panel.isShowing}|${recordingLayer.isShowing}"
+        val signature = "${markers.signature}|${panel.isShowing}|${captures.signature}"
         if (attached != null && attached != signature) control.dismiss()
         attached = signature
 
         val wasShowing = control.isShowing
         refreshControl()
         if (!wasShowing) placement.settle()
-    }
-
-    /**
-     * RD-1: the layer that swallows touches, and the one flag that makes pass-through possible.
-     *
-     * Re-shown rather than rebuilt when [RecordingSession.listening] changes: `show` on an
-     * attached window is an `updateViewLayout`, which is what swapping the touchable flag has to
-     * be. Rebuilding it would drop the gesture in progress.
-     */
-    private fun refreshRecording(current: OverlayUiState) {
-        val session = current.recording
-        if (session == null) {
-            recordingLayer.dismiss()
-            return
-        }
-        val profile = context.currentScreenProfile()
-        recordingLayer.show(
-            OverlayLayoutParams.recordingLayer(
-                displayWidth = profile.widthPixels,
-                displayHeight = profile.heightPixels,
-                listening = session.listening,
-            ),
-        ) {
-            OverlayTheme {
-                RecordingLayer(onTouch = callbacks::onRecordingEvent)
-            }
-        }
     }
 
     private fun refreshControl() {
@@ -170,9 +153,11 @@ class OverlayCoordinator(
                             onStart = callbacks::onStart,
                             onStop = callbacks::onStop,
                             onAddStep = callbacks::onAddStep,
+                            onCancelPick = callbacks::onCancelPick,
                             onRecord = callbacks::onRecord,
                             onStopRecording = callbacks::onStopRecording,
                             onOpenPanel = { update { copy(panel = PanelState.ScenarioEditor()) } },
+                            onDone = { update { done() } },
                             onFreeTheTouch = callbacks::onFreeTheTouch,
                             onToggleCollapsed = { update { copy(collapsed = !collapsed) } },
                             onDragBy = placement::moveBy,
@@ -201,7 +186,13 @@ class OverlayCoordinator(
         if (panelTyping == current.typing) return
         panelTyping = current.typing
 
-        panel.show(OverlayLayoutParams.panel(typing = current.typing)) {
+        panel.show(
+            OverlayLayoutParams.panel(
+                typing = current.typing,
+                displayWidth = context.currentScreenProfile().widthPixels,
+                bottomInsetPixels = context.overlayBounds().bottomInset,
+            ),
+        ) {
             OverlayTheme {
                 val live by state.collectAsStateWithLifecycle()
                 when (val open = live.panel) {

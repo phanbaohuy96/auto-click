@@ -6,12 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -43,17 +39,15 @@ import com.pbh.autoclick.domain.editor.StepDraft
 import com.pbh.autoclick.domain.scenario.ScenarioLimits
 import com.pbh.autoclick.overlay.EditingStep
 
-/** Tall enough for ten contacts, short enough to leave the screen underneath readable. */
-private val MAX_PANEL_HEIGHT = 420.dp
-
 /**
- * The third Overlay window (`OV-1`): one Step, open for configuration.
+ * The third Overlay window (`OV-1`): one Step, open for configuration, as a sheet (`OV-34`).
  *
  * It edits everything about a Step **except where it touches**. Points belong to the Marker layer,
  * where the user can see what they are aiming at (`OV-7`, `OV-21`), and two ways to set the same
  * value would only disagree with each other.
  *
- * Save is offered only when the Step has no violations (`OV-22`, `SM-17`). Delete and the two move
+ * Save is offered only when the Step has no violations (`OV-22`, `SM-17`) and is pinned below the
+ * scrolling body, so a long Step cannot hide the button that commits it. Delete and the two move
  * buttons apply at once, because they change the Scenario's shape rather than this Step's fields —
  * the same immediacy dragging a Marker already has.
  */
@@ -71,24 +65,13 @@ fun StepPanel(
     LaunchedEffect(typing) { actions.onTypingChanged(typing) }
     val onFocus: (Boolean) -> Unit = { gained -> focusedFields += if (gained) 1 else -1 }
 
-    OverlaySurface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+    OverlayBottomSheet(
+        modifier = modifier,
+        header = { PanelHeader(editing, actions) },
+        footer = { PanelFooter(editing, actions) },
     ) {
-        Column(
-            modifier =
-                Modifier
-                    // The window sits on the bottom edge, which is where the keyboard opens. On
-                    // API 30+ an overlay window receives IME insets while it holds focus, which it
-                    // does exactly when a field here is being typed into (`OV-20`).
-                    .imePadding()
-                    .heightIn(max = MAX_PANEL_HEIGHT)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            PanelHeader(editing, actions)
-            KindChips(editing.draft) { actions.onDraftChanged(editing.draft.copy(kind = it)) }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(bottom = 12.dp)) {
+            ActionSection(editing.draft) { actions.onDraftChanged(editing.draft.copy(kind = it)) }
 
             // Keyed so the fields' own text state starts fresh when the Step or its Action changes,
             // instead of a hold duration being shown in a swipe's duration box.
@@ -103,13 +86,6 @@ fun StepPanel(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
-            }
-
-            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                TextButton(onClick = actions.onCancel) { Text(stringResource(R.string.step_cancel)) }
-                Button(onClick = actions.onSave, enabled = editing.canSave) {
-                    Text(stringResource(R.string.step_save))
-                }
             }
         }
     }
@@ -134,7 +110,10 @@ private fun PanelHeader(
     editing: EditingStep,
     actions: StepPanelActions,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+    ) {
         // OV-24: the only way to reach a Step that draws no Marker (`SM-8`). Without these, a
         // setText or globalAction Step can be written once and never opened again.
         IconButton(onClick = { actions.onGo(-1) }, enabled = editing.canGoBack) {
@@ -163,23 +142,62 @@ private fun PanelHeader(
     }
 }
 
-/** SM-7: the five Actions, all visible at once so the choice needs no menu to discover. */
+/** OV-22: Save is pinned, so a Step tall enough to scroll cannot hide the way to commit it. */
 @Composable
-private fun KindChips(
+private fun PanelFooter(
+    editing: EditingStep,
+    actions: StepPanelActions,
+) {
+    Row(
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+    ) {
+        TextButton(onClick = actions.onCancel) { Text(stringResource(R.string.step_cancel)) }
+        Spacer(Modifier.padding(horizontal = 4.dp))
+        Button(onClick = actions.onSave, enabled = editing.canSave) {
+            Text(stringResource(R.string.step_save))
+        }
+    }
+}
+
+/**
+ * SM-7: the five Actions, all visible at once so the choice needs no menu to discover — under a
+ * heading that says what the row is.
+ *
+ * The heading and the line under it are not decoration. Five unlabelled chips at the top of a
+ * sheet read as filters, which is what chips usually are; nothing said that picking one changes
+ * what the Step *does*. The sentence underneath says it in the Step's own terms, and it changes
+ * with the selection, so the answer is there before the question is asked.
+ */
+@Composable
+private fun ActionSection(
     draft: StepDraft,
     onKind: (StepActionKind) -> Unit,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-    ) {
-        StepActionKind.entries.forEach { kind ->
-            FilterChip(
-                selected = kind == draft.kind,
-                onClick = { onKind(kind) },
-                label = { Text(kind.label()) },
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = stringResource(R.string.step_action_heading),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        ) {
+            StepActionKind.entries.forEach { kind ->
+                FilterChip(
+                    selected = kind == draft.kind,
+                    onClick = { onKind(kind) },
+                    label = { Text(kind.label()) },
+                )
+            }
         }
+        Text(
+            text = draft.kind.describeKind(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -219,6 +237,19 @@ private fun StepActionKind.label(): String =
             StepActionKind.MULTI_TOUCH -> R.string.step_kind_multi_touch
             StepActionKind.GLOBAL_ACTION -> R.string.step_kind_global
             StepActionKind.SET_TEXT -> R.string.step_kind_text
+        },
+    )
+
+/** One sentence per Action, in the Step's own terms rather than the platform's. */
+@Composable
+private fun StepActionKind.describeKind(): String =
+    stringResource(
+        when (this) {
+            StepActionKind.TAP -> R.string.step_about_tap
+            StepActionKind.SWIPE -> R.string.step_about_swipe
+            StepActionKind.MULTI_TOUCH -> R.string.step_about_multi_touch
+            StepActionKind.GLOBAL_ACTION -> R.string.step_about_global
+            StepActionKind.SET_TEXT -> R.string.step_about_text
         },
     )
 

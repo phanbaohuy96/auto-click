@@ -39,4 +39,10 @@
     <string name="violation_zero_duration">Vuốt phải có thời lượng — bằng 0 thì là chạm</string>
     <string name="violation_point_outside">Điểm %1$d, %2$d nằm ngoài màn hình</string>
     <string name="violation_text_too_long">%1$d ký tự vượt quá mức %2$d cho phép</string>
+    <string name="step_action_heading">Bước này làm gì</string>
+    <string name="step_about_tap">Chạm vào một điểm rồi nhả ra.</string>
+    <string name="step_about_swipe">Kéo từ điểm này sang điểm kia. Cả hai đều là điểm trên màn hình.</string>
+    <string name="step_about_multi_touch">Chạm nhiều điểm cùng lúc, như thao tác chụm hai ngón.</string>
+    <string name="step_about_global">Bấm nút hệ thống: quay lại, màn hình chính hoặc đa nhiệm. Không chạm vào đâu cả.</string>
+    <string name="step_about_text">Gõ chữ vào ô đang có con trỏ. Không chạm vào đâu cả.</string>
 </resources>

@@ -45,4 +45,11 @@
     <string name="violation_zero_duration">A swipe needs a duration — zero would be a tap</string>
     <string name="violation_point_outside">The point %1$d, %2$d is off the screen</string>
     <string name="violation_text_too_long">%1$d characters is more than the %2$d allowed</string>
+    <!-- OV-35: what the chip row is, and what the chosen Action does. -->
+    <string name="step_action_heading">What this step does</string>
+    <string name="step_about_tap">Touches one point and lets go.</string>
+    <string name="step_about_swipe">Drags from one point to another. Both are markers on screen.</string>
+    <string name="step_about_multi_touch">Several points touched at once, like a pinch.</string>
+    <string name="step_about_global">Presses a system button: back, home or recents. Touches nothing.</string>
+    <string name="step_about_text">Types into whatever field already has the caret. Touches nothing.</string>
 </resources>

@@ -36,6 +36,8 @@ data class OverlayUiState(
     val panel: PanelState? = null,
     /** RD-1: the session in progress, or null when nothing is being recorded. */
     val recording: RecordingSession? = null,
+    /** PK-1: true while the Overlay is hidden and one gesture is being waited for. */
+    val picking: Boolean = false,
     /**
      * The Screen profile this Scenario's coordinates are measured against (`SM-14`), once it has
      * one.
@@ -57,11 +59,17 @@ data class OverlayUiState(
     /** RD-1: recording, like running, is a state in which the editor has to be out of the way. */
     val isRecording: Boolean get() = recording != null
 
+    /** PK-1: the user is aiming one Step at the screen underneath, and nothing may be in front of it. */
+    val isPicking: Boolean get() = picking
+
     /**
-     * OV-11, RD-1: Markers would be tapped by the very Gestures they describe — and, while
-     * recording, they would swallow the touches meant for the application underneath.
+     * OV-11, RD-1, PK-1: Markers would be tapped by the very Gestures they describe; while
+     * recording or picking they would swallow the touches meant for the application underneath.
+     *
+     * [collapsed] is in here too, and that is `OV-33`. Collapsing the control means "get out of my
+     * way", and a dozen handles left scattered over the screen is not out of the way.
      */
-    val showMarkers: Boolean get() = !running && !isRecording
+    val showMarkers: Boolean get() = !running && !isRecording && !isPicking && !collapsed
 
     /**
      * OV-20: the panel is open only while nothing is running.
@@ -70,7 +78,7 @@ data class OverlayUiState(
      * input focus, so "it is closed before a run starts" has to be a property of the state and not
      * a call somebody remembers to make. A `setText` Step therefore never has this window to find.
      */
-    val showPanel: Boolean get() = panel != null && !running && !isRecording
+    val showPanel: Boolean get() = panel != null && !running && !isRecording && !isPicking && !collapsed
 
     /** OV-20: the window drops FLAG_NOT_FOCUSABLE only while a field in it holds the caret. */
     val typing: Boolean get() = showPanel && panel?.typing == true
@@ -173,3 +181,12 @@ data class EditingStep(
 
     val canGoForward: Boolean get() = stepNumber < stepCount && !isDirty
 }
+
+/**
+ * OV-33: "I am finished", which is the one thing the editor could not previously be told.
+ *
+ * It writes nothing. Every edit was already on disk the moment it was made (`FS-15`), so there is
+ * no pending state for a Save button to flush — what was missing was a way to put the editor away
+ * in one press instead of closing the panel, then collapsing, and leaving the Markers behind.
+ */
+internal fun OverlayUiState.done(): OverlayUiState = copy(panel = null, collapsed = true, lastFinish = null)

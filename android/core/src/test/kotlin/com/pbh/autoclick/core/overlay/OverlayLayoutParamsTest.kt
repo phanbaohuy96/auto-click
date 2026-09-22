@@ -20,7 +20,7 @@ class OverlayLayoutParamsTest {
                 OverlayLayoutParams.floating(),
                 OverlayLayoutParams.markerHandle(x = 10, y = 10),
                 OverlayLayoutParams.markerLines(1_344, 2_992),
-                OverlayLayoutParams.panel(typing = false),
+                OverlayLayoutParams.panel(typing = false, displayWidth = 1_344, bottomInsetPixels = 72),
             )
 
         windows.forEach {
@@ -36,18 +36,14 @@ class OverlayLayoutParamsTest {
         // OV-20. The exception is narrow on purpose and is written down twice — here, and in the
         // coordinator, which closes the panel before a run can start.
         assertTrue(
-            !OverlayLayoutParams.panel(typing = true).has(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE),
+            !OverlayLayoutParams
+                .panel(
+                    typing = true,
+                    displayWidth = 1_344,
+                    bottomInsetPixels = 72,
+                ).has(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE),
             "a window that cannot take focus cannot open a keyboard, and setText needs one",
         )
-    }
-
-    @Test
-    fun `the panel spans the bottom edge`() {
-        val params = OverlayLayoutParams.panel(typing = true)
-
-        assertEquals(WindowManager.LayoutParams.MATCH_PARENT, params.width)
-        assertEquals(WindowManager.LayoutParams.WRAP_CONTENT, params.height)
-        assertEquals(Gravity.BOTTOM or Gravity.START, params.gravity)
     }
 
     @Test
@@ -101,10 +97,73 @@ class OverlayLayoutParamsTest {
             assertTrue(it.has(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN))
             assertTrue(it.has(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS))
         }
-        // The control and the panel are reached for rather than aimed with, and are better off
-        // inside the system bars where nothing covers them.
+        // The control is reached for rather than aimed with, and is better off inside the system
+        // bars where nothing covers it and it cannot be dragged under the navigation bar.
         assertTrue(!OverlayLayoutParams.floating().has(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS))
-        assertTrue(!OverlayLayoutParams.panel(typing = false).has(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS))
+    }
+
+    /**
+     * OV-32: the panel is the exception, and it is measured against the display for a third reason.
+     *
+     * It is neither aimed with nor merely reached for — it **owns the bottom edge**. Laid out
+     * inside the system bars it stopped short of the screen by the height of the navigation bar,
+     * and a strip of the application underneath showed through below a sheet that is supposed to
+     * be sitting on the edge of the phone.
+     */
+    @Test
+    fun `the panel reaches the bottom of the display and is sized against it`() {
+        val params = OverlayLayoutParams.panel(typing = false, displayWidth = 1_344, bottomInsetPixels = 72)
+
+        assertTrue(params.has(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN))
+        assertTrue(params.has(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS))
+        assertEquals(Gravity.BOTTOM or Gravity.START, params.gravity)
+        // Sized explicitly rather than MATCH_PARENT: the parent of an overlay window is the space
+        // inside the system bars even when the window is laid out past them.
+        assertEquals(1_344, params.width)
+        assertEquals(WindowManager.LayoutParams.WRAP_CONTENT, params.height)
+    }
+
+    /** OV-20 still holds across that change: focus is the one flag the panel may drop. */
+    @Test
+    fun `the panel keeps its display coordinates while it is being typed into`() {
+        val typing = OverlayLayoutParams.panel(typing = true, displayWidth = 1_344, bottomInsetPixels = 72)
+
+        assertTrue(typing.has(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS))
+        assertTrue(!typing.has(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE))
+    }
+
+    /**
+     * DS-6: **no Overlay window may ask for a blur behind it.** This is a regression test.
+     *
+     * The control would suit one, the platform offers one from API 31, and the test device
+     * reports it as available. Turning it on makes WindowManager create a display-wide dim layer
+     * whose occlusion mode is `BLOCK_UNTRUSTED`, and Android then drops every touch aimed at an
+     * untrusted window beneath it — which is every other window this application owns. It was
+     * measured: with the blur on, the panel, the Markers and the recording layer stopped
+     * answering touches entirely, and `InputDispatcher` named the dim layer as the reason.
+     *
+     * The floating control kept working throughout, because it sits above the layer. That is what
+     * makes this worth a test rather than a comment: the window a developer is looking at while
+     * they add the blur is the one window that does not break.
+     */
+    @Test
+    fun `no overlay window asks for a blur behind it`() {
+        val windows =
+            listOf(
+                OverlayLayoutParams.floating(),
+                OverlayLayoutParams.panel(typing = false, displayWidth = 1_344, bottomInsetPixels = 72),
+                OverlayLayoutParams.markerHandle(x = 0, y = 0),
+                OverlayLayoutParams.markerLines(1_344, 2_992),
+                OverlayLayoutParams.recordingLayer(1_344, 2_992, listening = true),
+            )
+
+        windows.forEach { assertTrue(!it.has(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)) }
+    }
+
+    /** OV-32: the negative offset is the half that the flags alone could not do. */
+    @Test
+    fun `the panel is pushed down past the navigation bar`() {
+        assertEquals(-72, OverlayLayoutParams.panel(typing = false, displayWidth = 1_344, bottomInsetPixels = 72).y)
     }
 
     @Test

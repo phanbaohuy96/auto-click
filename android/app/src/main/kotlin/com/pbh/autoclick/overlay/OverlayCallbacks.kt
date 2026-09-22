@@ -18,6 +18,7 @@ import java.util.UUID
 interface OverlayCallbacks :
     RunCallbacks,
     RecordCallbacks,
+    PickCallbacks,
     EditCallbacks,
     ShellCallbacks
 
@@ -38,6 +39,22 @@ interface RecordCallbacks {
 
     /** RD-2: one touch event, with Android's `MotionEvent` left at the boundary. */
     fun onRecordingEvent(event: RecordingEvent)
+}
+
+/**
+ * PK-1 to PK-3: aiming one Step at the screen underneath.
+ *
+ * Separate from [RecordCallbacks] although both watch the same touches, because they answer
+ * opposite questions. Recording asks *what did the user do*, and hands the touch on so the
+ * application advances with it. Picking asks *where does the user mean*, and deliberately
+ * swallows the touch so the screen stays where it was.
+ */
+interface PickCallbacks {
+    /** PK-2: one touch event while the screen is armed. The finger leaving ends the pick. */
+    fun onPickEvent(event: RecordingEvent)
+
+    /** PK-3: leave aiming without creating anything. */
+    fun onCancelPick()
 }
 
 /** Everything that changes the open Scenario. Each of these is written to disk at once (`FS-15`). */
