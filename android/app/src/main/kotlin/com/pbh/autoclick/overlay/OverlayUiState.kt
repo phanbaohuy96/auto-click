@@ -6,6 +6,7 @@ import com.pbh.autoclick.domain.editor.violations
 import com.pbh.autoclick.domain.overlay.Marker
 import com.pbh.autoclick.domain.run.FinishReason
 import com.pbh.autoclick.domain.scenario.GestureLimits
+import com.pbh.autoclick.domain.scenario.Scenario
 import com.pbh.autoclick.domain.scenario.ScreenProfile
 import com.pbh.autoclick.domain.scenario.Step
 import com.pbh.autoclick.domain.scenario.StepViolation
@@ -18,16 +19,21 @@ import java.util.UUID
  * rather than by whoever last called a setter.
  */
 data class OverlayUiState(
-    val scenarioName: String = "",
+    /**
+     * The Scenario as last saved, or null before one is open.
+     *
+     * Held here rather than beside the state because four things read it — the Markers, both
+     * halves of the panel, the control's caption and the notification — and two copies of the
+     * same truth is how a Marker ends up somewhere the Scenario does not agree with.
+     */
+    val scenario: Scenario? = null,
     val markers: List<Marker> = emptyList(),
-    /** OV-2: true only while the user is actually placing Markers. */
-    val placingMarkers: Boolean = false,
     val run: RunState = RunState.Stopped,
     /** OV-17: why the last run ended, shown where the user is already looking. */
     val lastFinish: FinishReason? = null,
     val collapsed: Boolean = false,
-    /** OV-21: the Step open in the panel, or null when the panel is closed. */
-    val editing: EditingStep? = null,
+    /** OV-21, OV-28: what the one panel window is showing, or null when it is closed. */
+    val panel: PanelState? = null,
     /**
      * The Screen profile this Scenario's coordinates are measured against (`SM-14`), once it has
      * one.
@@ -39,8 +45,15 @@ data class OverlayUiState(
      */
     val authoringProfile: ScreenProfile? = null,
 ) {
+    val scenarioName: String get() = scenario?.name.orEmpty()
+
+    val stepCount: Int get() = scenario?.steps?.size ?: 0
+
+    /** Anything at all in flight: counting down, walking Steps, or finishing a stroke. */
+    val running: Boolean get() = run !is RunState.Stopped
+
     /** OV-11: Markers would be tapped by the very Gestures they describe. */
-    val showMarkers: Boolean get() = run is RunState.Stopped
+    val showMarkers: Boolean get() = !running
 
     /**
      * OV-20: the panel is open only while nothing is running.
@@ -49,13 +62,16 @@ data class OverlayUiState(
      * input focus, so "it is closed before a run starts" has to be a property of the state and not
      * a call somebody remembers to make. A `setText` Step therefore never has this window to find.
      */
-    val showStepPanel: Boolean get() = editing != null && run is RunState.Stopped
+    val showPanel: Boolean get() = panel != null && !running
 
     /** OV-20: the window drops FLAG_NOT_FOCUSABLE only while a field in it holds the caret. */
-    val typing: Boolean get() = showStepPanel && editing?.typing == true
+    val typing: Boolean get() = showPanel && panel?.typing == true
+
+    /** The Step open in the panel, if the panel is showing a Step at all. */
+    val editing: EditingStep? get() = (panel as? PanelState.StepEditor)?.step
 
     /** Which Marker the panel is about, so the Marker layer can say which one it is (`OV-21`). */
-    val editedStepId: UUID? get() = editing?.draft?.stepId.takeIf { showStepPanel }
+    val editedStepId: UUID? get() = editing?.draft?.stepId.takeIf { showPanel }
 
     sealed interface RunState {
         data object Stopped : RunState
@@ -76,6 +92,28 @@ data class OverlayUiState(
 }
 
 /**
+ * The two things the panel window can be showing (OV-21, OV-28).
+ *
+ * One window rather than two, because they want the same place on the screen, they want the same
+ * one exception to `OV-3`, and two of them open at once has no meaning. Making that a sealed type
+ * rather than two nullable fields is what stops the pair drifting apart.
+ */
+sealed interface PanelState {
+    /** OV-20: true only while a field in the panel holds the caret. */
+    val typing: Boolean
+
+    /** OV-28: the Scenario as a whole — its name, how often it runs, and its Steps in order. */
+    data class ScenarioEditor(
+        override val typing: Boolean = false,
+    ) : PanelState
+
+    data class StepEditor(
+        val step: EditingStep,
+        override val typing: Boolean = false,
+    ) : PanelState
+}
+
+/**
  * One Step open in the Step panel, with everything the panel needs to judge it (OV-21, OV-22).
  *
  * [limits] travels with the draft because they are the platform's, read from the connected
@@ -91,8 +129,6 @@ data class EditingStep(
     val stepCount: Int,
     val limits: GestureLimits = GestureLimits(),
     val profile: ScreenProfile? = null,
-    /** OV-20: true only while a field in the panel holds the caret. */
-    val typing: Boolean = false,
 ) {
     /** SM-17: every reason this cannot be saved, all of them at once. */
     val violations: List<StepViolation> get() = draft.violations(limits, profile)

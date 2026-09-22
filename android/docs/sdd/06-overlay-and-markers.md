@@ -54,25 +54,76 @@ same **Step** number, so it is visible that they happen together rather than in 
 rather than being refused on save.
 
 **OV-11** `[A1]` **Marker**s are not drawn while a **Scenario** runs. They would be tapped by the
-very **Gesture**s they describe.
+very **Gesture**s they describe. Not dimmed — **removed**, because each one is now a window of its
+own (`OV-27`) and a window that is merely faint still takes the touch.
+
+**OV-27** `[A1]` Each drawn **Marker** is a **window of its own**, sized to the handle, and the
+layer behind them carrying the connecting lines takes no touches at all.
+
+This is not an implementation note: it is the requirement that there is **no mode**. Android has no
+public way to say "this window answers touches *here* and nowhere else", so a full-screen layer
+either takes every touch — which makes the phone unusable while Auto Click is open — or takes none,
+in which case a **Marker** can be looked at but not moved. The earlier answer was a mode the user
+had to remember to leave, and `landscape.md` ranks "controls that sit on top of what you are
+automating" seventh among the category's complaints. One window per handle gives both at once: the
+handle answers touches inside its own few dozen pixels, and everything else reaches the application
+underneath.
+
+The cost is stated rather than hidden: one window per drawn **Marker**, which is one per tap, two
+per swipe, and up to two per contact of a **multiTouch**.
+
+**OV-31** `[A1]` **Marker** windows are laid out in **display** coordinates, not in what is left of
+the display after the system bars.
+
+A window laid out the default way has its origin below the status bar, so a **Marker** at y = 1496
+is drawn at 1655 on a phone with a 159-pixel one — while the **Gesture** it describes still lands
+at 1496. The user aims with the **Marker**, so this is not an offset but a lie (`SM-11`). The
+floating control and the panel are the other way round: they are reached for rather than aimed
+with, and belong inside the bars where nothing covers them.
 
 ## The floating control
 
 **OV-12** `[A1]` The floating control is always reachable, in both states:
 
-- *stopped* — Start, add a **Step**, open the **Scenario**, collapse
-- *running* — Stop, the **Step** currently running, and nothing else
+- *stopped* — a drag handle, Start, add a **Step**, open the panel, collapse; above them the
+  **Scenario**'s name and how many **Step**s it has
+- *running* — the **Step** currently running, Stop, and **free the touch**; nothing else
+
+Four buttons and no more, and the count is the requirement. Width is what the control costs the
+user, and everything that is not one of those four is one tap away in the panel.
+
+Collapsed, it keeps saying whether something is running, and says which **Step** it has reached: a
+control small enough to forget is a control that can be running without anyone noticing.
 
 **OV-13** `[A1]` Stop is the largest target in the running state, and is reachable at every moment
 of a run (`GX-8`). Nothing is ever drawn over it.
 
-**OV-14** `[A1]` The control is dragged anywhere on screen and remembers where it was left, per
-device, in `DataStore` (`FS-4`). It collapses to a small bubble and expands on tap, because it
-spends most of its life in the way of something.
+**OV-14** `[A1]` The control is dragged by a handle of its own and **snaps to the nearer side**,
+remembering where it was left, per device, in `DataStore` (`AP-1`). It collapses to a small bubble
+and expands on tap, because it spends most of its life in the way of something.
 
-**OV-15** `[A1]` **Free the touch** (`GX-11`) is on the control and in the run notification. It is
-in both places because a latched touch is exactly the situation in which the control cannot be
-tapped.
+Three things this requires that are easy to get wrong, all of which were got wrong first:
+
+- The drag is measured in **raw screen coordinates**. A window moved under the finger takes its own
+  coordinate space with it, so a delta measured against the view reads zero by the second event and
+  the control stops one frame into the drag.
+- The handle is its **own target**, not the whole control. A drag beginning on a button would have
+  to be told apart from a press of it, and a handle that looks like a handle is the only thing on
+  the control saying it can be moved at all.
+- The control is re-settled against its side whenever its **width** changes. A run replaces four
+  buttons with one large Stop, and a control that kept its left edge would float in from the side
+  the moment a run began.
+
+**OV-15** `[A1]` **Free the touch** (`GX-11`) is in four places: on the running control, in the
+panel, in the run notification, and on a **Quick Settings tile**.
+
+The copies that matter are the last two. A latched touch is a phone that has stopped answering the
+finger, so no **Overlay** window can be tapped at all — and the shade opens on a system gesture
+that is handled before any application sees it. The first two are simply where someone who is
+reading rather than panicking will look.
+
+**OV-30** `[A1]` The **Overlay** offers a way back to the Activity and a way to close itself. Both
+live in the panel rather than on the control, because neither is wanted in a hurry.
 
 ## Running, seen from the Overlay
 
@@ -133,5 +184,48 @@ under the control — it is a starting position to be dragged from, not a guess 
 **Scenario** they would be writable once and never openable again. Walking away is refused while
 there are unsaved edits, rather than silently discarding or silently saving them: both are guesses,
 and Save and Cancel are already on screen to be asked.
+
+**OV-25** `[A1]` Stop asked for while nothing is running does **nothing**, and is not an error.
+
+Stop is reachable long before a run and long after one, so pressing it at an idle moment is
+ordinary use. *Stopping* is the one state the **Overlay** cannot leave by itself — it ends when the
+runner reports back — so entering it with no runner behind it waits for a report that never comes.
+The cost is not cosmetic: "no **Marker**s" and "no panel" are both derived from "something is
+running", so a stranded *Stopping* takes the whole editor with it and the app can only be recovered
+by restarting the service. The transition is refused in the state, and the run notification
+separately stops offering Stop when there is nothing to stop.
+
+The other half of the same rule: when a run ends for **any** reason, including a cancelled
+coroutine that sends no final event, the **Overlay** returns to *stopped*.
+
+## The Scenario panel
+
+**OV-28** `[A1]` The panel's other face is the **Scenario** as a whole: its name, how often it runs
+(`SM-2`), its countdown (`SM-3`), and every **Step** in order.
+
+One window, two faces, rather than two windows. They want the same place on the screen, they want
+the same single exception to `OV-3`, and both open at once has no meaning.
+
+The **Step** list is the general answer to `SM-8` that `OV-24` only half solves: a `setText` or
+`globalAction` **Step** has nothing on screen to tap, and walking to it from a neighbour is a poor
+substitute for seeing all of them. Reordering and deleting happen there and apply at once (`FS-15`),
+as does every field — there is no Save for a **Scenario**.
+
+Before this, a **Scenario** could only ever be called "Untitled" and run exactly once, because
+`name`, `runCount` and `countdownMilliseconds` had nowhere to be edited.
+
+**OV-26** `[A1]` Opening a **Scenario** sends the Activity to the back.
+
+The application the user wants to automate is somewhere else — that is the whole premise of the
+**Overlay**. Staying in front would put the floating control on top of the one application nobody
+wants to automate, and make the first thing the user does after every Start be pressing Home.
+
+**OV-29** `[A1]` The run notification says what is happening and offers only what is possible at
+that moment, and is re-posted only when what it would say has changed.
+
+Three states, not two: idle names the **Scenario** and offers *free the touch* and *close*;
+counting down says so and has no **Step** number to give; running names the **Step** and offers
+*Stop*. A countdown ticking every hundred milliseconds must not rewrite the shade thirty times on
+the way to the first **Step**.
 
 [ADR-0015]: ../adr/0015-compose-in-the-overlay.md

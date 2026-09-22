@@ -18,7 +18,7 @@ included. Copying only `scenario.json` would leave the copy pointing at files th
 Mirrors macOS `ST-3`.
 
 **FS-4** `[A1]` `DataStore` holds only what is not part of a **Scenario**: which **Scenario** is
-selected, where the floating control was last left, and the interface language. No **Scenario**
+selected, where the floating control was last left, and the interface language (`AP-1`). No **Scenario**
 data is ever kept there.
 
 ## The `scenario.json` format
@@ -97,6 +97,19 @@ purpose. Mirrors macOS `ST-12`.
 **FS-15** `[A1]` Saving is not a button. A **Scenario** is written when the user stops editing it,
 and the write is cheap enough that there is no reason to ask. The one thing that must never happen
 is a **Scenario** that exists in the interface and not on disk.
+
+## Settings, which are not a Scenario
+
+**AP-1** `[A1]` The handful of things Auto Click remembers about **itself** live in a Preferences
+`DataStore`, apart from every **Scenario**.
+
+Apart on purpose. A **Scenario** is the user's document and is built to travel ([ADR-0014]); where
+they happen to like the floating control is a property of **this phone** and would be wrong on any
+other. The same reasoning keeps it out of `scenario.json` even though it would have fitted.
+
+Today it holds one thing: where the control was left (`OV-14`). Absent and *the top-left corner*
+are different answers — the first means the user has never had a say, and the control is placed
+against an edge rather than inheriting a corner nobody chose.
 
 [ADR-0005]: ../../../docs/adr/0005-one-directory-per-scenario.md
 [ADR-0014]: ../adr/0014-no-database.md

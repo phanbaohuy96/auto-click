@@ -7,7 +7,10 @@
     <string name="overlay_finish_placing">Done moving</string>
     <string name="overlay_free_the_touch">Free the touch</string>
     <string name="overlay_collapse">Collapse</string>
-    <string name="overlay_expand">Open Auto Click</string>
+    <string name="overlay_open_panel">Steps and settings</string>
+    <string name="overlay_open_app">Open Auto Click</string>
+    <string name="overlay_close">Close</string>
+    <string name="overlay_expand">Expand</string>
     <string name="overlay_starting_in">Starting in %1$d</string>
     <string name="overlay_step_of">Step %1$d of %2$d</string>
     <string name="overlay_stopping">Stopping…</string>
@@ -20,4 +23,23 @@
     <!-- The run notification (GX-7). -->
     <string name="run_channel_name">Running a scenario</string>
     <string name="run_notification_title">Auto Click is running</string>
+    <plurals name="overlay_steps">
+        <item quantity="one">%1$d step</item>
+        <item quantity="other">%1$d steps</item>
+    </plurals>
+    <!-- The Scenario panel (OV-28): the Scenario as a whole rather than one Step. -->
+    <string name="scenario_name">Name</string>
+    <string name="scenario_run_count">Run</string>
+    <string name="scenario_until_stopped">Until stopped</string>
+    <string name="scenario_countdown">Countdown (s)</string>
+    <string name="scenario_no_steps">No steps yet. Record your taps, or add one by hand and drag its marker.</string>
+    <!-- One line per Step in that list. -->
+    <string name="summary_tap">Tap at %1$d, %2$d</string>
+    <string name="summary_swipe">Swipe %1$d, %2$d to %3$d, %4$d</string>
+    <string name="summary_multi_touch">%1$d contacts at once</string>
+    <string name="summary_set_text">Type \"%1$s\"</string>
+    <string name="summary_repeated">%1$s, %2$d times</string>
+    <string name="run_notification_ready">Ready — nothing is running</string>
+    <string name="tile_free_the_touch">Free the touch</string>
+    <string name="run_notification_about_to_start">About to start</string>
 </resources>

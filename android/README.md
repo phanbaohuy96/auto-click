@@ -3,21 +3,21 @@
 The Android member of Auto Click. See the [repository README](../README.md) for the product, and
 [`../CONTEXT.md`](../CONTEXT.md) for the shared language.
 
-**Status: slice A1, built except onboarding.** The app installs, lists **Scenario**s, draws and
-drags its **Marker**s over whatever is in front, configures a **Step** in the panel, and runs a
-**Scenario** through the accessibility service. What is missing is the onboarding flow, so
-permissions are granted by being sent to the right Settings screen rather than being explained
-first.
+**Status: slice A1 is complete.** The app sets itself up, lists **Scenario**s, steps out of the way
+so you can author over the application you actually want to automate, drags its **Marker**s without
+taking the screen away from you, edits a **Step** and a **Scenario** in the panel, and runs through
+the accessibility service.
 
 It has been run on an emulator (Pixel 10 Pro XL, API 37) and **never on a physical device**;
 [`docs/testing.md`](docs/testing.md) records exactly what that has and has not shown.
 
 | Built | Not built yet |
 |---|---|
-| **Scenario / Step / Action × Target**, limits, validation ([03](docs/sdd/03-scenario-model.md)) | Onboarding, including the Android 13 wall ([02](docs/sdd/02-permissions-and-onboarding.md)) |
-| One directory per **Scenario** on disk ([04](docs/sdd/04-storage.md)) | Reordering a **Scenario** anywhere but in the **Step** panel |
-| The runner, and every exit path releasing ([05](docs/sdd/05-gesture-execution.md)) | Remembering where the floating control was left (`OV-14`) |
-| The **Overlay**, **Marker**s, the floating control and the **Step** panel ([06](docs/sdd/06-overlay-and-markers.md)) | Recording (A2), recognition (A3), languages (A4) |
+| **Scenario / Step / Action × Target**, limits, validation ([03](docs/sdd/03-scenario-model.md)) | Recording (A2) — placing ten **Marker**s by hand is still the only way |
+| One directory per **Scenario** on disk, and a `DataStore` for what is not one ([04](docs/sdd/04-storage.md)) | Recognition (A3) and interface languages (A4) |
+| The runner, and every exit path releasing ([05](docs/sdd/05-gesture-execution.md)) | Trying one **Step** on its own, without running the **Scenario** |
+| The **Overlay**, **Marker**s, the movable control, both faces of the panel ([06](docs/sdd/06-overlay-and-markers.md)) | Renaming or duplicating a **Scenario** from the Activity |
+| Onboarding, including the Android 13 wall ([02](docs/sdd/02-permissions-and-onboarding.md)) | Anything at all on physical hardware |
 
 ## Where to read what
 

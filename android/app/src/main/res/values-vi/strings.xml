@@ -7,4 +7,7 @@
     <string name="scenario_step_count">%1$d bước</string>
     <string name="scenario_too_new">Được lưu bởi phiên bản mới hơn — chỉ có thể xoá</string>
     <string name="scenario_delete">Xoá</string>
+    <string name="scenario_delete_title">Xoá “%1$s”?</string>
+    <string name="scenario_delete_body">Các bước và cài đặt của nó sẽ mất theo. Không hoàn tác được.</string>
+    <string name="scenario_none_title">Chưa có gì ở đây</string>
 </resources>

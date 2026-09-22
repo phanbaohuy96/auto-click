@@ -1,14 +1,22 @@
 package com.pbh.autoclick.data.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStoreFile
 import com.pbh.autoclick.core.common.DispatcherProvider
 import com.pbh.autoclick.data.scenario.FileScenarioStore
+import com.pbh.autoclick.data.settings.DataStoreSettings
 import com.pbh.autoclick.domain.repository.ScenarioRepository
+import com.pbh.autoclick.domain.settings.SettingsRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import java.io.File
 import javax.inject.Singleton
 
@@ -27,5 +35,21 @@ object StorageModule {
     @Singleton
     fun provideScenarioRepository(store: FileScenarioStore): ScenarioRepository = store
 
+    @Provides
+    @Singleton
+    fun provideSettingsStore(
+        @ApplicationContext context: Context,
+        dispatchers: DispatcherProvider,
+    ): DataStore<Preferences> =
+        PreferenceDataStoreFactory.create(
+            scope = CoroutineScope(dispatchers.io + SupervisorJob()),
+            produceFile = { context.preferencesDataStoreFile(SETTINGS_NAME) },
+        )
+
+    @Provides
+    @Singleton
+    fun provideSettingsRepository(store: DataStore<Preferences>): SettingsRepository = DataStoreSettings(store)
+
     private const val SCENARIOS_DIRECTORY = "scenarios"
+    private const val SETTINGS_NAME = "settings"
 }

@@ -2,11 +2,12 @@
     <string name="overlay_start">Chạy</string>
     <string name="overlay_stop">Dừng</string>
     <string name="overlay_add_step">Thêm bước</string>
-    <string name="overlay_place_markers">Di chuyển điểm</string>
-    <string name="overlay_finish_placing">Xong</string>
     <string name="overlay_free_the_touch">Gỡ chạm kẹt</string>
     <string name="overlay_collapse">Thu gọn</string>
-    <string name="overlay_expand">Mở Auto Click</string>
+    <string name="overlay_expand">Mở rộng</string>
+    <string name="overlay_open_panel">Các bước và cài đặt</string>
+    <string name="overlay_open_app">Mở Auto Click</string>
+    <string name="overlay_close">Đóng</string>
     <string name="overlay_starting_in">Chạy sau %1$d</string>
     <string name="overlay_step_of">Bước %1$d / %2$d</string>
     <string name="overlay_stopping">Đang dừng…</string>
@@ -16,6 +17,22 @@
     <string name="overlay_gesture_cancelled">Bước %1$d bị gián đoạn</string>
     <string name="overlay_no_field">Bước %1$d không tìm thấy ô nhập</string>
     <string name="overlay_action_refused">Bước %1$d bị hệ thống từ chối</string>
+    <plurals name="overlay_steps">
+        <item quantity="other">%1$d bước</item>
+    </plurals>
+    <string name="scenario_name">Tên</string>
+    <string name="scenario_run_count">Số lần</string>
+    <string name="scenario_until_stopped">Tới khi dừng</string>
+    <string name="scenario_countdown">Đếm ngược (giây)</string>
+    <string name="scenario_no_steps">Chưa có bước nào. Hãy ghi lại thao tác của bạn, hoặc thêm một bước rồi kéo điểm của nó.</string>
+    <string name="summary_tap">Chạm tại %1$d, %2$d</string>
+    <string name="summary_swipe">Vuốt %1$d, %2$d đến %3$d, %4$d</string>
+    <string name="summary_multi_touch">%1$d điểm chạm cùng lúc</string>
+    <string name="summary_set_text">Nhập \"%1$s\"</string>
+    <string name="summary_repeated">%1$s, %2$d lần</string>
     <string name="run_channel_name">Đang chạy kịch bản</string>
     <string name="run_notification_title">Auto Click đang chạy</string>
+    <string name="run_notification_ready">Sẵn sàng — chưa chạy gì</string>
+    <string name="tile_free_the_touch">Gỡ chạm kẹt</string>
+    <string name="run_notification_about_to_start">Sắp chạy</string>
 </resources>
