@@ -42,6 +42,19 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- GX-12: the copy of "free the touch" that survives a latched touch, because the
+             shade opens on a system gesture rather than on a tap any window could swallow. -->
+        <service
+            android:name=".tile.FreeTheTouchTileService"
+            android:exported="true"
+            android:icon="@android:drawable/ic_menu_revert"
+            android:label="@string/tile_free_the_touch"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <service
             android:name=".overlay.OverlayService"
             android:exported="false"

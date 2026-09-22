@@ -24,13 +24,14 @@ import com.pbh.autoclick.domain.overlay.Marker
 import com.pbh.autoclick.domain.overlay.withMarkerMoved
 import com.pbh.autoclick.domain.repository.ScenarioRepository
 import com.pbh.autoclick.domain.run.FinishReason
-import com.pbh.autoclick.domain.run.GestureDispatcher
 import com.pbh.autoclick.domain.run.RunEvent
 import com.pbh.autoclick.domain.run.ScenarioRunner
 import com.pbh.autoclick.domain.run.freeTheTouchGesture
 import com.pbh.autoclick.domain.scenario.GestureLimits
 import com.pbh.autoclick.domain.scenario.Scenario
 import com.pbh.autoclick.domain.scenario.ScreenPoint
+import com.pbh.autoclick.domain.settings.ControlPosition
+import com.pbh.autoclick.domain.settings.SettingsRepository
 import com.pbh.autoclick.service.AutoClickAccessibilityService
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +39,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -53,6 +59,9 @@ import javax.inject.Inject
 class OverlayService : Service() {
     @Inject
     lateinit var scenarios: ScenarioRepository
+
+    @Inject
+    lateinit var settings: SettingsRepository
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -81,12 +90,28 @@ class OverlayService : Service() {
         createRunNotificationChannel()
         val display = getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)
         overlayContext = createWindowContext(display, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, null)
-        coordinator =
+        val active =
             OverlayCoordinator(
                 context = overlayContext,
                 windowManager = overlayContext.getSystemService(WindowManager::class.java),
                 callbacks = callbacks,
             )
+        coordinator = active
+        // OV-29: the notification is re-posted whenever what it would say changes, and never
+        // otherwise — a notification rebuilt on every countdown tick flickers and loses its place.
+        active.state
+            .map { it.notification() }
+            .distinctUntilChanged()
+            .onEach { updateRunNotification(it) }
+            .launchIn(scope)
+        scope.launch {
+            active.placeControl(
+                settings.settings
+                    .first()
+                    .controlPosition
+                    ?.toPoint(),
+            )
+        }
     }
 
     override fun onStartCommand(
@@ -96,7 +121,7 @@ class OverlayService : Service() {
     ): Int {
         startForeground(
             NOTIFICATION_ID,
-            buildRunNotification(),
+            buildRunNotification(coordinator?.state?.value?.notification() ?: RunNotificationState()),
             ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
         )
 
@@ -134,30 +159,73 @@ class OverlayService : Service() {
         }
     }
 
-    private val callbacks =
-        object : OverlayCoordinator.Callbacks {
+    /** GX-7, GX-8, GX-11: starting a run, ending one, and the recovery that is neither. */
+    private val runCallbacks =
+        object : RunCallbacks {
             override fun onStart() {
                 val current = scenario ?: return
-                // OV-20: belt as well as braces. OverlayUiState.showStepPanel already refuses to
-                // draw the panel once a run exists; closing it here means the focusable window is
-                // gone before the first Gesture rather than one state update later.
-                coordinator?.update { copy(editing = null) }
+                // One run at a time. Start is only offered while stopped, but the state and the
+                // job are two facts and a second runner would dispatch into the first one's
+                // strokes — the job is the one that knows.
+                if (runJob?.isActive == true) return
+                // OV-20: belt as well as braces. OverlayUiState.showPanel already refuses to draw
+                // the panel once a run exists; closing it here means the focusable window is gone
+                // before the first Gesture rather than one state update later.
+                coordinator?.update { copy(panel = null) }
                 val dispatcher = accessibilityDispatcher() ?: return
                 val activeRunner = ScenarioRunner(dispatcher, dispatcher.gestureLimits)
                 runner = activeRunner
                 runJob =
                     scope.launch {
-                        activeRunner.run(current, overlayContext.currentScreenProfile()) { event ->
-                            coordinator?.update { applied(event, current.steps.size) }
+                        try {
+                            activeRunner.run(current, overlayContext.currentScreenProfile()) { event ->
+                                coordinator?.update { applied(event, current.steps.size) }
+                            }
+                        } finally {
+                            // OV-25: the run is over however it ended, and nothing else will say
+                            // so. A cancelled coroutine sends no Finished event, and the Overlay
+                            // would keep the state only a live runner can leave.
+                            runner = null
+                            coordinator?.update { settled() }
                         }
                     }
             }
 
+            /**
+             * OV-25: Stop is pressed when there is nothing to stop, and that is ordinary use.
+             *
+             * The notification offers Stop whenever a run is possible, and the tile and the
+             * control are reachable long before one and long after. [OverlayUiState.stopping]
+             * refuses the transition rather than the press: `Stopping` ends only when a runner
+             * reports back, so entering it without one strands the Overlay there — no Markers, no
+             * panel, and a Stop button wired to nothing.
+             */
             override fun onStop() {
                 runner?.requestStop()
-                coordinator?.update { copy(run = OverlayUiState.RunState.Stopping) }
+                coordinator?.update { stopping() }
             }
 
+            /**
+             * GX-11, first half: a single one-millisecond tap, which is cheap and usually enough.
+             *
+             * The corner is the least likely place on a screen to carry a control, and the point
+             * of the tap is not where it lands but that a complete down-and-up reaches the system.
+             * Whether this clears a latched touch is **unverified on hardware** — see
+             * android/docs/testing.md. The second half, cycling the service, is the user's to do
+             * from the Settings screen onboarding sends them to.
+             */
+            override fun onFreeTheTouch() {
+                val dispatcher = accessibilityDispatcher() ?: return
+                scope.launch {
+                    dispatcher.releaseEverything()
+                    dispatcher.dispatch(freeTheTouchGesture(ScreenPoint(0, 0)))
+                }
+            }
+        }
+
+    /** FS-15: every one of these is written to disk as it happens. There is no Save. */
+    private val editCallbacks =
+        object : EditCallbacks {
             /**
              * A new Step in the middle of the screen, then the panel open on it (`OV-23`).
              *
@@ -171,23 +239,6 @@ class OverlayService : Service() {
                 val added = newStep(ScreenPoint(profile.widthPixels / 2, profile.heightPixels / 2))
                 applyEdit(current.withStepAdded(added, profile))
                 openPanel(added.id)
-            }
-
-            /**
-             * GX-11, first half: a single one-millisecond tap, which is cheap and usually enough.
-             *
-             * The corner is the least likely place on a screen to carry a control, and the point
-             * of the tap is not where it lands but that a complete down-and-up reaches the system.
-             * Whether this clears a latched touch is **unverified on hardware** — see
-             * android/docs/testing.md. The second half, cycling the service, is offered by the
-             * onboarding screen, which is not built yet.
-             */
-            override fun onFreeTheTouch() {
-                val dispatcher = accessibilityDispatcher() ?: return
-                scope.launch {
-                    dispatcher.releaseEverything()
-                    dispatcher.dispatch(freeTheTouchGesture(ScreenPoint(0, 0)))
-                }
             }
 
             /**
@@ -209,18 +260,18 @@ class OverlayService : Service() {
                         ?.value
                         ?.editing
                         ?.draft
-                if (draft != null && draft.stepId == marker.stepId) {
-                    val movedStep =
-                        current
-                            .previewing(draft.toStep())
-                            .withMarkerMoved(marker, to)
-                            .steps
-                            .firstOrNull { it.id == draft.stepId } ?: return
-                    coordinator?.update {
-                        copy(editing = editing?.copy(draft = draft.withPointsFrom(movedStep)))
-                    }
-                } else {
+                if (draft == null || draft.stepId != marker.stepId) {
                     applyEdit(current.withMarkerMoved(marker, to))
+                    return
+                }
+                val movedStep =
+                    current
+                        .previewing(draft.toStep())
+                        .withMarkerMoved(marker, to)
+                        .steps
+                        .firstOrNull { it.id == draft.stepId } ?: return
+                coordinator?.update {
+                    withStep { open -> open.copy(step = open.step.copy(draft = draft.withPointsFrom(movedStep))) }
                 }
             }
 
@@ -229,16 +280,23 @@ class OverlayService : Service() {
                 openPanel(marker.stepId)
             }
 
+            override fun onStepOpened(stepId: UUID) {
+                openPanel(stepId)
+            }
+
             override fun onStepSaved(draft: StepDraft) {
                 val current = scenario ?: return
-                applyEdit(current.withStepReplaced(draft.toStep(), current.screenProfile ?: overlayContext.currentScreenProfile()))
-                coordinator?.update { copy(editing = null) }
+                val profile = current.screenProfile ?: overlayContext.currentScreenProfile()
+                applyEdit(current.withStepReplaced(draft.toStep(), profile))
+                coordinator?.update { copy(panel = null) }
             }
 
             override fun onStepDeleted(stepId: UUID) {
                 val current = scenario ?: return
                 applyEdit(current.withStepRemoved(stepId))
-                coordinator?.update { copy(editing = null) }
+                // The Scenario panel stays open: deleting from the list is one of several things
+                // being done there. The Step panel cannot, because its subject is gone.
+                coordinator?.update { copy(panel = if (editing?.draft?.stepId == stepId) null else panel) }
             }
 
             /**
@@ -257,12 +315,14 @@ class OverlayService : Service() {
                 applyEdit(moved)
                 val index = moved.steps.indexOfFirst { it.id == stepId }
                 coordinator?.update {
-                    copy(editing = editing?.copy(stepNumber = index + 1, stepCount = moved.steps.size))
+                    withStep { open ->
+                        open.copy(step = open.step.copy(stepNumber = index + 1, stepCount = moved.steps.size))
+                    }
                 }
             }
 
             /**
-             * OV-24: the only route to a Step that draws no Marker (`SM-8`).
+             * OV-24: how a Step that draws no Marker (`SM-8`) is reached from its neighbours.
              *
              * The panel refuses to walk away from unsaved edits, so nothing is discarded here —
              * [EditingStep.canGoBack] has already said no.
@@ -275,7 +335,45 @@ class OverlayService : Service() {
                 val index = current.steps.indexOfFirst { it.id == stepId }
                 current.steps.getOrNull(index + by)?.let { openPanel(it.id) }
             }
+
+            /** OV-28: the Scenario's own fields — its name, how often it runs, its countdown. */
+            override fun onScenarioChanged(scenario: Scenario) {
+                applyEdit(scenario)
+            }
         }
+
+    /** OV-14, OV-30: the Overlay as a thing on the screen rather than as an editor. */
+    private val shellCallbacks =
+        object : ShellCallbacks {
+            override fun onControlMoved(at: ScreenPoint) {
+                scope.launch { settings.setControlPosition(ControlPosition(at.x, at.y)) }
+            }
+
+            /** OV-30: the Overlay is not the only place Auto Click lives, and it says so. */
+            override fun onOpenApp() {
+                packageManager.getLaunchIntentForPackage(packageName)?.let {
+                    startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
+            }
+
+            override fun onCloseOverlay() {
+                stopSelf()
+            }
+        }
+
+    /**
+     * The three handed to the Overlay as one.
+     *
+     * Delegation rather than one object with fifteen methods in it. They answer to three different
+     * parts of the specification and change for three different reasons, and a single list of
+     * fifteen was how the last one stopped being readable.
+     */
+    private val callbacks =
+        object :
+            OverlayCallbacks,
+            RunCallbacks by runCallbacks,
+            EditCallbacks by editCallbacks,
+            ShellCallbacks by shellCallbacks {}
 
     /** FS-15: there is no Save button for the Scenario itself — editing it *is* saving it. */
     private fun applyEdit(edited: Scenario) {
@@ -285,7 +383,7 @@ class OverlayService : Service() {
     }
 
     /**
-     * Opens the Step panel on one Step (`OV-21`).
+     * Opens the panel on one Step (`OV-21`).
      *
      * [GestureLimits] come from the connected service rather than from the defaults, because
      * `SM-17` judges a Step against **this** device: a panel using the defaults would let a Step
@@ -298,14 +396,16 @@ class OverlayService : Service() {
         val limits = AutoClickAccessibilityService.instance?.gestureLimits ?: GestureLimits()
         coordinator?.update {
             copy(
-                editing =
-                    EditingStep(
-                        draft = current.steps[index].toDraft(current.screenProfile),
-                        original = current.steps[index],
-                        stepNumber = index + 1,
-                        stepCount = current.steps.size,
-                        limits = limits,
-                        profile = current.screenProfile,
+                panel =
+                    PanelState.StepEditor(
+                        EditingStep(
+                            draft = current.steps[index].toDraft(current.screenProfile),
+                            original = current.steps[index],
+                            stepNumber = index + 1,
+                            stepCount = current.steps.size,
+                            limits = limits,
+                            profile = current.screenProfile,
+                        ),
                     ),
             )
         }
@@ -340,6 +440,8 @@ class OverlayService : Service() {
     }
 }
 
+private fun ControlPosition.toPoint(): ScreenPoint = ScreenPoint(x, y)
+
 /** Turns a runner event into the shape the Overlay wears (OV-16, OV-17). */
 internal fun OverlayUiState.applied(
     event: RunEvent,
@@ -364,3 +466,24 @@ internal fun OverlayUiState.applied(
                 lastFinish = event.reason.takeIf { it != FinishReason.Completed },
             )
     }
+
+/**
+ * OV-25: Stop asked for while a run is in flight. Asked for at any other moment, nothing moves.
+ *
+ * `Stopping` is the one state the Overlay cannot leave by itself — it ends when the runner reports
+ * `Finished`, and a Stop pressed with no runner behind it would wait for a report that never
+ * comes. The cost of getting this wrong is not cosmetic: `showMarkers` and `showPanel` are both
+ * "nothing is running", so a stranded `Stopping` takes the whole editor with it.
+ */
+internal fun OverlayUiState.stopping(): OverlayUiState =
+    if (run is OverlayUiState.RunState.Stopped) this else copy(run = OverlayUiState.RunState.Stopping)
+
+/**
+ * OV-25: the run is over, however it ended.
+ *
+ * Belt to [applied]'s braces. `RunEvent.Finished` covers every ending the runner knows about, and
+ * a cancelled coroutine is the one it does not: the `finally` inside it still terminates the
+ * strokes (`GX-9`), but nobody is left to say so to the interface.
+ */
+internal fun OverlayUiState.settled(): OverlayUiState =
+    if (run is OverlayUiState.RunState.Stopped) this else copy(run = OverlayUiState.RunState.Stopped)

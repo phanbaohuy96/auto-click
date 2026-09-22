@@ -98,10 +98,29 @@ internal fun TextEntryField(
     onFocus: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    LabelledTextField(
+        label = stringResource(R.string.step_text),
+        value = value,
+        onValue = onValue,
+        onFocus = onFocus,
+        modifier = modifier,
+    )
+}
+
+/** A field holding one line of text, reporting its focus the same way [NumberField] does. */
+@Composable
+internal fun LabelledTextField(
+    label: String,
+    value: String,
+    onValue: (String) -> Unit,
+    onFocus: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     OutlinedTextField(
         value = value,
         onValueChange = onValue,
-        label = { Text(stringResource(R.string.step_text), style = MaterialTheme.typography.labelSmall) },
+        label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+        singleLine = true,
         modifier = modifier.fillMaxWidth().reportingFocus(onFocus),
     )
 }
