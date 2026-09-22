@@ -3,7 +3,7 @@
 The Android member of Auto Click. See the [repository README](../README.md) for the product, and
 [`../CONTEXT.md`](../CONTEXT.md) for the shared language.
 
-**Status: slice A1 is complete.** The app sets itself up, lists **Scenario**s, steps out of the way
+**Status: slice A1 is complete, and A2 records.** The app sets itself up, lists **Scenario**s, steps out of the way
 so you can author over the application you actually want to automate, drags its **Marker**s without
 taking the screen away from you, edits a **Step** and a **Scenario** in the panel, and runs through
 the accessibility service.
@@ -13,11 +13,12 @@ It has been run on an emulator (Pixel 10 Pro XL, API 37) and **never on a physic
 
 | Built | Not built yet |
 |---|---|
-| **Scenario / Step / Action × Target**, limits, validation ([03](docs/sdd/03-scenario-model.md)) | Recording (A2) — placing ten **Marker**s by hand is still the only way |
-| One directory per **Scenario** on disk, and a `DataStore` for what is not one ([04](docs/sdd/04-storage.md)) | Recognition (A3) and interface languages (A4) |
-| The runner, and every exit path releasing ([05](docs/sdd/05-gesture-execution.md)) | Trying one **Step** on its own, without running the **Scenario** |
-| The **Overlay**, **Marker**s, the movable control, both faces of the panel ([06](docs/sdd/06-overlay-and-markers.md)) | Renaming or duplicating a **Scenario** from the Activity |
-| Onboarding, including the Android 13 wall ([02](docs/sdd/02-permissions-and-onboarding.md)) | Anything at all on physical hardware |
+| **Scenario / Step / Action × Target**, limits, validation ([03](docs/sdd/03-scenario-model.md)) | Recording's *silent* mode, and recording a `multiTouch` ([08](docs/sdd/08-recording.md)) |
+| Recording, with pass-through, keeping real timing ([08](docs/sdd/08-recording.md)) | Recognition (A3) and interface languages (A4) |
+| One directory per **Scenario** on disk, and a `DataStore` for what is not one ([04](docs/sdd/04-storage.md)) | Trying one **Step** on its own, without running the **Scenario** |
+| The runner, and every exit path releasing ([05](docs/sdd/05-gesture-execution.md)) | Renaming or duplicating a **Scenario** from the Activity |
+| The **Overlay**, **Marker**s, the movable control, both faces of the panel ([06](docs/sdd/06-overlay-and-markers.md)) | Anything at all on physical hardware |
+| Onboarding, including the Android 13 wall ([02](docs/sdd/02-permissions-and-onboarding.md)) | |
 
 ## Where to read what
 
@@ -32,6 +33,7 @@ It has been run on an emulator (Pixel 10 Pro XL, API 37) and **never on a physic
 | [`docs/sdd/05-gesture-execution.md`](docs/sdd/05-gesture-execution.md) | What happens when the user presses Stop, and why that is most of the code |
 | [`docs/sdd/06-overlay-and-markers.md`](docs/sdd/06-overlay-and-markers.md) | Why a Marker is a window of its own, and why Stop is re-attached last |
 | [`docs/sdd/07-design-system.md`](docs/sdd/07-design-system.md) | Why the Overlay is dark at every hour of the day |
+| [`docs/sdd/08-recording.md`](docs/sdd/08-recording.md) | Why recording has to swallow a touch and then hand it back |
 | [`docs/adr/`](docs/adr/) | Android decisions, numbered from 0012 in the product-wide sequence |
 | [`docs/landscape.md`](docs/landscape.md) | What the competing apps do, what users punish them for, and our answers |
 | [`docs/testing.md`](docs/testing.md) | Three tiers, and what is honestly not verified yet |

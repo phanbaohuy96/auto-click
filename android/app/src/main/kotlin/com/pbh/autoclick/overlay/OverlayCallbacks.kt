@@ -4,17 +4,20 @@ import com.pbh.autoclick.domain.editor.StepDraft
 import com.pbh.autoclick.domain.overlay.Marker
 import com.pbh.autoclick.domain.scenario.Scenario
 import com.pbh.autoclick.domain.scenario.ScreenPoint
+import com.pbh.autoclick.overlay.ui.RecordingEvent
 import java.util.UUID
 
 /**
  * What the Overlay asks the service to do. Nothing in the Overlay decides anything by itself.
  *
- * Three interfaces rather than one list of fifteen methods, because they answer to three different
- * parts of the specification and change for three different reasons: running a Scenario (`GX-*`),
- * editing one (`SM-*`, `OV-21` to `OV-28`), and the Overlay's own existence (`OV-14`, `OV-30`).
+ * Four interfaces rather than one list of eighteen methods, because they answer to four different
+ * parts of the specification and change for four different reasons: running a Scenario (`GX-*`),
+ * recording one (`RD-*`), editing one (`SM-*`, `OV-21` to `OV-28`), and the Overlay's own
+ * existence (`OV-14`, `OV-30`).
  */
 interface OverlayCallbacks :
     RunCallbacks,
+    RecordCallbacks,
     EditCallbacks,
     ShellCallbacks
 
@@ -25,6 +28,16 @@ interface RunCallbacks {
     fun onStop()
 
     fun onFreeTheTouch()
+}
+
+/** RD-1 to RD-8: recording a session of real touches and turning it into Steps. */
+interface RecordCallbacks {
+    fun onRecord()
+
+    fun onStopRecording()
+
+    /** RD-2: one touch event, with Android's `MotionEvent` left at the boundary. */
+    fun onRecordingEvent(event: RecordingEvent)
 }
 
 /** Everything that changes the open Scenario. Each of these is written to disk at once (`FS-15`). */

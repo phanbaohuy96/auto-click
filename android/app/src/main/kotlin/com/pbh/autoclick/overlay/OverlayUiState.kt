@@ -34,6 +34,8 @@ data class OverlayUiState(
     val collapsed: Boolean = false,
     /** OV-21, OV-28: what the one panel window is showing, or null when it is closed. */
     val panel: PanelState? = null,
+    /** RD-1: the session in progress, or null when nothing is being recorded. */
+    val recording: RecordingSession? = null,
     /**
      * The Screen profile this Scenario's coordinates are measured against (`SM-14`), once it has
      * one.
@@ -52,8 +54,14 @@ data class OverlayUiState(
     /** Anything at all in flight: counting down, walking Steps, or finishing a stroke. */
     val running: Boolean get() = run !is RunState.Stopped
 
-    /** OV-11: Markers would be tapped by the very Gestures they describe. */
-    val showMarkers: Boolean get() = !running
+    /** RD-1: recording, like running, is a state in which the editor has to be out of the way. */
+    val isRecording: Boolean get() = recording != null
+
+    /**
+     * OV-11, RD-1: Markers would be tapped by the very Gestures they describe — and, while
+     * recording, they would swallow the touches meant for the application underneath.
+     */
+    val showMarkers: Boolean get() = !running && !isRecording
 
     /**
      * OV-20: the panel is open only while nothing is running.
@@ -62,7 +70,7 @@ data class OverlayUiState(
      * input focus, so "it is closed before a run starts" has to be a property of the state and not
      * a call somebody remembers to make. A `setText` Step therefore never has this window to find.
      */
-    val showPanel: Boolean get() = panel != null && !running
+    val showPanel: Boolean get() = panel != null && !running && !isRecording
 
     /** OV-20: the window drops FLAG_NOT_FOCUSABLE only while a field in it holds the caret. */
     val typing: Boolean get() = showPanel && panel?.typing == true
@@ -90,6 +98,18 @@ data class OverlayUiState(
         data object Stopping : RunState
     }
 }
+
+/**
+ * A recording session in progress (`RD-1`).
+ *
+ * [listening] is false only for the moment a recorded touch is being handed back to the
+ * application underneath (`RD-5`). The layer has to stop taking touches for exactly that long, or
+ * it records its own re-emission and the session never ends.
+ */
+data class RecordingSession(
+    val touches: Int = 0,
+    val listening: Boolean = true,
+)
 
 /**
  * The two things the panel window can be showing (OV-21, OV-28).

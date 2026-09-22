@@ -8,6 +8,7 @@ import android.hardware.display.DisplayManager
 import android.os.IBinder
 import android.util.Log
 import android.view.Display
+import android.view.ViewConfiguration
 import android.view.WindowManager
 import com.pbh.autoclick.domain.editor.StepDraft
 import com.pbh.autoclick.domain.editor.newStep
@@ -19,9 +20,11 @@ import com.pbh.autoclick.domain.editor.withStepAdded
 import com.pbh.autoclick.domain.editor.withStepMoved
 import com.pbh.autoclick.domain.editor.withStepRemoved
 import com.pbh.autoclick.domain.editor.withStepReplaced
+import com.pbh.autoclick.domain.editor.withStepsAdded
 import com.pbh.autoclick.domain.model.AppResult
 import com.pbh.autoclick.domain.overlay.Marker
 import com.pbh.autoclick.domain.overlay.withMarkerMoved
+import com.pbh.autoclick.domain.recording.toSteps
 import com.pbh.autoclick.domain.repository.ScenarioRepository
 import com.pbh.autoclick.domain.run.FinishReason
 import com.pbh.autoclick.domain.run.RunEvent
@@ -32,6 +35,7 @@ import com.pbh.autoclick.domain.scenario.Scenario
 import com.pbh.autoclick.domain.scenario.ScreenPoint
 import com.pbh.autoclick.domain.settings.ControlPosition
 import com.pbh.autoclick.domain.settings.SettingsRepository
+import com.pbh.autoclick.overlay.ui.RecordingEvent
 import com.pbh.autoclick.service.AutoClickAccessibilityService
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -39,6 +43,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -81,6 +86,10 @@ class OverlayService : Service() {
     private var coordinator: OverlayCoordinator? = null
     private var runner: ScenarioRunner? = null
     private var runJob: Job? = null
+    private var recorder: Recorder? = null
+
+    /** RD-5: true while a recorded touch is being handed back, so nothing records the handing. */
+    private var replaying = false
     private var scenario: Scenario? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -219,6 +228,89 @@ class OverlayService : Service() {
                 scope.launch {
                     dispatcher.releaseEverything()
                     dispatcher.dispatch(freeTheTouchGesture(ScreenPoint(0, 0)))
+                }
+            }
+        }
+
+    /**
+     * RD-1 to RD-8: a session of real touches, handed on to the application underneath as it goes.
+     *
+     * Recording is not a run and does not go through [ScenarioRunner]: nothing here is being
+     * replayed from a **Scenario**, it is being written into one. What the two share is that both
+     * take the editor off the screen, because a **Marker** left attached would swallow the very
+     * touches being recorded.
+     */
+    private val recordCallbacks =
+        object : RecordCallbacks {
+            override fun onRecord() {
+                if (scenario == null) return
+                val dispatcher = accessibilityDispatcher() ?: return
+                replaying = false
+                coordinator?.update { copy(panel = null, recording = RecordingSession()) }
+                recorder =
+                    Recorder(dispatcher) { touch ->
+                        coordinator?.update {
+                            copy(recording = recording?.copy(touches = recording.touches + 1))
+                        }
+                        Log.d(TAG, "recorded a touch of ${touch.durationMilliseconds}ms")
+                    }
+            }
+
+            /**
+             * RD-3, RD-8: the session becomes Steps and is added to the Scenario.
+             *
+             * `scaledTouchSlop` decides which of them are taps. It is the platform's own idea of
+             * how far a finger may wander while still meaning to stay still, and using anything
+             * else would disagree with every other app on the phone.
+             */
+            override fun onStopRecording() {
+                val current = scenario ?: return
+                val captured = recorder?.touches.orEmpty().toList()
+                recorder = null
+                replaying = false
+                coordinator?.update { copy(recording = null) }
+                if (captured.isEmpty()) return
+
+                val limits = AutoClickAccessibilityService.instance?.gestureLimits ?: GestureLimits()
+                val slop = ViewConfiguration.get(overlayContext).scaledTouchSlop
+                val profile = current.screenProfile ?: overlayContext.currentScreenProfile()
+                applyEdit(current.withStepsAdded(captured.toSteps(limits, slop), profile))
+            }
+
+            /**
+             * RD-5: the touch is recorded, then handed to whatever is underneath.
+             *
+             * A dispatched **Gesture** is delivered to the topmost window that accepts touches,
+             * and while recording that window is the recording layer — so without care the layer
+             * records its own re-emission, and one tap becomes two Steps. It did, on the first
+             * run: one tap, `recorded a touch of 0ms` and `recorded a touch of 1ms`, 41ms apart.
+             *
+             * Two guards, because one was not enough. The layer's touchable flag goes away for the
+             * length of the re-emission, which is what lets the touch reach the application at
+             * all; and [replaying] refuses events outright, because `updateViewLayout` is not
+             * applied the instant it is called and the gap is exactly long enough for a synthetic
+             * tap to slip through it.
+             *
+             * The cost is written down rather than hidden: a real touch arriving inside that
+             * window reaches the application and is **not recorded**. For a tap it is a few tens
+             * of milliseconds.
+             */
+            override fun onRecordingEvent(event: RecordingEvent) {
+                if (replaying) return
+                val active = recorder ?: return
+                val gesture = active.accept(event) ?: return
+                replaying = true
+                scope.launch {
+                    try {
+                        coordinator?.update { copy(recording = recording?.copy(listening = false)) }
+                        delay(FLAG_SETTLE_MILLISECONDS)
+                        active.replay(gesture)
+                        // A second wait, so a trailing synthetic event is still refused.
+                        delay(FLAG_SETTLE_MILLISECONDS)
+                    } finally {
+                        replaying = false
+                        coordinator?.update { copy(recording = recording?.copy(listening = true)) }
+                    }
                 }
             }
         }
@@ -372,6 +464,7 @@ class OverlayService : Service() {
         object :
             OverlayCallbacks,
             RunCallbacks by runCallbacks,
+            RecordCallbacks by recordCallbacks,
             EditCallbacks by editCallbacks,
             ShellCallbacks by shellCallbacks {}
 
@@ -420,6 +513,9 @@ class OverlayService : Service() {
     companion object {
         private const val TAG = "OverlayService"
         internal const val NOTIFICATION_ID = 1
+
+        /** RD-5: long enough for `updateViewLayout` to have taken the touchable flag away. */
+        private const val FLAG_SETTLE_MILLISECONDS = 24L
 
         const val ACTION_OPEN = "com.pbh.autoclick.OPEN"
         const val ACTION_STOP = "com.pbh.autoclick.STOP"

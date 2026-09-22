@@ -35,4 +35,9 @@
     <string name="run_notification_ready">Sẵn sàng — chưa chạy gì</string>
     <string name="tile_free_the_touch">Gỡ chạm kẹt</string>
     <string name="run_notification_about_to_start">Sắp chạy</string>
+    <string name="overlay_record">Ghi</string>
+    <string name="overlay_stop_recording">Kết thúc ghi</string>
+    <plurals name="overlay_recorded">
+        <item quantity="other">Đang ghi · %1$d chạm</item>
+    </plurals>
 </resources>

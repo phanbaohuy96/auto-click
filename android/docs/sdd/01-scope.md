@@ -35,19 +35,17 @@ The surface the whole app is built on, and enough to be useful on its own.
 
 Done when a 15-step sequence of fixed taps runs in the right order, at speed, and Stop always works.
 
-### A2 — Recording
+### A2 — Recording  ✅ pass-through
 
 Placing ten to fifteen **Marker**s by hand, **every time the Scenario is edited**, is the difference
 between a tool that works and one that gets used. Recording is therefore ahead of recognition here,
 the reverse of the macOS order.
 
 - A full-screen **Overlay** swallows each touch and records it
-- **Two modes, chosen when the session starts.** *Pass-through* re-emits each touch as a **Gesture**
-  so the application underneath still reacts, which is what a sequence spanning several screens
-  needs and is the default. *Silent* does not re-emit at all: nothing underneath moves, which is
-  faster and safer for marking several points on one screen, where a re-emitted touch would both
-  slow the work down and risk setting something off. The second is the first minus one step, so the
-  choice costs almost nothing to offer.
+- **Pass-through** re-emits each touch as a **Gesture** so the application underneath still reacts,
+  which is what a sequence spanning several screens needs. **Built.** *Silent* — swallow and do not
+  re-emit, for marking several points on one screen — is the same thing minus one step and is
+  deferred; see [08](./08-recording.md).
 - Real timing is kept, as on macOS ([ADR-0004])
 - The recorded sequence becomes ordinary **Marker**s, editable like any others
 
