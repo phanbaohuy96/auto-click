@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The icon background. A radial gradient rather than a flat fill or a 45-degree fade: both of those
+  read as the default, and a light source that sits somewhere specific is what makes a surface look
+  like a surface. Off-black, never #000000.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="38"
+                android:centerY="32"
+                android:gradientRadius="96"
+                android:type="radial">
+                <item android:color="#FF242830" android:offset="0" />
+                <item android:color="#FF181B21" android:offset="0.55" />
+                <item android:color="#FF101216" android:offset="1" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

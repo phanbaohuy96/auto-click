@@ -80,7 +80,7 @@ fun Context.buildRunNotification(state: RunNotificationState): Notification =
         .Builder(this, CHANNEL_ID)
         .setContentTitle(title(state))
         .setContentText(text(state))
-        .setSmallIcon(android.R.drawable.ic_menu_manage)
+        .setSmallIcon(R.drawable.ic_notification)
         .setOngoing(true)
         .setOnlyAlertOnce(true)
         .apply {

@@ -25,11 +25,13 @@ fun AppScaffold(
         topBar = {
             if (title != null) {
                 TopAppBar(
-                    title = { Text(title) },
+                    title = { Text(title, style = AppTheme.typography.headlineSmall) },
                     actions = { actions() },
                     colors =
                         TopAppBarDefaults.topAppBarColors(
-                            containerColor = AppTheme.colors.surface,
+                            // The page colour, not the card colour. A bar in a different white
+                            // from the page it sits on is a seam that means nothing.
+                            containerColor = AppTheme.colors.background,
                             titleContentColor = AppTheme.colors.onSurface,
                             actionIconContentColor = AppTheme.colors.primary,
                         ),

@@ -1,3 +1,15 @@
-<resources>
-    <style name="Theme.AutoClick" parent="android:style/Theme.Material.Light.NoActionBar" />
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+      The window background behind Compose, and the launch screen in front of it.
+
+      Android draws the launcher icon on `windowSplashScreenBackground` before the first frame, so
+      left alone the app opens on whatever that happens to be. Naming it makes the moment
+      deliberate, and it is the same ink the Overlay uses — the first thing the user sees is the
+      thing the app actually looks like. Ignored below API 31, where there is no such screen.
+    -->
+    <style name="Theme.AutoClick" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#14161A</item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="s">@drawable/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="s">#14161A</item>
+    </style>
 </resources>

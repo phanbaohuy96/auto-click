@@ -1,6 +1,7 @@
 package com.pbh.autoclick.overlay.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,11 +21,13 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,44 +59,39 @@ fun FloatingControl(
         return
     }
 
-    Row(
-        modifier =
-            modifier
-                .clip(RoundedCornerShape(24.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .widthIn(max = 340.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Grip(actions)
+    OverlaySurface(modifier = modifier.widthIn(max = 340.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            DragGrip(onDragBy = actions.onDragBy, onDragFinished = actions.onDragFinished)
 
-        Column(
-            modifier = Modifier.padding(end = 8.dp, top = 6.dp, bottom = 6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            when (val run = state.run) {
-                OverlayUiState.RunState.Stopped -> {
-                    Caption(state)
-                    StoppedRow(actions)
+            Column(
+                modifier = Modifier.padding(end = 10.dp, top = 6.dp, bottom = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                when (val run = state.run) {
+                    OverlayUiState.RunState.Stopped -> {
+                        Caption(state)
+                        StoppedRow(actions)
+                    }
+
+                    is OverlayUiState.RunState.CountingDown ->
+                        RunningColumn(
+                            caption = stringResource(R.string.overlay_starting_in, run.remainingMilliseconds / 1000 + 1),
+                            actions = actions,
+                        )
+
+                    is OverlayUiState.RunState.Running ->
+                        RunningColumn(
+                            caption = stringResource(R.string.overlay_step_of, run.stepNumber, run.stepCount),
+                            actions = actions,
+                        )
+
+                    OverlayUiState.RunState.Stopping ->
+                        RunningColumn(
+                            caption = stringResource(R.string.overlay_stopping),
+                            actions = actions,
+                            onStop = null,
+                        )
                 }
-
-                is OverlayUiState.RunState.CountingDown ->
-                    RunningColumn(
-                        caption = stringResource(R.string.overlay_starting_in, run.remainingMilliseconds / 1000 + 1),
-                        actions = actions,
-                    )
-
-                is OverlayUiState.RunState.Running ->
-                    RunningColumn(
-                        caption = stringResource(R.string.overlay_step_of, run.stepNumber, run.stepCount),
-                        actions = actions,
-                    )
-
-                OverlayUiState.RunState.Stopping ->
-                    RunningColumn(
-                        caption = stringResource(R.string.overlay_stopping),
-                        actions = actions,
-                        onStop = null,
-                    )
             }
         }
     }
@@ -112,31 +110,6 @@ data class FloatingControlActions(
     val onDragFinished: () -> Unit,
 )
 
-/**
- * OV-14: what the user takes hold of to move the control.
- *
- * Its own target rather than the whole control, for two reasons. A drag that begins on a button
- * has to be told apart from a press of that button, and this way it never has to be; and a handle
- * that looks like a handle is the only thing on the control that says it can be moved at all.
- */
-@Composable
-private fun Grip(actions: FloatingControlActions) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier =
-            Modifier
-                .size(width = 24.dp, height = 48.dp)
-                .windowDragHandle(onDragBy = actions.onDragBy, onDragFinished = actions.onDragFinished),
-    ) {
-        Box(
-            Modifier
-                .size(width = 4.dp, height = 22.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.onSurfaceVariant),
-        )
-    }
-}
-
 @Composable
 private fun Caption(state: OverlayUiState) {
     val finish = state.lastFinish
@@ -151,13 +124,22 @@ private fun Caption(state: OverlayUiState) {
         )
         return
     }
-    Text(
-        text = "${state.scenarioName} · ${pluralStringResource(R.plurals.overlay_steps, state.stepCount, state.stepCount)}",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = state.scenarioName,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(weight = 1f, fill = false),
+        )
+        Text(
+            text = "  ${pluralStringResource(R.plurals.overlay_steps, state.stepCount, state.stepCount)}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+    }
 }
 
 @Composable
@@ -166,8 +148,14 @@ private fun StoppedRow(actions: FloatingControlActions) {
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // The one accent on the control: Start is what it is for, and everything else on the row
+        // is a way of getting ready to press it.
         IconButton(onClick = actions.onStart) {
-            Icon(Icons.Default.PlayArrow, contentDescription = stringResource(R.string.overlay_start))
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = stringResource(R.string.overlay_start),
+                tint = MaterialTheme.colorScheme.primary,
+            )
         }
         IconButton(onClick = actions.onAddStep) {
             Icon(Icons.Default.Add, contentDescription = stringResource(R.string.overlay_add_step))
@@ -198,17 +186,36 @@ private fun RunningColumn(
     onStop: (() -> Unit)? = actions.onStop,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(caption, style = MaterialTheme.typography.labelMedium)
+        Text(
+            text = caption,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { onStop?.invoke() }, enabled = onStop != null, modifier = Modifier.size(72.dp)) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(R.string.overlay_stop),
-                    modifier = Modifier.size(48.dp),
-                )
+            // Filled rather than outlined, and in the error colour: this is the button whose whole
+            // job is to be found without being looked for.
+            Surface(
+                onClick = { onStop?.invoke() },
+                enabled = onStop != null,
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+                modifier = Modifier.size(64.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.overlay_stop),
+                        modifier = Modifier.size(34.dp),
+                    )
+                }
             }
             IconButton(onClick = actions.onFreeTheTouch) {
-                Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.overlay_free_the_touch))
+                Icon(
+                    painter = painterResource(R.drawable.ic_free_the_touch),
+                    contentDescription = stringResource(R.string.overlay_free_the_touch),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -231,9 +238,10 @@ private fun CollapsedBubble(
         contentAlignment = Alignment.Center,
         modifier =
             modifier
-                .size(48.dp)
+                .size(50.dp)
                 .clip(CircleShape)
-                .background(if (state.running) colours.error else colours.primaryContainer)
+                .background(if (state.running) colours.error else colours.surfaceContainer)
+                .border(1.dp, colours.outline, CircleShape)
                 .windowDragHandle(
                     onDragBy = actions.onDragBy,
                     onDragFinished = actions.onDragFinished,
@@ -252,7 +260,7 @@ private fun CollapsedBubble(
             Icon(
                 imageVector = Icons.Default.PlayArrow,
                 contentDescription = stringResource(R.string.overlay_expand),
-                tint = colours.onPrimaryContainer,
+                tint = colours.primary,
             )
         }
     }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -37,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -163,9 +165,18 @@ private fun SetUpCard(onSetUp: () -> Unit) {
 /** An empty list is the first thing a new user sees, so it says what to do rather than "none". */
 @Composable
 private fun EmptyState() {
-    Column(Modifier.fillMaxWidth().padding(vertical = 32.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.scenario_none_title), style = MaterialTheme.typography.titleMedium)
-        Text(stringResource(R.string.scenario_none), style = MaterialTheme.typography.bodyMedium)
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = 40.dp, bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(stringResource(R.string.scenario_none_title), style = MaterialTheme.typography.headlineSmall)
+        Text(
+            text = stringResource(R.string.scenario_none),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // Roughly 65 characters, which is where a line stops being comfortable to read.
+            modifier = Modifier.widthIn(max = 460.dp),
+        )
     }
 }
 
@@ -175,13 +186,23 @@ private fun ScenarioRow(
     onOpen: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(Modifier.fillMaxWidth().clickable(enabled = !stored.readOnly, onClick = onOpen)) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(enabled = !stored.readOnly, onClick = onOpen),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text(stored.scenario.name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = stored.scenario.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     text =
                         if (stored.readOnly) {

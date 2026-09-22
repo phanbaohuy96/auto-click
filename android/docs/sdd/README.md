@@ -18,6 +18,8 @@ ambiguous about which platform it belongs to.
 | `FS` | Storage | [04](./04-storage.md) |
 | `GX` | Gesture execution | [05](./05-gesture-execution.md) |
 | `OV` | The Overlay and Markers | [06](./06-overlay-and-markers.md) |
+| `DS` | The design system | [07](./07-design-system.md) |
+| `AP` | Settings that are not a Scenario | [04](./04-storage.md) |
 
 macOS identifiers — `DM`, `EX`, `ST`, `UI`, `RC`, `RG`, `SF`, `LC` — keep their meaning when cited
 from here, and always link back to [`../../../docs/sdd/`](../../../docs/sdd/).

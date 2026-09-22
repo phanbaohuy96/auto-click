@@ -4,7 +4,7 @@ import android.content.Context
 import android.view.WindowManager
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pbh.autoclick.core.designsystem.AutoClickTheme
+import com.pbh.autoclick.core.designsystem.OverlayTheme
 import com.pbh.autoclick.core.overlay.OverlayLayoutParams
 import com.pbh.autoclick.core.overlay.OverlayWindow
 import com.pbh.autoclick.domain.editor.previewing
@@ -130,7 +130,7 @@ class OverlayCoordinator(
     private fun refreshControl() {
         val at = placement.displayed()
         control.show(OverlayLayoutParams.floating(x = at.x, y = at.y)) {
-            AutoClickTheme {
+            OverlayTheme {
                 val live by state.collectAsStateWithLifecycle()
                 FloatingControl(
                     state = live,
@@ -169,7 +169,7 @@ class OverlayCoordinator(
         panelTyping = current.typing
 
         panel.show(OverlayLayoutParams.panel(typing = current.typing)) {
-            AutoClickTheme {
+            OverlayTheme {
                 val live by state.collectAsStateWithLifecycle()
                 when (val open = live.panel) {
                     is PanelState.StepEditor ->
