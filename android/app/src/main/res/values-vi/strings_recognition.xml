@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="crop_target_title">Cắt hình bước này cần tìm</string>
+    <string name="crop_guard_title">Cắt hình bước này cần chờ</string>
+    <string name="crop_hint">Kéo một khung quanh nó</string>
+    <string name="crop_hint_ready">Thả ra để giữ, hoặc kéo lại</string>
+    <string name="crop_use">Dùng hình này</string>
+    <string name="crop_cancel">Huỷ</string>
+
+    <string name="recognition_section_find">Tìm trên màn hình</string>
+    <string name="recognition_section_guard">Chỉ khi</string>
+    <string name="recognition_find_add">Nhắm vào một hình</string>
+    <string name="recognition_guard_add">Thêm điều kiện</string>
+    <string name="recognition_remove">Bỏ</string>
+    <string name="recognition_recrop">Cắt lại</string>
+    <string name="recognition_fixed_point">Bước này bấm vào một điểm cố định</string>
+    <string name="recognition_no_guard">Bước này luôn chạy</string>
+    <string name="recognition_guard_present">Chờ đến khi nó hiện ra</string>
+    <string name="recognition_guard_absent">Chờ đến khi nó biến mất</string>
+    <string name="recognition_threshold">Độ khớp: %1$d%%</string>
+    <string name="recognition_wait">Chờ tối đa %1$s</string>
+    <string name="recognition_timeout_label">Khi hết thời gian chờ</string>
+    <string name="recognition_timeout_stop">Dừng kịch bản</string>
+    <string name="recognition_timeout_skip">Bỏ qua bước này</string>
+    <string name="recognition_region_near">Tìm quanh chỗ đã cắt</string>
+    <string name="recognition_region_all">Tìm cả màn hình</string>
+    <string name="recognition_region_widen">Tìm khắp màn hình</string>
+    <string name="recognition_missing">Hình này không còn trên máy</string>
+    <string name="recognition_preview">Hình bước này tìm</string>
+    <string name="recognition_row_finds">tìm một hình</string>
+    <string name="recognition_row_guarded">chờ một hình</string>
+
+    <string name="overlay_template_not_found">Bước %1$d không tìm thấy hình</string>
+    <string name="overlay_guard_unmet">Bước %1$d vẫn đang chờ</string>
+    <string name="overlay_step_skipped">Đã bỏ qua bước %1$d</string>
+    <string name="overlay_step_of_skipped">Bước %1$d / %2$d · bỏ qua %3$d</string>
+</resources>

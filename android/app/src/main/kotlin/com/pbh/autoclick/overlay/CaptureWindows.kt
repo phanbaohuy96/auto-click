@@ -5,6 +5,8 @@ import android.view.WindowManager
 import com.pbh.autoclick.core.designsystem.OverlayTheme
 import com.pbh.autoclick.core.overlay.OverlayLayoutParams
 import com.pbh.autoclick.core.overlay.OverlayWindow
+import com.pbh.autoclick.domain.scenario.ScreenRegion
+import com.pbh.autoclick.overlay.ui.CropLayer
 import com.pbh.autoclick.overlay.ui.PickLayer
 import com.pbh.autoclick.overlay.ui.RecordingEvent
 import com.pbh.autoclick.overlay.ui.RecordingLayer
@@ -27,21 +29,56 @@ internal class CaptureWindows(
     windowManager: WindowManager,
     private val onRecordingEvent: (RecordingEvent) -> Unit,
     private val onPickEvent: (RecordingEvent) -> Unit,
+    private val onCropped: (ScreenRegion) -> Unit,
+    private val onCancelCrop: () -> Unit,
 ) {
     private val recording = OverlayWindow(context, windowManager)
     private val picking = OverlayWindow(context, windowManager)
+    private val cropping = OverlayWindow(context, windowManager)
 
     /** OV-13: part of what tells the coordinator the window stack has changed under the control. */
-    val signature: String get() = "${recording.isShowing}|${picking.isShowing}"
+    val signature: String get() = "${recording.isShowing}|${picking.isShowing}|${cropping.isShowing}"
 
     fun refresh(current: OverlayUiState) {
         refreshRecording(current)
         refreshPicking(current)
+        refreshCropping(current)
     }
 
     fun dismiss() {
+        cropping.dismiss()
         picking.dismiss()
         recording.dismiss()
+    }
+
+    /**
+     * TP-7: the third layer, and the only one that shows the user something rather than taking it.
+     *
+     * Attached only once the frame has come back. While it has not, [CropState.frame] is null and
+     * **nothing at all** of Auto Click's is on the screen — which is the whole reason the frame is
+     * worth anything.
+     */
+    private fun refreshCropping(current: OverlayUiState) {
+        val frame = current.crop?.frame
+        val purpose = current.crop?.purpose
+        if (frame == null || purpose == null) {
+            cropping.dismiss()
+            return
+        }
+        val bounds = context.overlayBounds()
+        cropping.show(layout(listening = true)) {
+            OverlayTheme {
+                CropLayer(
+                    frame = frame,
+                    purpose = purpose,
+                    onConfirm = onCropped,
+                    onCancel = onCancelCrop,
+                    // OV-31: this window is measured against the display, so the system bars are
+                    // inside it rather than outside. The bar would otherwise sit on the clock.
+                    bounds = bounds,
+                )
+            }
+        }
     }
 
     /**
@@ -57,7 +94,7 @@ internal class CaptureWindows(
             return
         }
         recording.show(layout(listening = session.listening)) {
-            OverlayTheme { RecordingLayer(onTouch = onRecordingEvent) }
+            OverlayTheme { RecordingLayer(onTouch = onRecordingEvent, passThrough = session.passThrough) }
         }
     }
 

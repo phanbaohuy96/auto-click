@@ -18,6 +18,14 @@ data class AppSettings(
      * corner nobody picked.
      */
     val controlPosition: ControlPosition? = null,
+    /**
+     * IL-1: the interface language as an IETF tag, or null to follow the phone.
+     *
+     * Null is not "English". A phone set to Japanese shows Japanese without anybody choosing it,
+     * and only a choice made on purpose is stored — so a user who never opens the picker keeps
+     * following their phone for ever, including after they change it.
+     */
+    val languageTag: String? = null,
 )
 
 data class ControlPosition(
@@ -30,4 +38,7 @@ interface SettingsRepository {
     val settings: Flow<AppSettings>
 
     suspend fun setControlPosition(position: ControlPosition)
+
+    /** IL-1: null puts it back to following the phone. */
+    suspend fun setLanguageTag(tag: String?)
 }

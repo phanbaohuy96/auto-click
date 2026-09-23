@@ -22,6 +22,15 @@ fun Step.clampedToLimits(): Step =
         action = action.clampedToLimits(),
         repeatCount = repeatCount.clampedTo(ScenarioLimits.stepRepeatCount),
         delayMillisecondsAfter = delayMillisecondsAfter.clampedTo(ScenarioLimits.delayMilliseconds),
+        search = search?.clampedToLimits(),
+        guard = guard?.let { it.copy(search = it.search.clampedToLimits()) },
+    )
+
+/** TP-30: the two numbers recognition added, clamped by the same rule as every other one. */
+fun TemplateSearch.clampedToLimits(): TemplateSearch =
+    copy(
+        threshold = threshold.coerceIn(ScenarioLimits.matchThreshold),
+        waitMilliseconds = waitMilliseconds.clampedTo(ScenarioLimits.waitMilliseconds),
     )
 
 private fun RunCount.clampedToLimits(): RunCount =

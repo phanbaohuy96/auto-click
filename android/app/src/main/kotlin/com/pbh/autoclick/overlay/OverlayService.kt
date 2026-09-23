@@ -5,12 +5,17 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.hardware.display.DisplayManager
 import android.os.IBinder
 import android.util.Log
 import android.view.Display
 import android.view.ViewConfiguration
 import android.view.WindowManager
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import com.pbh.autoclick.core.ui.AppLanguage
+import com.pbh.autoclick.core.ui.localisedFor
 import com.pbh.autoclick.domain.editor.StepDraft
 import com.pbh.autoclick.domain.editor.previewing
 import com.pbh.autoclick.domain.editor.rebuiltFor
@@ -25,16 +30,24 @@ import com.pbh.autoclick.domain.editor.withStepsAdded
 import com.pbh.autoclick.domain.model.AppResult
 import com.pbh.autoclick.domain.overlay.Marker
 import com.pbh.autoclick.domain.overlay.withMarkerMoved
+import com.pbh.autoclick.domain.recognition.TemplateFinder
 import com.pbh.autoclick.domain.recording.toPickedStep
 import com.pbh.autoclick.domain.recording.toSteps
 import com.pbh.autoclick.domain.repository.ScenarioRepository
+import com.pbh.autoclick.domain.repository.TemplateFiles
 import com.pbh.autoclick.domain.run.FinishReason
 import com.pbh.autoclick.domain.run.RunEvent
 import com.pbh.autoclick.domain.run.ScenarioRunner
 import com.pbh.autoclick.domain.run.freeTheTouchGesture
 import com.pbh.autoclick.domain.scenario.GestureLimits
+import com.pbh.autoclick.domain.scenario.Guard
+import com.pbh.autoclick.domain.scenario.RunCount
 import com.pbh.autoclick.domain.scenario.Scenario
 import com.pbh.autoclick.domain.scenario.ScreenPoint
+import com.pbh.autoclick.domain.scenario.ScreenRegion
+import com.pbh.autoclick.domain.scenario.Step
+import com.pbh.autoclick.domain.scenario.TemplateSearch
+import com.pbh.autoclick.domain.scenario.paddedForSearch
 import com.pbh.autoclick.domain.settings.ControlPosition
 import com.pbh.autoclick.domain.settings.SettingsRepository
 import com.pbh.autoclick.overlay.ui.RecordingEvent
@@ -70,6 +83,10 @@ class OverlayService : Service() {
     @Inject
     lateinit var settings: SettingsRepository
 
+    /** TP-27: the pixels of this Scenario's Templates, beside its scenario.json. */
+    @Inject
+    lateinit var templates: TemplateFiles
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     /**
@@ -92,13 +109,23 @@ class OverlayService : Service() {
 
     /** RD-5: true while a recorded touch is being handed back, so nothing records the handing. */
     private var replaying = false
+
+    /**
+     * TP-7: the still frame being cropped, kept as a Bitmap rather than only as what is drawn.
+     *
+     * The Overlay shows an `ImageBitmap` and the crop has to come out of the real pixels, so both
+     * exist for as long as the crop does and neither outlives it.
+     */
+    private var cropFrame: Bitmap? = null
     private var scenario: Scenario? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
-        createRunNotificationChannel()
+        // IL-3: the notification is not Compose, so it does not get the language for free. It is
+        // also the one part of the interface that is read while another application is in front.
+        withLanguage().createRunNotificationChannel()
         val display = getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)
         overlayContext = createWindowContext(display, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, null)
         val active =
@@ -113,7 +140,7 @@ class OverlayService : Service() {
         active.state
             .map { it.notification() }
             .distinctUntilChanged()
-            .onEach { updateRunNotification(it) }
+            .onEach { withLanguage().updateRunNotification(it) }
             .launchIn(scope)
         scope.launch {
             active.placeControl(
@@ -132,7 +159,7 @@ class OverlayService : Service() {
     ): Int {
         startForeground(
             NOTIFICATION_ID,
-            buildRunNotification(coordinator?.state?.value?.notification() ?: RunNotificationState()),
+            withLanguage().buildRunNotification(coordinator?.state?.value?.notification() ?: RunNotificationState()),
             ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
         )
 
@@ -182,6 +209,9 @@ class OverlayService : Service() {
                 is AppResult.Success -> {
                     scenario = loaded.data.scenario
                     coordinator?.show(loaded.data.scenario)
+                    // TP-27: opening is the one moment with no draft anywhere, so it is the one
+                    // moment a Template nothing refers to is safe to delete.
+                    templates.sweep(id, loaded.data.scenario.templateIds)
                 }
 
                 is AppResult.Failure -> {
@@ -197,31 +227,34 @@ class OverlayService : Service() {
         object : RunCallbacks {
             override fun onStart() {
                 val current = scenario ?: return
-                // One run at a time. Start is only offered while stopped, but the state and the
-                // job are two facts and a second runner would dispatch into the first one's
-                // strokes — the job is the one that knows.
-                if (runJob?.isActive == true) return
                 // OV-20: belt as well as braces. OverlayUiState.showPanel already refuses to draw
                 // the panel once a run exists; closing it here means the focusable window is gone
                 // before the first Gesture rather than one state update later.
                 coordinator?.update { copy(panel = null) }
-                val dispatcher = accessibilityDispatcher() ?: return
-                val activeRunner = ScenarioRunner(dispatcher, dispatcher.gestureLimits)
-                runner = activeRunner
-                runJob =
-                    scope.launch {
-                        try {
-                            activeRunner.run(current, overlayContext.currentScreenProfile()) { event ->
-                                coordinator?.update { applied(event, current.steps.size) }
-                            }
-                        } finally {
-                            // OV-25: the run is over however it ended, and nothing else will say
-                            // so. A cancelled coroutine sends no Finished event, and the Overlay
-                            // would keep the state only a live runner can leave.
-                            runner = null
-                            coordinator?.update { settled() }
-                        }
-                    }
+                startRun(current)
+            }
+
+            /**
+             * One Step, on its own, with the panel left where it is.
+             *
+             * The panel is not closed, only hidden — `OverlayUiState.showPanel` is false while
+             * anything runs, so it goes away for the length of the try and comes back with the
+             * draft still in it. Closing it would make Try cost the user their edits, which is
+             * the opposite of what a Try is for.
+             *
+             * The countdown is dropped: the finger that pressed Try is already on the panel, not
+             * over the target, and three seconds of waiting to see one tap is three seconds of
+             * wondering whether the button worked. Nothing is written — [applyEdit] is not called.
+             */
+            override fun onTryStep(draft: StepDraft) {
+                val current = scenario ?: return
+                startRun(
+                    current.copy(
+                        steps = listOf(draft.toStep()),
+                        runCount = RunCount.Times(1),
+                        countdownMilliseconds = 0,
+                    ),
+                )
             }
 
             /**
@@ -296,11 +329,11 @@ class OverlayService : Service() {
      */
     private val recordCallbacks =
         object : RecordCallbacks {
-            override fun onRecord() {
+            override fun onRecord(passThrough: Boolean) {
                 if (scenario == null) return
                 val dispatcher = accessibilityDispatcher() ?: return
                 replaying = false
-                coordinator?.update { copy(panel = null, recording = RecordingSession()) }
+                coordinator?.update { copy(panel = null, recording = RecordingSession(passThrough = passThrough)) }
                 recorder =
                     Recorder(dispatcher) { touch ->
                         coordinator?.update {
@@ -350,9 +383,19 @@ class OverlayService : Service() {
              * of milliseconds.
              */
             override fun onRecordingEvent(event: RecordingEvent) {
-                if (replaying) return
-                val active = recorder ?: return
+                val active = recorder?.takeUnless { replaying } ?: return
                 val gesture = active.accept(event) ?: return
+                // RD-9: silent mode is this method minus everything below it. The touch has been
+                // recorded and the application underneath is left exactly as it was, which is the
+                // whole point — marking six places on one screen without setting any of them off.
+                if (coordinator
+                        ?.state
+                        ?.value
+                        ?.recording
+                        ?.passThrough == false
+                ) {
+                    return
+                }
                 replaying = true
                 scope.launch {
                     try {
@@ -368,6 +411,80 @@ class OverlayService : Service() {
                 }
             }
         }
+
+    /**
+     * TP-7: the Overlay steps aside, one frame is taken, and the frame comes back to be cropped.
+     *
+     * The wait in the middle is the same wait macOS needed (`RG-5`) for the same reason: taking a
+     * window down is a request to the window manager rather than something that has happened by
+     * the time the call returns. Capturing too early bakes Auto Click's own panel into a
+     * **Template** that can then never match anything again.
+     */
+    private val cropCallbacks =
+        object : CropCallbacks {
+            override fun onCropTemplate(purpose: CropPurpose) {
+                if (scenario == null) return
+                val service = accessibilityDispatcher() ?: return
+                coordinator?.update { copy(crop = CropState(purpose)) }
+                scope.launch {
+                    delay(WINDOW_SETTLE_MILLISECONDS)
+                    val captured = service.captureScreen()?.fittedTo(overlayContext.currentScreenProfile())
+                    cropFrame = captured
+                    if (captured == null) {
+                        Log.w(TAG, "no frame came back, so there is nothing to crop")
+                        coordinator?.update { copy(crop = null) }
+                    } else {
+                        coordinator?.update { copy(crop = crop?.copy(frame = captured.asImageBitmap())) }
+                    }
+                }
+            }
+
+            override fun onCropped(region: ScreenRegion) {
+                val purpose =
+                    coordinator
+                        ?.state
+                        ?.value
+                        ?.crop
+                        ?.purpose
+                val cropped = cropFrame?.cropped(region)
+                val current = scenario
+                cropFrame = null
+                coordinator?.update { copy(crop = null) }
+                if (purpose == null || cropped == null || current == null) return
+                scope.launch { keepTemplate(current, purpose, region, cropped) }
+            }
+
+            override fun onCancelCrop() {
+                cropFrame = null
+                coordinator?.update { copy(crop = null) }
+            }
+        }
+
+    /**
+     * TP-8, TP-9, TP-23: the crop becomes a file, a search, and — for a Target — a Marker on it.
+     *
+     * The **Step**'s point moves to the centre of what was cropped, which is `TP-23` from the
+     * other end: the **Marker** ends up on the thing the user just drew a box around, which is
+     * where the **Step** will act if the match comes back where it was made.
+     */
+    private suspend fun keepTemplate(
+        current: Scenario,
+        purpose: CropPurpose,
+        region: ScreenRegion,
+        cropped: Bitmap,
+    ) {
+        val templateId = UUID.randomUUID()
+        if (!templates.write(current.id, templateId, cropped.toPng())) return
+        val profile = current.screenProfile ?: overlayContext.currentScreenProfile()
+        val search =
+            TemplateSearch(
+                templateId = templateId,
+                region = region.paddedForSearch(profile, overlayContext.resources.displayMetrics.density),
+            )
+        val centre = ScreenPoint(region.left + region.width / 2, region.top + region.height / 2)
+        val preview = cropped.asImageBitmap()
+        coordinator?.update { withTemplate(purpose, search, centre, preview) }
+    }
 
     /** FS-15: every one of these is written to disk as it happens. There is no Save. */
     private val editCallbacks =
@@ -538,8 +655,44 @@ class OverlayService : Service() {
             RunCallbacks by runCallbacks,
             RecordCallbacks by recordCallbacks,
             PickCallbacks by pickCallbacks,
+            CropCallbacks by cropCallbacks,
             EditCallbacks by editCallbacks,
             ShellCallbacks by shellCallbacks {}
+
+    /**
+     * GX-7: one run at a time, and everything a run needs built in one place.
+     *
+     * Start and Try differ in what they hand over and in nothing else. The job, rather than the
+     * state, is what knows whether a run is in flight: the two are separate facts, and a second
+     * runner would dispatch into the first one's strokes.
+     */
+    private fun startRun(toRun: Scenario) {
+        if (runJob?.isActive == true) return
+        val dispatcher = accessibilityDispatcher() ?: return
+        // TP-2, TP-27: one screen source and one Template cache for the whole run, so a Template
+        // is decoded once however many polls look for it.
+        val finder =
+            TemplateFinder(
+                screen = AccessibilityScreens { overlayContext.currentScreenProfile() },
+                templates = StoredTemplates(templates, toRun.id),
+            )
+        val activeRunner = ScenarioRunner(dispatcher, dispatcher.gestureLimits, finder)
+        runner = activeRunner
+        runJob =
+            scope.launch {
+                try {
+                    activeRunner.run(toRun, overlayContext.currentScreenProfile()) { event ->
+                        coordinator?.update { applied(event, toRun.steps.size) }
+                    }
+                } finally {
+                    // OV-25: the run is over however it ended, and nothing else will say so. A
+                    // cancelled coroutine sends no Finished event, and the Overlay would keep the
+                    // state only a live runner can leave.
+                    runner = null
+                    coordinator?.update { settled() }
+                }
+            }
+    }
 
     /** FS-15: there is no Save button for the Scenario itself — editing it *is* saving it. */
     private fun applyEdit(edited: Scenario) {
@@ -575,13 +728,17 @@ class OverlayService : Service() {
                     ),
             )
         }
+        // TP-29: the panel opens at once and the pictures follow. Decoding them is a file read and
+        // a decode, and a panel that waited for both would feel like a panel that had not opened.
+        scope.launch {
+            val previews = templates.previewsFor(current.id, current.steps[index])
+            coordinator?.update {
+                withStep { open ->
+                    if (open.step.draft.stepId == stepId) open.copy(step = open.step.copy(previews = previews)) else open
+                }
+            }
+        }
     }
-
-    private fun accessibilityDispatcher(): AutoClickAccessibilityService? =
-        AutoClickAccessibilityService.instance
-            ?: null.also { Log.w(TAG, "no accessibility service connected") }
-
-    private fun Intent.scenarioId(): UUID? = getStringExtra(EXTRA_SCENARIO_ID)?.let { runCatching { UUID.fromString(it) }.getOrNull() }
 
     companion object {
         private const val TAG = "OverlayService"
@@ -589,6 +746,16 @@ class OverlayService : Service() {
 
         /** RD-5: long enough for `updateViewLayout` to have taken the touchable flag away. */
         private const val FLAG_SETTLE_MILLISECONDS = 24L
+
+        /**
+         * TP-7: long enough for the screen to be Auto Click's no more.
+         *
+         * Two things have to have happened, and the longer of them sets this. The windows have to
+         * be gone, which `removeViewImmediate` now makes true before this delay starts; and the
+         * platform's own rate limit on `takeScreenshot` — about one call every 333 ms — has to
+         * have elapsed, or the capture is refused and the crop comes back empty.
+         */
+        private const val WINDOW_SETTLE_MILLISECONDS = 400L
 
         /** OV-37: long enough for the display's own metrics to have caught up with the rotation. */
         private const val ROTATION_SETTLE_MILLISECONDS = 400L
@@ -612,7 +779,52 @@ class OverlayService : Service() {
     }
 }
 
+/** IL-3: this Context with the chosen language on it, read fresh so a change is picked up. */
+private fun Context.withLanguage(): Context = localisedFor(AppLanguage.tag.value)
+
+/** GX-1: the connected service, or a line in the log saying why nothing happened. */
+private fun accessibilityDispatcher(): AutoClickAccessibilityService? =
+    AutoClickAccessibilityService.instance
+        ?: null.also { Log.w("OverlayService", "no accessibility service connected") }
+
+private fun Intent.scenarioId(): UUID? =
+    getStringExtra(OverlayService.EXTRA_SCENARIO_ID)?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+
+/** TP-29: every Template this Step refers to, decoded, so the panel can show what it looks for. */
+private suspend fun TemplateFiles.previewsFor(
+    scenarioId: UUID,
+    step: Step,
+): Map<UUID, ImageBitmap> =
+    listOfNotNull(step.search?.templateId, step.guard?.search?.templateId)
+        .distinct()
+        .mapNotNull { id -> decodedPreview(scenarioId, id)?.let { id to it } }
+        .toMap()
+
 private fun ControlPosition.toPoint(): ScreenPoint = ScreenPoint(x, y)
+
+/**
+ * TP-19, TP-23, TP-24: the crop, applied to whichever half of the draft asked for it.
+ *
+ * A Target crop moves the Step's point onto what was cropped; a Guard crop does not, because a
+ * Guard is a condition rather than a place — "press here once the advert is gone" means *here*,
+ * not *on the advert*.
+ */
+private fun OverlayUiState.withTemplate(
+    purpose: CropPurpose,
+    search: TemplateSearch,
+    centre: ScreenPoint,
+    preview: ImageBitmap,
+): OverlayUiState =
+    withStep { open ->
+        val draft =
+            when (purpose) {
+                CropPurpose.TARGET -> open.step.draft.copy(search = search, target = centre)
+                CropPurpose.GUARD -> open.step.draft.copy(guard = Guard(search))
+            }
+        open.copy(
+            step = open.step.copy(draft = draft, previews = open.step.previews + (search.templateId to preview)),
+        )
+    }
 
 /** Turns a runner event into the shape the Overlay wears (OV-16, OV-17). */
 internal fun OverlayUiState.applied(
@@ -624,10 +836,16 @@ internal fun OverlayUiState.applied(
             copy(
                 run = OverlayUiState.RunState.CountingDown(event.remainingMilliseconds),
                 lastFinish = null,
+                skippedSteps = 0,
             )
 
         is RunEvent.StepStarted ->
             copy(run = OverlayUiState.RunState.Running(event.stepIndex + 1, stepCount))
+
+        // TP-21: counted rather than announced. A skipped Step is not an error and must not read
+        // like one, but a run that quietly did nothing ten times over is the thing the user needs
+        // to be able to see.
+        is RunEvent.StepSkipped -> copy(skippedSteps = skippedSteps + 1)
 
         RunEvent.Stopping -> copy(run = OverlayUiState.RunState.Stopping)
 

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="crop_target_title">Recorta lo que busca este paso</string>
+    <string name="crop_guard_title">Recorta lo que espera este paso</string>
+    <string name="crop_hint">Arrastra un recuadro a su alrededor</string>
+    <string name="crop_hint_ready">Suelta para quedarte con esto, o arrastra otra vez</string>
+    <string name="crop_use">Usar esto</string>
+    <string name="crop_cancel">Cancelar</string>
+
+    <string name="recognition_section_find">Buscar en la pantalla</string>
+    <string name="recognition_section_guard">Solo cuando</string>
+    <string name="recognition_find_add">Apuntar a una imagen</string>
+    <string name="recognition_guard_add">Añadir una condición</string>
+    <string name="recognition_remove">Quitar</string>
+    <string name="recognition_recrop">Recortar otra vez</string>
+    <string name="recognition_fixed_point">Este paso pulsa un punto fijo</string>
+    <string name="recognition_no_guard">Este paso se ejecuta siempre</string>
+    <string name="recognition_guard_present">Esperar hasta que esté en la pantalla</string>
+    <string name="recognition_guard_absent">Esperar hasta que desaparezca</string>
+    <string name="recognition_threshold">Parecido exigido: %1$d%%</string>
+    <string name="recognition_wait">Esperar hasta %1$s</string>
+    <string name="recognition_timeout_label">Si se acaba la espera</string>
+    <string name="recognition_timeout_stop">Parar el escenario</string>
+    <string name="recognition_timeout_skip">Saltar este paso</string>
+    <string name="recognition_region_near">Buscando cerca de donde se recortó</string>
+    <string name="recognition_region_all">Buscando en toda la pantalla</string>
+    <string name="recognition_region_widen">Buscar en todas partes</string>
+    <string name="recognition_missing">Esta imagen ya no está en el teléfono</string>
+    <string name="recognition_preview">La imagen que busca este paso</string>
+    <string name="recognition_row_finds">busca una imagen</string>
+    <string name="recognition_row_guarded">espera una imagen</string>
+
+    <string name="overlay_template_not_found">El paso %1$d nunca encontró su imagen</string>
+    <string name="overlay_guard_unmet">El paso %1$d seguía esperando</string>
+    <string name="overlay_step_skipped">Paso %1$d saltado</string>
+    <string name="overlay_step_of_skipped">Paso %1$d de %2$d · %3$d saltados</string>
+</resources>

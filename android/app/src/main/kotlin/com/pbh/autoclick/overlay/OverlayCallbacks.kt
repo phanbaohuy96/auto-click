@@ -4,6 +4,7 @@ import com.pbh.autoclick.domain.editor.StepDraft
 import com.pbh.autoclick.domain.overlay.Marker
 import com.pbh.autoclick.domain.scenario.Scenario
 import com.pbh.autoclick.domain.scenario.ScreenPoint
+import com.pbh.autoclick.domain.scenario.ScreenRegion
 import com.pbh.autoclick.overlay.ui.RecordingEvent
 import java.util.UUID
 
@@ -19,12 +20,22 @@ interface OverlayCallbacks :
     RunCallbacks,
     RecordCallbacks,
     PickCallbacks,
+    CropCallbacks,
     EditCallbacks,
     ShellCallbacks
 
 /** GX-7, GX-8, GX-11: starting, stopping, and the one recovery that is not either. */
 interface RunCallbacks {
     fun onStart()
+
+    /**
+     * GX-1 for one Step: run **this draft**, on its own, without the Scenario around it.
+     *
+     * The draft rather than the Step on disk, because the question being asked is "does what I
+     * have just changed do what I meant", and a Try that ran the old version would answer a
+     * different question. Nothing is saved by trying.
+     */
+    fun onTryStep(draft: StepDraft)
 
     fun onStop()
 
@@ -33,7 +44,8 @@ interface RunCallbacks {
 
 /** RD-1 to RD-8: recording a session of real touches and turning it into Steps. */
 interface RecordCallbacks {
-    fun onRecord()
+    /** RD-5, RD-9: [passThrough] hands each touch back to the application; silent does not. */
+    fun onRecord(passThrough: Boolean)
 
     fun onStopRecording()
 
@@ -55,6 +67,24 @@ interface PickCallbacks {
 
     /** PK-3: leave aiming without creating anything. */
     fun onCancelPick()
+}
+
+/**
+ * TP-7: cropping a **Template** out of a still frame of the screen.
+ *
+ * Its own interface for the same reason [PickCallbacks] is not [RecordCallbacks]: all three take
+ * the Overlay off the screen and wait for a finger, and all three mean something different by it.
+ * Recording asks *what did you do*, picking asks *where do you mean*, and this asks *what does it
+ * look like*.
+ */
+interface CropCallbacks {
+    /** Takes the Overlay down, takes one frame, and puts the frame back up to be cropped. */
+    fun onCropTemplate(purpose: CropPurpose)
+
+    /** TP-8: the rectangle the user settled on, in raw display pixels. */
+    fun onCropped(region: ScreenRegion)
+
+    fun onCancelCrop()
 }
 
 /** Everything that changes the open Scenario. Each of these is written to disk at once (`FS-15`). */

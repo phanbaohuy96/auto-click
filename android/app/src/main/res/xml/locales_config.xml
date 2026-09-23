@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  IL-2: the languages this app has words for.
+
+  Android 13 reads this to offer Auto Click in Settings → Apps → Auto Click → Language. The app's
+  own picker (IL-1) does not need it: the picker swaps the resources itself, because most of this
+  interface is in the Overlay rather than in an Activity and an Overlay window is never recreated
+  for a configuration change. Declaring it anyway means the two agree — "follow the system" follows
+  the per-app language too, rather than pretending it does not exist.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="vi" />
+    <locale android:name="zh-CN" />
+    <locale android:name="ja" />
+    <locale android:name="es" />
+</locale-config>

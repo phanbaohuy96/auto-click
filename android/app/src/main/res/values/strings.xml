@@ -11,4 +11,10 @@
     <string name="scenario_delete_title">Delete “%1$s”?</string>
     <string name="scenario_delete_body">Its steps and its settings go with it. There is no undo.</string>
     <string name="scenario_none_title">Nothing here yet</string>
+    <string name="scenario_rename">Rename</string>
+    <string name="scenario_rename_title">Rename scenario</string>
+    <string name="scenario_duplicate">Duplicate</string>
+    <string name="scenario_more">More</string>
+    <string name="language">Language</string>
+    <string name="language_system">Follow the system</string>
 </resources>

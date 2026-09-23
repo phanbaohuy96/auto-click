@@ -3,6 +3,7 @@ package com.pbh.autoclick.domain.editor
 import com.pbh.autoclick.domain.scenario.GestureLimits
 import com.pbh.autoclick.domain.scenario.GesturePath
 import com.pbh.autoclick.domain.scenario.GlobalActionKind
+import com.pbh.autoclick.domain.scenario.Guard
 import com.pbh.autoclick.domain.scenario.ScenarioLimits
 import com.pbh.autoclick.domain.scenario.ScreenPoint
 import com.pbh.autoclick.domain.scenario.ScreenProfile
@@ -10,6 +11,7 @@ import com.pbh.autoclick.domain.scenario.Step
 import com.pbh.autoclick.domain.scenario.StepAction
 import com.pbh.autoclick.domain.scenario.StepTarget
 import com.pbh.autoclick.domain.scenario.StepViolation
+import com.pbh.autoclick.domain.scenario.TemplateSearch
 import com.pbh.autoclick.domain.scenario.violations
 import java.util.UUID
 
@@ -21,6 +23,14 @@ enum class StepActionKind {
     GLOBAL_ACTION,
     SET_TEXT,
 }
+
+/** TP-22, SM-8: whether a Step of this kind reads its Target at all. */
+val StepActionKind.usesTarget: Boolean
+    get() =
+        when (this) {
+            StepActionKind.TAP, StepActionKind.SWIPE, StepActionKind.MULTI_TOUCH -> true
+            StepActionKind.GLOBAL_ACTION, StepActionKind.SET_TEXT -> false
+        }
 
 /** The kind this Action already is, so the panel can show the right row selected. */
 val StepAction.kind: StepActionKind
@@ -58,6 +68,10 @@ data class StepDraft(
     val text: String = "",
     val repeatCount: Int = 1,
     val delayMillisecondsAfter: Int = ScenarioLimits.DEFAULT_DELAY_MILLISECONDS,
+    /** TP-19: the Template this Step aims at, or null when its point is simply its point. */
+    val search: TemplateSearch? = null,
+    /** TP-24: the condition waited for before the Action, or null when there is none. */
+    val guard: Guard? = null,
 )
 
 /** The Step this draft would save as. */
@@ -76,6 +90,9 @@ fun StepDraft.toStep(): Step =
         target = StepTarget(target),
         repeatCount = repeatCount,
         delayMillisecondsAfter = delayMillisecondsAfter,
+        // TP-22: kept whichever Action is in force, and read only by the three that use a Target.
+        search = search,
+        guard = guard,
     )
 
 /**
@@ -100,6 +117,8 @@ fun Step.toDraft(profile: ScreenProfile?): StepDraft {
         text = (current as? StepAction.SetText)?.text.orEmpty(),
         repeatCount = repeatCount,
         delayMillisecondsAfter = delayMillisecondsAfter,
+        search = search,
+        guard = guard,
     )
 }
 
@@ -112,7 +131,8 @@ fun Step.toDraft(profile: ScreenProfile?): StepDraft {
 fun StepDraft.violations(
     limits: GestureLimits = GestureLimits(),
     profile: ScreenProfile? = null,
-): List<StepViolation> = toStep().violations(limits, profile)
+    knownTemplates: Set<UUID>? = null,
+): List<StepViolation> = toStep().violations(limits, profile, knownTemplates)
 
 /**
  * One more contact for a multi-touch Step, placed beside the last one (`OV-9`).

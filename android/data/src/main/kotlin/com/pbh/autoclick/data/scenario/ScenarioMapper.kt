@@ -1,14 +1,19 @@
 package com.pbh.autoclick.data.scenario
 
 import com.pbh.autoclick.domain.repository.StoredScenario
+import com.pbh.autoclick.domain.scenario.Guard
+import com.pbh.autoclick.domain.scenario.OnTimeout
+import com.pbh.autoclick.domain.scenario.Presence
 import com.pbh.autoclick.domain.scenario.RunCount
 import com.pbh.autoclick.domain.scenario.Scenario
 import com.pbh.autoclick.domain.scenario.ScreenPoint
 import com.pbh.autoclick.domain.scenario.ScreenProfile
+import com.pbh.autoclick.domain.scenario.ScreenRegion
 import com.pbh.autoclick.domain.scenario.ScreenRotation
 import com.pbh.autoclick.domain.scenario.Step
 import com.pbh.autoclick.domain.scenario.StepAction
 import com.pbh.autoclick.domain.scenario.StepTarget
+import com.pbh.autoclick.domain.scenario.TemplateSearch
 import com.pbh.autoclick.domain.scenario.clampedToLimits
 import java.util.UUID
 
@@ -31,7 +36,10 @@ internal fun ScenarioDto.toDomain(): Scenario =
 
 internal fun Scenario.toDto(): ScenarioDto =
     ScenarioDto(
-        schemaVersion = StoredScenario.CURRENT_SCHEMA_VERSION,
+        // TP-28: the lowest version that can express this Scenario. A sequence of plain taps is
+        // still exactly a version 1 file, and writing 2 for it would make every Scenario on the
+        // phone unreadable to the previous build in exchange for nothing.
+        schemaVersion = if (usesRecognition) RECOGNITION_SCHEMA_VERSION else BASE_SCHEMA_VERSION,
         id = id.toString(),
         name = name,
         repeat = runCount.toDto(),
@@ -77,6 +85,8 @@ private fun StepDto.toDomain(): Step =
         target = StepTarget(ScreenPoint(target.x(), target.y())),
         repeatCount = repeat,
         delayMillisecondsAfter = delayMillisecondsAfter,
+        search = search?.toDomain(),
+        guard = guard?.toDomain(),
     )
 
 private fun Step.toDto(): StepDto =
@@ -86,6 +96,13 @@ private fun Step.toDto(): StepDto =
         target = TargetDto.Point(x = target.point.x, y = target.point.y),
         repeat = repeatCount,
         delayMillisecondsAfter = delayMillisecondsAfter,
+        search = search?.toDto(),
+        guard = guard?.toDto(),
     )
 
 private fun String.toUuidOrRandom(): UUID = runCatching { UUID.fromString(this) }.getOrElse { UUID.randomUUID() }
+
+/** FS-5: a file without recognition in it stays a version 1 file (TP-28). */
+private const val BASE_SCHEMA_VERSION = 1
+
+private const val RECOGNITION_SCHEMA_VERSION = 2

@@ -58,20 +58,37 @@ Two things the interface must be honest about rather than hide:
   arrives late and jerky. Swipes are better adjusted as **Marker**s afterwards. This is the
   platform's limit, not a shortcut.
 
-### A3 — Recognition
+### A3 — Recognition  ✅
 
-- A still frame via `takeScreenshot()` to crop a **Template**; MediaProjection for matching at speed
-- **Target** by **Template**; **Guard** by presence *or* absence
+Specified in [10](./10-recognition.md), where the prefix is `TP` — macOS already spends `RG` on
+recognition and `RC` on recording.
+
+- A still frame via `takeScreenshot()`, for cropping **and** for matching. **MediaProjection is
+  not used**: it asks the user for the screen every session, which would put a system dialogue in
+  front of Start, and the speed it buys is not speed this app can use — [ADR-0016].
+- **Target** by **Template**, as a modifier on the point rather than a second kind of **Target**;
+  **Guard** by presence *or* absence
 - Threshold, search region, timeout, and what to do when it expires ([`DM-16`])
-- Port `TemplateMatcher.swift` and `GrayImage.swift`, including two-scale matching ([ADR-0008])
+- Ported `TemplateMatcher.swift` and `GrayImage.swift`. **Two-scale matching was not ported**, and
+  `TP-18` says at length why: [ADR-0008] answers a problem a Mac has — two display scales inside
+  one coordinate space — and [ADR-0013] has already refused to run a **Scenario** against a screen
+  that is not the one it was built on.
+- Finding by **text** is *not* in this slice. macOS has it because Vision is in the SDK; the
+  Android equivalent is ML Kit, and this app is deliberately not distributed through Play.
 
-### A4 — Interface languages
+### A4 — Interface languages  ✅
 
-`en`, `vi`, `zh-Hans`, `ja`, `es`, as on macOS. Last, as on macOS.
+`en`, `vi`, `zh-Hans`, `ja`, `es`, as on macOS. Last, as on macOS. Specified in
+[11](./11-localisation.md), where the prefix is `IL` — macOS spends `LC` on localisation.
 
-The wrinkle to solve rather than inherit: the **Overlay** is not an Activity, so it does not receive
-a configuration change when the language changes. The problem [ADR-0010] solved on macOS returns
-here wearing different clothes.
+The wrinkle was solved rather than inherited: the **Overlay** is not an Activity, so it does not
+receive a configuration change when the language changes, and an Overlay window is never recreated
+for one. The answer is [ADR-0010]'s in Android's vocabulary — one process-wide value, swapped
+inside the single theme both surfaces pass through, with no restart and nothing recreated.
+
+`LocaleManager.setApplicationLocales` is not used: it arrives at API 33 while [ADR-0012] settled
+on 30, and it restarts the process to apply — which would take the **Overlay** off the screen of
+whatever the user was in the middle of automating.
 
 ## Out of scope
 
@@ -105,5 +122,7 @@ Stated explicitly so it does not get proposed again.
 [ADR-0010]: ../../../docs/adr/0010-strings-files-and-a-live-bundle-swap.md
 [ADR-0011]: ../../../docs/adr/0011-a-scenario-has-no-branches.md
 [ADR-0013]: ../adr/0013-coordinates-are-raw-pixels-bound-to-a-screen-profile.md
+[ADR-0012]: ../adr/0012-min-sdk-30.md
 [ADR-0014]: ../adr/0014-no-database.md
+[ADR-0016]: ../adr/0016-screenshots-come-from-the-accessibility-service.md
 [`DM-16`]: ../../../docs/sdd/02-data-model.md

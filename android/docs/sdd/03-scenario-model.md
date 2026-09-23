@@ -21,7 +21,7 @@ configurable, default three seconds. It is **not** a schedule — see the out-of
 **SM-4** `[A1]` A **Scenario** read from disk with no name is given `"Untitled scenario"`,
 deliberately **untranslated**. It is a repair value, not a name the user chose, and it is written
 back on the next save; translating it would let an interface setting rewrite user data, and would
-give the same damaged file a different name on every phone. Mirrors macOS `LC-11`.
+give the same damaged file a different name on every phone. Mirrors macOS `IL-11`.
 
 ## The Step
 

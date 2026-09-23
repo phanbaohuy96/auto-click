@@ -157,4 +157,5 @@ internal fun StepViolation.describe(): String =
         StepViolation.ZeroDuration -> stringResource(R.string.violation_zero_duration)
         is StepViolation.PointOutsideScreen -> stringResource(R.string.violation_point_outside, point.x, point.y)
         is StepViolation.TextTooLong -> stringResource(R.string.violation_text_too_long, length, maximum)
+        is StepViolation.TemplateMissing -> stringResource(R.string.recognition_missing)
     }

@@ -61,4 +61,7 @@
     <string name="scenario_rebuild_message">Các bước, thứ tự và nhịp chờ được giữ nguyên. Mọi điểm bị kéo vào trong màn hình này và phải nhắm lại.</string>
     <string name="scenario_rebuild_confirm">Dựng lại</string>
     <string name="scenario_rebuild_dismiss">Huỷ</string>
+    <string name="scenario_section_record">Ghi lại</string>
+    <string name="scenario_record_silent">Chỉ đánh dấu điểm</string>
+    <string name="scenario_record_silent_about">Mỗi lần chạm thành một bước, ứng dụng bên dưới không phản ứng</string>
 </resources>

@@ -14,6 +14,17 @@ sealed interface RunEvent {
         val iteration: Int,
     ) : RunEvent
 
+    /**
+     * TP-21: this Step's Guard or Template search ran out of time, and the user chose *skip*.
+     *
+     * Reported rather than passed over in silence. A Step that quietly does nothing is exactly the
+     * failure this app spends most of its code avoiding, and here it is a Step doing what it was
+     * told — which the user is entitled to see.
+     */
+    data class StepSkipped(
+        val stepIndex: Int,
+    ) : RunEvent
+
     /** GX-8: Stop was asked for and a stroke is still in flight. */
     data object Stopping : RunEvent
 
@@ -52,6 +63,16 @@ sealed interface FinishReason {
 
     /** GX-16: the system refused the global action. */
     data class GlobalActionRefused(
+        val stepIndex: Int,
+    ) : FinishReason
+
+    /** TP-21: the Template this Step aims at never appeared, and the user chose *stop*. */
+    data class TemplateNotFound(
+        val stepIndex: Int,
+    ) : FinishReason
+
+    /** TP-24: this Step's condition never came true, and the user chose *stop*. */
+    data class GuardUnmet(
         val stepIndex: Int,
     ) : FinishReason
 }

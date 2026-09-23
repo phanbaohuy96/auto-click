@@ -1,5 +1,6 @@
 package com.pbh.autoclick.overlay
 
+import androidx.compose.ui.graphics.ImageBitmap
 import com.pbh.autoclick.domain.editor.StepDraft
 import com.pbh.autoclick.domain.editor.toStep
 import com.pbh.autoclick.domain.editor.violations
@@ -38,6 +39,10 @@ data class OverlayUiState(
     val recording: RecordingSession? = null,
     /** PK-1: true while the Overlay is hidden and one gesture is being waited for. */
     val picking: Boolean = false,
+    /** TP-7: cropping a Template, or null when nothing is being cropped. */
+    val crop: CropState? = null,
+    /** TP-21: how many Steps this run has skipped because a wait ran out. */
+    val skippedSteps: Int = 0,
     /**
      * The Screen profile this Scenario's coordinates are measured against (`SM-14`), once it has
      * one.
@@ -64,6 +69,19 @@ data class OverlayUiState(
     /** PK-1: the user is aiming one Step at the screen underneath, and nothing may be in front of it. */
     val isPicking: Boolean get() = picking
 
+    /** TP-7: true from the moment the Overlay steps aside until the crop is taken or abandoned. */
+    val isCropping: Boolean get() = crop != null
+
+    /**
+     * TP-7: whether the floating control is on the screen at all.
+     *
+     * It is the one window that is otherwise always up — Stop has to be reachable (`OV-13`) — and
+     * cropping is the one moment it must not be. The frame is taken with nothing of Auto Click's
+     * on the screen, and afterwards the user needs every pixel of it to drag on. Nothing can be
+     * running while this is true, so no Stop is being hidden.
+     */
+    val showControl: Boolean get() = !isCropping
+
     /**
      * OV-11, RD-1, PK-1: Markers would be tapped by the very Gestures they describe; while
      * recording or picking they would swallow the touches meant for the application underneath.
@@ -71,7 +89,7 @@ data class OverlayUiState(
      * [collapsed] is in here too, and that is `OV-33`. Collapsing the control means "get out of my
      * way", and a dozen handles left scattered over the screen is not out of the way.
      */
-    val showMarkers: Boolean get() = !running && !isRecording && !isPicking && !collapsed
+    val showMarkers: Boolean get() = !running && !isRecording && !isPicking && !isCropping && !collapsed
 
     /**
      * OV-20: the panel is open only while nothing is running.
@@ -80,7 +98,8 @@ data class OverlayUiState(
      * input focus, so "it is closed before a run starts" has to be a property of the state and not
      * a call somebody remembers to make. A `setText` Step therefore never has this window to find.
      */
-    val showPanel: Boolean get() = panel != null && !running && !isRecording && !isPicking && !collapsed
+    val showPanel: Boolean
+        get() = panel != null && !running && !isRecording && !isPicking && !isCropping && !collapsed
 
     /** OV-20: the window drops FLAG_NOT_FOCUSABLE only while a field in it holds the caret. */
     val typing: Boolean get() = showPanel && panel?.typing == true
@@ -110,6 +129,30 @@ data class OverlayUiState(
 }
 
 /**
+ * Cropping a Template out of a still frame (`TP-7`).
+ *
+ * [frame] is null for the moment in between: the Overlay has taken itself off the screen and the
+ * frame has not come back yet. Nothing of Auto Click's is drawn in that moment, which is the whole
+ * reason for it — macOS had to hide a window and wait 120 ms for the window server to believe it
+ * (`RG-5`), and this is the same wait with the same reason.
+ */
+data class CropState(
+    val purpose: CropPurpose,
+    val frame: ImageBitmap? = null,
+)
+
+/**
+ * What the Template being cropped is for.
+ *
+ * The two are the same gesture and different destinations: one becomes the thing the Step aims at
+ * (`TP-19`), the other the condition it waits for (`TP-24`).
+ */
+enum class CropPurpose {
+    TARGET,
+    GUARD,
+}
+
+/**
  * A recording session in progress (`RD-1`).
  *
  * [listening] is false only for the moment a recorded touch is being handed back to the
@@ -119,6 +162,14 @@ data class OverlayUiState(
 data class RecordingSession(
     val touches: Int = 0,
     val listening: Boolean = true,
+    /**
+     * RD-9: false for a *silent* session, which swallows the touch and hands nothing back.
+     *
+     * The two modes are the same window with different promises, and the user has to be able to
+     * tell which one is in force — in pass-through the application underneath is advancing under
+     * synthetic touches (`RD-5`), and silently it is not moving at all. `RD-6`'s border says so.
+     */
+    val passThrough: Boolean = true,
 )
 
 /**
@@ -171,6 +222,15 @@ enum class PanelExit {
  */
 data class EditingStep(
     val draft: StepDraft,
+    /**
+     * TP-29: the pixels of every Template this Step refers to, decoded when the panel opened.
+     *
+     * Doing double duty on purpose. It is what the panel draws, so the user can see *which
+     * picture* a Step is looking for rather than a bare identifier — and its keys are the Templates
+     * that are actually on disk, which is exactly what `TP-29`'s check needs. A Template that
+     * could not be decoded is absent from both at once, and cannot be out of step with itself.
+     */
+    val previews: Map<UUID, ImageBitmap> = emptyMap(),
     /** The Step as saved, so the panel can tell whether there is anything to lose (`OV-24`). */
     val original: Step,
     /** OV-6: counting from 1, as the Marker shows it. */
@@ -180,7 +240,7 @@ data class EditingStep(
     val profile: ScreenProfile? = null,
 ) {
     /** SM-17: every reason this cannot be saved, all of them at once. */
-    val violations: List<StepViolation> get() = draft.violations(limits, profile)
+    val violations: List<StepViolation> get() = draft.violations(limits, profile, previews.keys)
 
     /** OV-22: Save is offered only when there is nothing wrong to save. */
     val canSave: Boolean get() = violations.isEmpty()

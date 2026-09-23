@@ -17,9 +17,10 @@ that has to clean both. That is the coupling ADR-0005 paid duplicated kilobytes 
 does not remove it; it only makes it easier to forget about. Keeping everything in one directory
 keeps delete = delete a directory and duplicate = copy a directory.
 
-Performance was considered and is not an argument in any direction. The hot loop is MediaProjection
-frames at 30–60 fps and two-scale matching over them; **Template**s are decoded once at the start of
-a run and live in memory afterwards, so storage contributes nothing to it. The one measurable
+Performance was considered and is not an argument in any direction. The hot loop is frames arriving
+and being searched — at about 2.5 a second rather than the 30–60 this originally assumed, see
+[ADR-0016](./0016-screenshots-come-from-the-accessibility-service.md); **Template**s are decoded
+once at the start of a run and live in memory afterwards, so storage contributes nothing to it. The one measurable
 difference favours files: opening the **Overlay** does not have to initialise a database, validate a
 schema and check migrations first, and that delay is one the user feels under their finger.
 

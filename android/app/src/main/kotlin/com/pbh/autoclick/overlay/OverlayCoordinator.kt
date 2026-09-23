@@ -45,6 +45,8 @@ class OverlayCoordinator(
             windowManager = windowManager,
             onRecordingEvent = callbacks::onRecordingEvent,
             onPickEvent = callbacks::onPickEvent,
+            onCropped = callbacks::onCropped,
+            onCancelCrop = callbacks::onCancelCrop,
         )
 
     private val _state = MutableStateFlow(OverlayUiState(screen = context.overlayScreen()))
@@ -162,6 +164,13 @@ class OverlayCoordinator(
         if (attached != null && attached != signature) control.dismiss()
         attached = signature
 
+        // TP-7: the one moment the control comes down. Nothing can be running while a Template
+        // is being cropped, so no Stop is being taken away.
+        if (!current.showControl) {
+            control.dismiss(immediate = true)
+            return
+        }
+
         val wasShowing = control.isShowing
         refreshControl()
         if (!wasShowing) placement.settle()
@@ -180,7 +189,7 @@ class OverlayCoordinator(
                             onStop = callbacks::onStop,
                             onAddStep = callbacks::onAddStep,
                             onCancelPick = callbacks::onCancelPick,
-                            onRecord = callbacks::onRecord,
+                            onRecord = { callbacks.onRecord(passThrough = true) },
                             onStopRecording = callbacks::onStopRecording,
                             onOpenPanel = { update { copy(panel = PanelState.ScenarioEditor()) } },
                             onDone = { update { done() } },
@@ -204,7 +213,9 @@ class OverlayCoordinator(
     private fun refreshPanel(current: OverlayUiState) {
         if (!current.showPanel) {
             panelSignature = null
-            panel.dismiss()
+            // TP-7: the panel is the biggest thing on the screen and the one most likely to be
+            // over whatever the user wants to crop.
+            panel.dismiss(immediate = current.isCropping)
             placement.keepClearOf()
             return
         }

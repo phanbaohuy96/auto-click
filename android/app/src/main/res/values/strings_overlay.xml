@@ -3,8 +3,6 @@
     <string name="overlay_start">Start</string>
     <string name="overlay_stop">Stop</string>
     <string name="overlay_add_step">Add a step</string>
-    <string name="overlay_place_markers">Move markers</string>
-    <string name="overlay_finish_placing">Done moving</string>
     <string name="overlay_free_the_touch">Free the touch</string>
     <string name="overlay_collapse">Collapse</string>
     <string name="overlay_open_panel">Steps and settings</string>
@@ -72,4 +70,7 @@
     <string name="scenario_rebuild_message">The steps, their order and their timing are kept. Every point is pulled inside this screen and has to be aimed again.</string>
     <string name="scenario_rebuild_confirm">Rebuild</string>
     <string name="scenario_rebuild_dismiss">Cancel</string>
+    <string name="scenario_section_record">Record</string>
+    <string name="scenario_record_silent">Mark points only</string>
+    <string name="scenario_record_silent_about">Taps become steps and the app underneath does not react</string>
 </resources>

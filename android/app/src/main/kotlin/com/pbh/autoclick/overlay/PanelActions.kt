@@ -22,6 +22,8 @@ internal fun stepPanelActions(
         onKeepEditing = { update { it.stayed() } },
         onDelete = { callbacks.onStepDeleted(editing.draft.stepId) },
         onGo = { by -> callbacks.onStepNavigated(editing.draft.stepId, by) },
+        onCropTemplate = callbacks::onCropTemplate,
+        onTry = { callbacks.onTryStep(editing.draft) },
     )
 
 /** FS-15: every one of these is the edit and the save at once — there is no Save for a Scenario. */
@@ -44,6 +46,7 @@ internal fun scenarioPanelActions(
         onAskRebuild = { update { it.withScenarioPanel { open -> open.copy(confirmingRebuild = true) } } },
         onKeepScreen = { update { it.withScenarioPanel { open -> open.copy(confirmingRebuild = false) } } },
         onRebuild = callbacks::onRebuildForThisScreen,
+        onRecordSilently = { callbacks.onRecord(passThrough = false) },
         onFreeTheTouch = callbacks::onFreeTheTouch,
         onOpenApp = callbacks::onOpenApp,
         onCloseOverlay = callbacks::onCloseOverlay,

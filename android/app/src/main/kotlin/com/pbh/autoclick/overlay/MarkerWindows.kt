@@ -46,7 +46,9 @@ class MarkerWindows(
      */
     fun refresh(current: OverlayUiState) {
         if (!current.showMarkers || current.markers.isEmpty()) {
-            dismiss()
+            // TP-7: a Marker still on the screen when the frame is taken is a Marker inside the
+            // Template, and a handle is 48 dp of Auto Click's own paint.
+            dismiss(immediate = current.isCropping)
             return
         }
 
@@ -64,10 +66,10 @@ class MarkerWindows(
         wanted.forEach { (key, marker) -> place(key, marker, diameter) }
     }
 
-    fun dismiss() {
-        handles.values.forEach { it.dismiss() }
+    fun dismiss(immediate: Boolean = false) {
+        handles.values.forEach { it.dismiss(immediate) }
         handles.clear()
-        lines.dismiss()
+        lines.dismiss(immediate)
     }
 
     private fun place(
@@ -96,6 +98,13 @@ class MarkerWindows(
                         onDragBy = { x, y -> moveBy(drawn, x, y) },
                         onDragFinished = {},
                         onTapped = { onTapped(drawn) },
+                        // TP-23: read from the Scenario rather than carried on the Marker, which
+                        // is arithmetic over points and has no business knowing about pictures.
+                        searching =
+                            live.scenario
+                                ?.steps
+                                ?.firstOrNull { it.id == drawn.stepId }
+                                ?.effectiveSearch != null,
                     )
                 }
             }

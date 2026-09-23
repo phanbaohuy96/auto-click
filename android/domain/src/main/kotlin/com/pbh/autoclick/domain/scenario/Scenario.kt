@@ -20,6 +20,20 @@ data class Scenario(
     /** SM-8: how many Markers the Overlay draws for this Scenario. */
     val markerCount: Int get() = steps.count { it.hasMarker }
 
+    /** TP-28: whether anything in here needs a schema an older build could not read. */
+    val usesRecognition: Boolean get() = steps.any { it.effectiveSearch != null || it.guard != null }
+
+    /**
+     * TP-27: every Template this Scenario still refers to, so the rest can be swept.
+     *
+     * Reads `search` rather than `effectiveSearch` on purpose. A search left on a Step whose
+     * Action stopped using a Target is ignored at run time (`TP-22`) and is still the user's
+     * picture — deleting the file because they tried `globalAction` for a moment would be losing
+     * their work to tidy a directory.
+     */
+    val templateIds: Set<UUID>
+        get() = steps.flatMap { listOfNotNull(it.search?.templateId, it.guard?.search?.templateId) }.toSet()
+
     companion object {
         /**
          * The name given to a Scenario whose scenario.json has none (SM-4).

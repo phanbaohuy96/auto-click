@@ -11,6 +11,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.pbh.autoclick.core.ui.Localised
 
 /** Complete theme configuration injected into [AutoClickTheme]. */
 @Immutable
@@ -154,7 +155,8 @@ fun AutoClickTheme(
             colorScheme = config.colorScheme,
             typography = config.typography,
             shapes = config.shapes,
-            content = content,
+            // IL-3: the one place both surfaces pass through, so neither can forget the language.
+            content = { Localised(content) },
         )
     }
 }

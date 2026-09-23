@@ -1,0 +1,54 @@
+<resources>
+    <string name="step_panel_title">第 %1$d / %2$d 步</string>
+    <string name="step_previous">上一步</string>
+    <string name="step_next">下一步</string>
+    <string name="step_move_up">往前移</string>
+    <string name="step_move_down">往后移</string>
+    <string name="step_delete">删除步骤</string>
+    <string name="step_cancel">取消</string>
+    <string name="step_save">保存</string>
+
+    <string name="step_kind_tap">点按</string>
+    <string name="step_kind_swipe">滑动</string>
+    <string name="step_kind_multi_touch">多点触控</string>
+    <string name="step_kind_global">系统</string>
+    <string name="step_kind_text">输入</string>
+
+    <string name="step_hold">按住（毫秒）</string>
+    <string name="step_duration">时长（毫秒）</string>
+    <string name="step_repeat">重复</string>
+    <string name="step_delay">然后等待（毫秒）</string>
+    <string name="step_text">文字</string>
+    <string name="step_contact">触点 %1$d（毫秒）</string>
+    <string name="step_add_contact">添加触点</string>
+    <string name="step_remove_contact">移除触点 %1$d</string>
+    <string name="step_points_hint">拖动屏幕上的标记来移动这些点。</string>
+    <string name="step_range">%1$d 到 %2$d</string>
+
+    <string name="global_back">返回</string>
+    <string name="global_home">主屏幕</string>
+    <string name="global_recents">最近任务</string>
+    <string name="global_notifications">通知栏</string>
+    <string name="global_quick_settings">快捷设置</string>
+    <string name="global_lock_screen">锁屏</string>
+    <string name="global_screenshot">截屏</string>
+
+    <string name="violation_too_many_paths">%1$d 个触点超过了本机允许的数量（%2$d）</string>
+    <string name="violation_too_few_paths">多点触控至少需要 %1$d 个触点</string>
+    <string name="violation_duration_too_long">%1$d 毫秒超过了本机允许的时长（%2$d 毫秒）</string>
+    <string name="violation_zero_duration">滑动需要时长 — 为零就成了点按</string>
+    <string name="violation_point_outside">点 %1$d, %2$d 在屏幕之外</string>
+    <string name="violation_text_too_long">%1$d 个字符超过了允许的 %2$d 个</string>
+    <string name="step_action_heading">这一步做什么</string>
+    <string name="step_about_tap">触摸一个点然后松开。</string>
+    <string name="step_about_swipe">从一个点拖到另一个点。两端都是屏幕上的标记。</string>
+    <string name="step_about_multi_touch">同时触摸多个点，比如捏合。</string>
+    <string name="step_about_global">按一个系统键：返回、主屏幕或最近任务。不触摸任何位置。</string>
+    <string name="step_about_text">输入到当前已有光标的输入框。不触摸任何位置。</string>
+    <string name="step_back_to_scenario">返回场景</string>
+    <string name="step_discard_title">放弃这些改动？</string>
+    <string name="step_discard_message">这一步有还没保存的改动。现在离开就会丢失。</string>
+    <string name="step_discard_confirm">放弃</string>
+    <string name="step_discard_dismiss">继续编辑</string>
+    <string name="step_try">试一下</string>
+</resources>

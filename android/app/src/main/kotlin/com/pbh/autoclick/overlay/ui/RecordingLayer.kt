@@ -32,8 +32,15 @@ private val RECORDING_BORDER = 4.dp
 fun RecordingLayer(
     onTouch: (RecordingEvent) -> Unit,
     modifier: Modifier = Modifier,
+    passThrough: Boolean = true,
 ) {
-    CaptureLayer(border = MaterialTheme.colorScheme.error, onTouch = onTouch, modifier = modifier)
+    // RD-9: red is "what you do is being done", the accent is "what you do is only being noted".
+    // Silent recording never touches the application underneath, so it never earns the red.
+    CaptureLayer(
+        border = if (passThrough) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+        onTouch = onTouch,
+        modifier = modifier,
+    )
 }
 
 /**

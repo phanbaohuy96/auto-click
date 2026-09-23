@@ -50,6 +50,40 @@ data class StepDto(
     val target: TargetDto,
     val repeat: Int = 1,
     val delayMillisecondsAfter: Int = 100,
+    /** TP-19: absent in a schema 1 file, and absent from any Step that aims at a plain point. */
+    val search: SearchDto? = null,
+    /** TP-24. */
+    val guard: GuardDto? = null,
+)
+
+/**
+ * A Template search on disk (TP-19, TP-21).
+ *
+ * `template` names a file under `templates/`, and `onTimeout` is a name rather than a number for
+ * the same reason `globalAction` is (SM-10): the file has to stay readable.
+ */
+@Serializable
+data class SearchDto(
+    val template: String,
+    val threshold: Double = 0.90,
+    val region: RegionDto? = null,
+    val waitMilliseconds: Int = 5_000,
+    val onTimeout: String = "STOP_SCENARIO",
+)
+
+/** FS-7 again: four named sides, never an array. */
+@Serializable
+data class RegionDto(
+    val left: Int,
+    val top: Int,
+    val right: Int,
+    val bottom: Int,
+)
+
+@Serializable
+data class GuardDto(
+    val search: SearchDto,
+    val expects: String = "PRESENT",
 )
 
 /** FS-7: separate `x` and `y`, never an array. */

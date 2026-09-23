@@ -18,6 +18,20 @@ object ScenarioLimits {
     /** Beyond this no field is a text field, it is a paste target (SM-16). */
     val setTextLength = 0..5_000
 
+    /** TP-30: below a half, a correlation score is noise with a number written on it. */
+    val matchThreshold = 0.50..1.00
+
+    /** TP-30: ten minutes. Past that a wait is a schedule, and scheduling is out of scope. */
+    val waitMilliseconds = 0..600_000
+
+    /**
+     * TP-8: the smallest Template worth cropping, in raw pixels.
+     *
+     * Below this there is not enough left to correlate against, and the match becomes a coin toss
+     * with a confident number written on it — which is worse than not matching.
+     */
+    const val MINIMUM_TEMPLATE_SIDE_PIXELS = 8
+
     /** Long enough for the finger that pressed Start to be out of the way (SM-3). */
     const val DEFAULT_COUNTDOWN_MILLISECONDS = 3_000
 
