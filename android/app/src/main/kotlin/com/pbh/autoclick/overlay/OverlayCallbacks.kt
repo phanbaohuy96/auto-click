@@ -91,6 +91,9 @@ interface EditCallbacks {
 
     /** OV-28: the Scenario's own fields — its name, how often it runs, its countdown. */
     fun onScenarioChanged(scenario: Scenario)
+
+    /** SM-18: re-measure this Scenario against the screen in front of the user. */
+    fun onRebuildForThisScreen()
 }
 
 /** The Overlay as a thing on the screen, rather than as an editor. */

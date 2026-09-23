@@ -155,6 +155,7 @@ class OverlayLayoutParamsTest {
                 OverlayLayoutParams.markerHandle(x = 0, y = 0),
                 OverlayLayoutParams.markerLines(1_344, 2_992),
                 OverlayLayoutParams.recordingLayer(1_344, 2_992, listening = true),
+                OverlayLayoutParams.sidePanel(typing = false, width = 1_100, displayHeight = 1_344, endInsetPixels = 0),
             )
 
         windows.forEach { assertTrue(!it.has(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)) }
@@ -164,6 +165,37 @@ class OverlayLayoutParamsTest {
     @Test
     fun `the panel is pushed down past the navigation bar`() {
         assertEquals(-72, OverlayLayoutParams.panel(typing = false, displayWidth = 1_344, bottomInsetPixels = 72).y)
+    }
+
+    /**
+     * OV-37: the landscape panel, which is the same window against a different edge.
+     *
+     * A bottom sheet on a screen 1344 pixels tall has a peek height a fifth of what it has in
+     * portrait, and every field in it stretched across 2992 pixels. Against the end edge it has
+     * the display's whole height and a width a form can be read at.
+     */
+    @Test
+    fun `the side panel is full height against the end edge`() {
+        val params = OverlayLayoutParams.sidePanel(typing = false, width = 1_100, displayHeight = 1_344, endInsetPixels = 72)
+
+        assertEquals(1_100, params.width)
+        assertEquals(1_344, params.height)
+        assertEquals(Gravity.TOP or Gravity.END, params.gravity)
+        assertEquals(-72, params.x)
+        assertEquals(0, params.y)
+    }
+
+    @Test
+    fun `the side panel obeys every rule the bottom one does`() {
+        val side = OverlayLayoutParams.sidePanel(typing = false, width = 1_100, displayHeight = 1_344, endInsetPixels = 0)
+        val typing = OverlayLayoutParams.sidePanel(typing = true, width = 1_100, displayHeight = 1_344, endInsetPixels = 0)
+
+        assertTrue(side.has(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE))
+        assertTrue(side.has(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL))
+        assertTrue(side.has(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS))
+        assertTrue(!side.has(WindowManager.LayoutParams.FLAG_BLUR_BEHIND))
+        // OV-20, the one exception, and it is the same exception on both edges.
+        assertTrue(!typing.has(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE))
     }
 
     @Test

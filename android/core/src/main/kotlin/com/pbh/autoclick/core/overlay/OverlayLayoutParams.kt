@@ -136,12 +136,44 @@ object OverlayLayoutParams {
             x = 0
             y = -bottomInsetPixels
             gravity = Gravity.BOTTOM or Gravity.START
-            flags =
-                if (typing) {
-                    PASS_THROUGH_OUTSIDE or IN_DISPLAY_COORDINATES
-                } else {
-                    NEVER_FOCUSABLE or PASS_THROUGH_OUTSIDE or IN_DISPLAY_COORDINATES
-                }
+            flags = panelFlags(typing)
+        }
+
+    /**
+     * OV-37: the same panel in landscape, as a full-height sheet against the end edge.
+     *
+     * A bottom sheet on a screen 1344 pixels tall is the wrong shape twice over. Its peek height
+     * is a fifth of what it is in portrait, so nothing fits; and every field is stretched across
+     * 2992 pixels, which is a text box the width of the phone holding two digits. Against the end
+     * edge the sheet has the whole height to use and a readable width, and the rest of the screen
+     * — the part the user is automating — stays visible beside it rather than underneath it.
+     *
+     * [endInsetPixels] is the navigation bar, which in landscape is on a side rather than the
+     * bottom. The window is pushed out under it for the same reason the bottom sheet is pushed
+     * under its own (`OV-32`): a sheet anchored to an edge should reach that edge. The content
+     * pads itself back off the bar.
+     */
+    fun sidePanel(
+        typing: Boolean,
+        width: Int,
+        displayHeight: Int,
+        endInsetPixels: Int,
+    ): WindowManager.LayoutParams =
+        base().apply {
+            this.width = width
+            height = displayHeight
+            x = -endInsetPixels
+            y = 0
+            gravity = Gravity.TOP or Gravity.END
+            flags = panelFlags(typing)
+        }
+
+    /** OV-20: the panel's flags, and the one exception to [NEVER_FOCUSABLE] in this application. */
+    private fun panelFlags(typing: Boolean): Int =
+        if (typing) {
+            PASS_THROUGH_OUTSIDE or IN_DISPLAY_COORDINATES
+        } else {
+            NEVER_FOCUSABLE or PASS_THROUGH_OUTSIDE or IN_DISPLAY_COORDINATES
         }
 
     /**

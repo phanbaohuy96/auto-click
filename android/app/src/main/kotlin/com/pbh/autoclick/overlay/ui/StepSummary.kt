@@ -11,6 +11,8 @@ import com.pbh.autoclick.domain.scenario.StepAction
  *
  * Coordinates are in it because they are the only thing that tells two otherwise identical taps
  * apart, and because a list of fifteen rows all reading "Tap" would be worse than no list.
+ *
+ * How often and how long it waits are **not** in it — they are [timing], on the line below.
  */
 @Composable
 internal fun Step.summary(): String {
@@ -31,5 +33,20 @@ internal fun Step.summary(): String {
             is StepAction.Global -> current.action.label()
             is StepAction.SetText -> stringResource(R.string.summary_set_text, current.text)
         }
-    return if (repeatCount > 1) stringResource(R.string.summary_repeated, body, repeatCount) else body
+    return body
 }
+
+/**
+ * The second line of a Step's row: what it costs in time (`OV-38`).
+ *
+ * Kept apart from [summary] rather than appended to it. A Scenario is mostly timing — the whole
+ * difference between a working one and a broken one is often a wait — and on one line the numbers
+ * ran into the coordinates until neither could be scanned.
+ */
+@Composable
+internal fun Step.timing(): String =
+    if (repeatCount > 1) {
+        stringResource(R.string.step_row_timing_repeated, repeatCount, delayMillisecondsAfter)
+    } else {
+        stringResource(R.string.step_row_timing, delayMillisecondsAfter)
+    }

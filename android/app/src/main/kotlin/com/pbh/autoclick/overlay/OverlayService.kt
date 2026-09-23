@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.hardware.display.DisplayManager
 import android.os.IBinder
 import android.util.Log
@@ -12,6 +13,7 @@ import android.view.ViewConfiguration
 import android.view.WindowManager
 import com.pbh.autoclick.domain.editor.StepDraft
 import com.pbh.autoclick.domain.editor.previewing
+import com.pbh.autoclick.domain.editor.rebuiltFor
 import com.pbh.autoclick.domain.editor.toDraft
 import com.pbh.autoclick.domain.editor.toStep
 import com.pbh.autoclick.domain.editor.withPointsFrom
@@ -142,6 +144,28 @@ class OverlayService : Service() {
             else -> Unit
         }
         return START_NOT_STICKY
+    }
+
+    /**
+     * OV-37: the phone was rotated, and no Overlay window has noticed.
+     *
+     * A Service receives this as a `ComponentCallbacks`, which is the only notice this process
+     * gets: the windows are attached to the window manager rather than to an Activity, so nothing
+     * recreates them and they keep the size and position they were given for the screen that is
+     * no longer there. Left alone, the control ends up off the bottom of a shorter screen and the
+     * panel keeps a portrait phone's width on a landscape one.
+     *
+     * Done twice on purpose. `maximumWindowMetrics` is the display's, and on the test device it
+     * still reported the old bounds when this callback arrived; the second pass is what actually
+     * lands, and the first is what makes the common case immediate.
+     */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        coordinator?.onScreenChanged()
+        scope.launch {
+            delay(ROTATION_SETTLE_MILLISECONDS)
+            coordinator?.onScreenChanged()
+        }
     }
 
     override fun onDestroy() {
@@ -409,6 +433,21 @@ class OverlayService : Service() {
                 openPanel(stepId)
             }
 
+            /**
+             * SM-18: the same Steps, measured against the screen in front of the user.
+             *
+             * The **Screen profile** is captured once and kept (`SM-14`) so that a mismatch is
+             * reported rather than quietly overwritten — which leaves a user who built a
+             * **Scenario** in portrait and now wants it in landscape with nothing to do but
+             * delete every **Step**. This is the way out, and it is deliberately only reachable
+             * from the panel that is already telling them the screens do not match.
+             */
+            override fun onRebuildForThisScreen() {
+                val current = scenario ?: return
+                applyEdit(current.rebuiltFor(overlayContext.currentScreenProfile()))
+                coordinator?.update { copy(panel = PanelState.ScenarioEditor()) }
+            }
+
             override fun onStepSaved(draft: StepDraft) {
                 val current = scenario ?: return
                 val profile = current.screenProfile ?: overlayContext.currentScreenProfile()
@@ -550,6 +589,9 @@ class OverlayService : Service() {
 
         /** RD-5: long enough for `updateViewLayout` to have taken the touchable flag away. */
         private const val FLAG_SETTLE_MILLISECONDS = 24L
+
+        /** OV-37: long enough for the display's own metrics to have caught up with the rotation. */
+        private const val ROTATION_SETTLE_MILLISECONDS = 400L
 
         const val ACTION_OPEN = "com.pbh.autoclick.OPEN"
         const val ACTION_STOP = "com.pbh.autoclick.STOP"

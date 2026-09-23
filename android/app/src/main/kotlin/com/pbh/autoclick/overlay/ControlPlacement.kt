@@ -37,6 +37,15 @@ class ControlPlacement(
     private var keepClearBottom = 0
 
     /**
+     * The same thing along the other axis, for the landscape panel (`OV-37`).
+     *
+     * A side sheet is full height, so there is no raising the control above it — it has to be
+     * moved inwards instead. Exactly one of the two is ever non-zero, because the panel is only
+     * ever one shape at a time.
+     */
+    private var keepClearEnd = 0
+
+    /**
      * Which side the control is against (`OV-14`).
      *
      * Kept, rather than worked out from [position] each time, because the control **changes
@@ -80,18 +89,41 @@ class ControlPlacement(
         apply()
     }
 
-    /** OV-13: keeps the control off the bottom [height] pixels, which is where the panel opens. */
-    fun keepClearOf(height: Int) {
-        if (keepClearBottom == height) return
-        keepClearBottom = height
+    /** OV-13, OV-37: keeps the control out of the space the panel has taken, on whichever edge. */
+    fun keepClearOf(
+        bottom: Int = 0,
+        end: Int = 0,
+    ) {
+        if (keepClearBottom == bottom && keepClearEnd == end) return
+        keepClearBottom = bottom
+        keepClearEnd = end
         apply()
+    }
+
+    /**
+     * OV-37: the phone was rotated, so every edge this class works against has moved.
+     *
+     * The user's remembered position is deliberately **not** written back from here. It is still
+     * the place they chose in the other orientation, and it is what they should find when they
+     * rotate back; what happens now is only that the control is put somewhere it can be seen.
+     */
+    fun onScreenChanged() {
+        keepClearBottom = 0
+        keepClearEnd = 0
+        settleAgainstEdge()
+        settle()
     }
 
     /** Where the control actually goes: the user's choice, raised above anything in the way. */
     fun displayed(): ScreenPoint {
-        if (keepClearBottom == 0) return position
-        val ceiling = context.overlayBounds().height - keepClearBottom - window.measuredHeight
-        return ScreenPoint(position.x, position.y.coerceAtMost(ceiling.coerceAtLeast(0)))
+        if (keepClearBottom == 0 && keepClearEnd == 0) return position
+        val bounds = context.overlayBounds()
+        val floor = bounds.height - keepClearBottom - window.measuredHeight
+        val wall = bounds.width - keepClearEnd - window.measuredWidth
+        return ScreenPoint(
+            x = if (keepClearEnd == 0) position.x else position.x.coerceAtMost(wall.coerceAtLeast(0)),
+            y = if (keepClearBottom == 0) position.y else position.y.coerceAtMost(floor.coerceAtLeast(0)),
+        )
     }
 
     /**

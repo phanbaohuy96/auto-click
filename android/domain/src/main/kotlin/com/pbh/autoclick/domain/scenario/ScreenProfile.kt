@@ -14,6 +14,22 @@ data class ScreenProfile(
     val rotation: ScreenRotation,
 )
 
+/**
+ * SM-18: which way round the screen is, as the user holds it.
+ *
+ * Derived from the pixels rather than from [ScreenRotation], because that is what the coordinates
+ * depend on. A device reporting `LANDSCAPE_LEFT` on a square screen changes nothing about where a
+ * point is, and a tablet that reports `PORTRAIT` while wider than it is tall would lie here.
+ */
+val ScreenProfile.orientation: ScreenOrientation
+    get() = if (widthPixels > heightPixels) ScreenOrientation.LANDSCAPE else ScreenOrientation.PORTRAIT
+
+/** The two ways a screen can be held, which is as much as a **Scenario** needs to know (`SM-18`). */
+enum class ScreenOrientation {
+    PORTRAIT,
+    LANDSCAPE,
+}
+
 /** The screen's rotation, as the window manager reports it. */
 enum class ScreenRotation {
     PORTRAIT,

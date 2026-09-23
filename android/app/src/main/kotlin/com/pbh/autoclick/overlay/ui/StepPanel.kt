@@ -2,6 +2,7 @@ package com.pbh.autoclick.overlay.ui
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,16 +10,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,12 +31,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pbh.autoclick.R
 import com.pbh.autoclick.domain.editor.StepActionKind
 import com.pbh.autoclick.domain.editor.StepDraft
 import com.pbh.autoclick.domain.scenario.ScenarioLimits
 import com.pbh.autoclick.overlay.EditingStep
+import com.pbh.autoclick.overlay.OverlayScreen
+import com.pbh.autoclick.overlay.PanelExit
 
 /**
  * The third Overlay window (`OV-1`): one Step, open for configuration, as a sheet (`OV-34`).
@@ -47,15 +49,17 @@ import com.pbh.autoclick.overlay.EditingStep
  * value would only disagree with each other.
  *
  * Save is offered only when the Step has no violations (`OV-22`, `SM-17`) and is pinned below the
- * scrolling body, so a long Step cannot hide the button that commits it. Delete and the two move
- * buttons apply at once, because they change the Scenario's shape rather than this Step's fields —
- * the same immediacy dragging a Marker already has.
+ * scrolling body, so a long Step cannot hide the button that commits it. Delete applies at once,
+ * because it changes the Scenario's shape rather than this Step's fields — the same immediacy
+ * dragging a Marker already has.
  */
 @Composable
 fun StepPanel(
     editing: EditingStep,
     actions: StepPanelActions,
     modifier: Modifier = Modifier,
+    leaving: PanelExit? = null,
+    screen: OverlayScreen? = null,
 ) {
     // OV-20: how many fields hold the caret, not whether the last event was a gain. A focus moving
     // from one field to the next reports a loss and a gain in the same frame, and a boolean would
@@ -64,11 +68,19 @@ fun StepPanel(
     val typing = focusedFields > 0
     LaunchedEffect(typing) { actions.onTypingChanged(typing) }
     val onFocus: (Boolean) -> Unit = { gained -> focusedFields += if (gained) 1 else -1 }
+    val discard: (@Composable BoxScope.() -> Unit)? =
+        if (leaving == null) {
+            null
+        } else {
+            { DiscardConfirm(actions) }
+        }
 
-    OverlayBottomSheet(
+    OverlayPanelSheet(
+        screen = screen,
         modifier = modifier,
         header = { PanelHeader(editing, actions) },
         footer = { PanelFooter(editing, actions) },
+        confirm = discard,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(bottom = 12.dp)) {
             ActionSection(editing.draft) { actions.onDraftChanged(editing.draft.copy(kind = it)) }
@@ -96,69 +108,121 @@ data class StepPanelActions(
     val onDraftChanged: (StepDraft) -> Unit,
     val onTypingChanged: (Boolean) -> Unit,
     val onSave: () -> Unit,
+    /** OV-36: up to the Scenario, which is the list of every Step. */
+    val onBack: () -> Unit,
     val onCancel: () -> Unit,
+    /** OV-36: the pending exit, answered. */
+    val onDiscard: () -> Unit,
+    val onKeepEditing: () -> Unit,
     val onDelete: () -> Unit,
-    /** OV-6: -1 moves the Step one place earlier, +1 one place later. */
-    val onMove: (Int) -> Unit,
     /** OV-24: -1 opens the previous Step in the Scenario, +1 the next. */
     val onGo: (Int) -> Unit,
 )
 
-/** OV-6: the Step's number, which is the one thing a spatial layout cannot show by itself. */
+/**
+ * OV-36: the way back, and what the Step is, in the order they are read.
+ *
+ * The back arrow is the whole of this requirement. Before it the only way out of a Step was the
+ * close button, which took the panel with it — so editing a second Step meant closing the editor,
+ * finding the Marker again and tapping it, and a Step with no Marker (`SM-8`) could not be reached
+ * at all without walking to it. Up is one press now, and up is the list of every Step.
+ */
 @Composable
 private fun PanelHeader(
     editing: EditingStep,
     actions: StepPanelActions,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-    ) {
-        // OV-24: the only way to reach a Step that draws no Marker (`SM-8`). Without these, a
-        // setText or globalAction Step can be written once and never opened again.
-        IconButton(onClick = { actions.onGo(-1) }, enabled = editing.canGoBack) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.step_previous))
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = PANEL_ROW_INSET),
+        ) {
+            PanelIconButton(
+                onClick = actions.onBack,
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                description = stringResource(R.string.step_back_to_scenario),
+            )
+            Column(modifier = Modifier.weight(1f).padding(start = 4.dp)) {
+                Text(
+                    text = stringResource(R.string.step_panel_title, editing.stepNumber, editing.stepCount),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = editing.draft.kind.label(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            PanelIconButton(
+                onClick = actions.onDelete,
+                icon = Icons.Default.Delete,
+                description = stringResource(R.string.step_delete),
+            )
+            PanelIconButton(
+                onClick = actions.onCancel,
+                icon = Icons.Default.Close,
+                description = stringResource(R.string.step_cancel),
+            )
         }
-        Text(
-            text = stringResource(R.string.step_panel_title, editing.stepNumber, editing.stepCount),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        IconButton(onClick = { actions.onGo(1) }, enabled = editing.canGoForward) {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.step_next))
-        }
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = { actions.onMove(-1) }, enabled = editing.canMoveUp) {
-            Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.step_move_up))
-        }
-        IconButton(onClick = { actions.onMove(1) }, enabled = editing.canMoveDown) {
-            Icon(Icons.Default.ArrowDropDown, contentDescription = stringResource(R.string.step_move_down))
-        }
-        IconButton(onClick = actions.onDelete) {
-            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.step_delete))
-        }
-        IconButton(onClick = actions.onCancel) {
-            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.step_cancel))
-        }
+        // OV-38: the line the body scrolls under. Without it the first field slides up behind the
+        // title and the two are read as one broken row.
+        HorizontalDivider(modifier = Modifier.padding(top = 6.dp))
     }
 }
 
-/** OV-22: Save is pinned, so a Step tall enough to scroll cannot hide the way to commit it. */
+/**
+ * OV-22: Save is pinned, so a Step tall enough to scroll cannot hide the way to commit it.
+ *
+ * OV-24's two arrows live here rather than in the header. They are about *which* Step is open,
+ * which is the same kind of question as Cancel and Save — and the header had five controls in it,
+ * which is two more than a row of icons can carry before it stops being read at all.
+ */
 @Composable
 private fun PanelFooter(
     editing: EditingStep,
     actions: StepPanelActions,
 ) {
     Row(
-        horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = PANEL_ROW_INSET, vertical = 8.dp),
     ) {
+        PanelIconButton(
+            onClick = { actions.onGo(-1) },
+            icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+            description = stringResource(R.string.step_previous),
+            enabled = editing.canGoBack,
+        )
+        PanelIconButton(
+            onClick = { actions.onGo(1) },
+            icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            description = stringResource(R.string.step_next),
+            enabled = editing.canGoForward,
+        )
+        Spacer(Modifier.weight(1f))
         TextButton(onClick = actions.onCancel) { Text(stringResource(R.string.step_cancel)) }
-        Spacer(Modifier.padding(horizontal = 4.dp))
-        Button(onClick = actions.onSave, enabled = editing.canSave) {
+        Button(
+            onClick = actions.onSave,
+            enabled = editing.canSave,
+            modifier = Modifier.padding(start = 8.dp, end = PANEL_GUTTER - PANEL_ROW_INSET),
+        ) {
             Text(stringResource(R.string.step_save))
         }
     }
+}
+
+/** OV-36: asked once, and only when there is something to lose. */
+@Composable
+private fun BoxScope.DiscardConfirm(actions: StepPanelActions) {
+    PanelConfirm(
+        title = stringResource(R.string.step_discard_title),
+        message = stringResource(R.string.step_discard_message),
+        confirmLabel = stringResource(R.string.step_discard_confirm),
+        dismissLabel = stringResource(R.string.step_discard_dismiss),
+        onConfirm = actions.onDiscard,
+        onDismiss = actions.onKeepEditing,
+    )
 }
 
 /**
@@ -176,11 +240,7 @@ private fun ActionSection(
     onKind: (StepActionKind) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            text = stringResource(R.string.step_action_heading),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        PanelSectionLabel(stringResource(R.string.step_action_heading))
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -229,7 +289,7 @@ private fun CommonFields(
 }
 
 @Composable
-private fun StepActionKind.label(): String =
+internal fun StepActionKind.label(): String =
     stringResource(
         when (this) {
             StepActionKind.TAP -> R.string.step_kind_tap

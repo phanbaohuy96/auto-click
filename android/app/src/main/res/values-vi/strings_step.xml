@@ -45,4 +45,10 @@
     <string name="step_about_multi_touch">Chạm nhiều điểm cùng lúc, như thao tác chụm hai ngón.</string>
     <string name="step_about_global">Bấm nút hệ thống: quay lại, màn hình chính hoặc đa nhiệm. Không chạm vào đâu cả.</string>
     <string name="step_about_text">Gõ chữ vào ô đang có con trỏ. Không chạm vào đâu cả.</string>
+    <!-- OV-36: đường quay lại, và câu hỏi duy nhất hỏi trên đường ra. -->
+    <string name="step_back_to_scenario">Quay lại kịch bản</string>
+    <string name="step_discard_title">Bỏ các thay đổi này?</string>
+    <string name="step_discard_message">Bước này có chỉnh sửa chưa được lưu. Rời đi bây giờ là mất chúng.</string>
+    <string name="step_discard_confirm">Bỏ</string>
+    <string name="step_discard_dismiss">Tiếp tục sửa</string>
 </resources>

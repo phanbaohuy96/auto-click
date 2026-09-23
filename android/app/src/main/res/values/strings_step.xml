@@ -52,4 +52,10 @@
     <string name="step_about_multi_touch">Several points touched at once, like a pinch.</string>
     <string name="step_about_global">Presses a system button: back, home or recents. Touches nothing.</string>
     <string name="step_about_text">Types into whatever field already has the caret. Touches nothing.</string>
+    <!-- OV-36: the way back, and the one question asked on the way out. -->
+    <string name="step_back_to_scenario">Back to the scenario</string>
+    <string name="step_discard_title">Discard these changes?</string>
+    <string name="step_discard_message">This step has edits that were never saved. Leaving now loses them.</string>
+    <string name="step_discard_confirm">Discard</string>
+    <string name="step_discard_dismiss">Keep editing</string>
 </resources>

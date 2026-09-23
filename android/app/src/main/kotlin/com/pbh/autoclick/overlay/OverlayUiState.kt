@@ -48,6 +48,8 @@ data class OverlayUiState(
      * off-screen.
      */
     val authoringProfile: ScreenProfile? = null,
+    /** OV-37: the screen in front of the user, re-read whenever the phone is rotated. */
+    val screen: OverlayScreen? = null,
 ) {
     val scenarioName: String get() = scenario?.name.orEmpty()
 
@@ -133,12 +135,31 @@ sealed interface PanelState {
     /** OV-28: the Scenario as a whole — its name, how often it runs, and its Steps in order. */
     data class ScenarioEditor(
         override val typing: Boolean = false,
+        /** SM-18: true while the user is being asked whether to re-measure against this screen. */
+        val confirmingRebuild: Boolean = false,
     ) : PanelState
 
     data class StepEditor(
         val step: EditingStep,
         override val typing: Boolean = false,
+        /** OV-36: the way out that is waiting on an answer, or null when none is. */
+        val leaving: PanelExit? = null,
     ) : PanelState
+}
+
+/**
+ * OV-36: the two ways out of the Step panel, which differ only in where they leave the user.
+ *
+ * Both discard the draft, so both are asked about — see [OverlayUiState.leaving]. Keeping them as
+ * one type rather than two booleans is what stops a confirmation being answered for the wrong
+ * exit, which is a dialogue that closes the panel when the user asked to go up a level.
+ */
+enum class PanelExit {
+    /** Up to the Scenario, which is the list of every Step. */
+    TO_SCENARIO,
+
+    /** Out of the editor entirely, leaving the Markers and the control. */
+    CLOSED,
 }
 
 /**
@@ -190,3 +211,35 @@ data class EditingStep(
  * in one press instead of closing the panel, then collapsing, and leaving the Markers behind.
  */
 internal fun OverlayUiState.done(): OverlayUiState = copy(panel = null, collapsed = true, lastFinish = null)
+
+/**
+ * OV-36: asked for a way out of the Step panel.
+ *
+ * Nothing about the Step is written and nothing is thrown away yet. If the draft differs from the
+ * Step on disk the question is put on screen and the panel stays exactly as it was; if it does
+ * not, there is nothing to ask about and the exit happens at once. Asking either way would train
+ * the user to dismiss the dialogue without reading it, which is the same as not having one.
+ *
+ * This is the half `OV-24` was missing. The arrows between Steps refuse to move while there are
+ * unsaved edits, because walking sideways looks like staying put; leaving is visibly leaving, so
+ * it is allowed — once the user has said so.
+ */
+internal fun OverlayUiState.leaving(exit: PanelExit): OverlayUiState {
+    val open = panel as? PanelState.StepEditor ?: return this
+    return if (open.step.isDirty) copy(panel = open.copy(leaving = exit)) else left(exit)
+}
+
+/** OV-36: the question answered with *discard*, so the exit that was asked about happens. */
+internal fun OverlayUiState.leftBehind(): OverlayUiState {
+    val open = panel as? PanelState.StepEditor ?: return this
+    return left(open.leaving ?: PanelExit.CLOSED)
+}
+
+/** OV-36: the question answered with *keep editing*, so nothing happens but the asking stops. */
+internal fun OverlayUiState.stayed(): OverlayUiState = copy(panel = (panel as? PanelState.StepEditor)?.copy(leaving = null) ?: panel)
+
+private fun OverlayUiState.left(exit: PanelExit): OverlayUiState =
+    when (exit) {
+        PanelExit.TO_SCENARIO -> copy(panel = PanelState.ScenarioEditor())
+        PanelExit.CLOSED -> copy(panel = null)
+    }

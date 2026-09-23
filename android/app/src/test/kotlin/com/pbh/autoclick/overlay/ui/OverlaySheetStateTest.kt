@@ -49,6 +49,22 @@ class OverlaySheetStateTest {
         assertEquals(2000f, sheet.height)
     }
 
+    /**
+     * OV-37: landscape, expressed as the two heights being equal.
+     *
+     * The sheet is already as tall as the display, so there is nothing to expand into and every
+     * pixel of the swipe is left for the body — which is the same handoff as portrait's second
+     * phase, reached on the first pixel instead of after the first four hundred.
+     */
+    @Test
+    fun `a sheet with nothing to expand into hands every pixel to the body`() {
+        val side = OverlaySheetState(peekHeight = 1344f, fullHeight = 1344f)
+
+        assertEquals(0f, side.consume(-500f))
+        assertEquals(0f, side.consume(500f))
+        assertEquals(1344f, side.height)
+    }
+
     @Test
     fun `dragging down shrinks it no further than the peek height`() {
         val sheet = state()

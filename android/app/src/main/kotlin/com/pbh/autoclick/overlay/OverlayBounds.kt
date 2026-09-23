@@ -28,6 +28,17 @@ data class OverlayBounds(
      * reliably dispatched insets and a zero here would put Save under the user's thumb.
      */
     val bottomInset: Int = 0,
+    /** OV-37: the status bar, for the landscape panel, which is laid out past it. */
+    val topInset: Int = 0,
+    /**
+     * OV-37: the navigation bar when it is on a side rather than the bottom.
+     *
+     * Read as `right` rather than as `end`: these are window-manager insets, which are absolute.
+     * The panel that uses it is laid out with `Gravity.END`, so on a right-to-left phone the two
+     * would name different edges — and the honest fix is to look at the layout direction there,
+     * not to pretend this number already has.
+     */
+    val rightInset: Int = 0,
 )
 
 fun Context.overlayBounds(): OverlayBounds {
@@ -37,5 +48,7 @@ fun Context.overlayBounds(): OverlayBounds {
         width = (metrics.bounds.width() - bars.left - bars.right).coerceAtLeast(1),
         height = (metrics.bounds.height() - bars.top - bars.bottom).coerceAtLeast(1),
         bottomInset = bars.bottom,
+        topInset = bars.top,
+        rightInset = bars.right,
     )
 }

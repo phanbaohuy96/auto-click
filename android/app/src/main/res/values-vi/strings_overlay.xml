@@ -29,7 +29,6 @@
     <string name="summary_swipe">Vuốt %1$d, %2$d đến %3$d, %4$d</string>
     <string name="summary_multi_touch">%1$d điểm chạm cùng lúc</string>
     <string name="summary_set_text">Nhập \"%1$s\"</string>
-    <string name="summary_repeated">%1$s, %2$d lần</string>
     <string name="run_channel_name">Đang chạy kịch bản</string>
     <string name="run_notification_title">Auto Click đang chạy</string>
     <string name="run_notification_ready">Sẵn sàng — chưa chạy gì</string>
@@ -43,4 +42,23 @@
     <string name="overlay_done">Xong</string>
     <string name="pick_hint">Chạm vào nơi bước này cần bấm, hoặc kéo để tạo vuốt</string>
     <string name="pick_cancel">Huỷ</string>
+    <!-- OV-38: tên của từng phần trong bảng kịch bản. -->
+    <string name="scenario_section_scenario">Kịch bản</string>
+    <string name="scenario_section_run">Chạy</string>
+    <string name="scenario_section_steps">Các bước</string>
+    <string name="scenario_subtitle">%1$s · %2$s</string>
+    <string name="step_row_timing">rồi chờ %1$d ms</string>
+    <string name="step_row_timing_repeated">%1$d× · rồi chờ %2$d ms</string>
+    <!-- SM-18: màn hình quay theo chiều nào khi kịch bản này được đo. -->
+    <string name="scenario_orientation_portrait">Dọc</string>
+    <string name="scenario_orientation_landscape">Ngang</string>
+    <string name="scenario_orientation_auto">Theo máy của bạn</string>
+    <string name="scenario_screen_size">%1$d × %2$d %3$s</string>
+    <string name="scenario_screen_mismatch_title">Được dựng trên màn hình khác</string>
+    <string name="scenario_screen_mismatch_body">Đo trên %1$s. Màn hình này là %2$s, nên kịch bản sẽ không chạy ở đây.</string>
+    <string name="scenario_rebuild">Dựng lại cho màn hình này</string>
+    <string name="scenario_rebuild_title">Dựng lại cho màn hình này?</string>
+    <string name="scenario_rebuild_message">Các bước, thứ tự và nhịp chờ được giữ nguyên. Mọi điểm bị kéo vào trong màn hình này và phải nhắm lại.</string>
+    <string name="scenario_rebuild_confirm">Dựng lại</string>
+    <string name="scenario_rebuild_dismiss">Huỷ</string>
 </resources>

@@ -47,7 +47,7 @@ class OverlayCoordinator(
             onPickEvent = callbacks::onPickEvent,
         )
 
-    private val _state = MutableStateFlow(OverlayUiState())
+    private val _state = MutableStateFlow(OverlayUiState(screen = context.overlayScreen()))
     val state: StateFlow<OverlayUiState> = _state.asStateFlow()
 
     private val placement =
@@ -59,7 +59,16 @@ class OverlayCoordinator(
             // the panel is measured against the display and reaches past the navigation bar, while
             // the control is placed inside the system bars. Without this the control is held a
             // navigation bar's height too high and a strip of the application shows between them.
-            panel.onResized = { _, height -> it.keepClearOf(height - context.overlayBounds().bottomInset) }
+            //
+            // OV-37: which edge the panel took depends on how the phone is being held.
+            panel.onResized = { width, height ->
+                val screen = _state.value.screen ?: context.overlayScreen()
+                if (screen.landscape) {
+                    it.keepClearOf(end = width - screen.bounds.rightInset)
+                } else {
+                    it.keepClearOf(bottom = height - screen.bounds.bottomInset)
+                }
+            }
         }
     private val markers =
         MarkerWindows(
@@ -71,13 +80,15 @@ class OverlayCoordinator(
         )
 
     /**
-     * The focusable flag last handed to the panel's window (`OV-20`).
+     * The window attributes the panel was last given (`OV-20`, `OV-37`).
      *
-     * Kept so the flag is re-applied only when it actually changes. `updateViewLayout` on a window
+     * Kept so they are re-applied only when they actually change. `updateViewLayout` on a window
      * that is gaining or losing focus disturbs the focus inside it, and re-applying the same value
-     * on every state change is how that becomes a loop.
+     * on every state change is how that becomes a loop. The screen is part of the signature
+     * because a rotation changes the panel's shape without changing anything about the state the
+     * user can see.
      */
-    private var panelTyping: Boolean? = null
+    private var panelSignature: String? = null
 
     /**
      * OV-13: what was attached last time round, so the control can be put back on top.
@@ -104,12 +115,27 @@ class OverlayCoordinator(
     /** OV-14: where the control was left last time, or nothing if it has never been moved. */
     fun placeControl(remembered: ScreenPoint?) = placement.place(remembered)
 
+    /**
+     * OV-37: the phone was rotated, so every window has to be placed against new edges.
+     *
+     * Nothing here is recreated — an Overlay window is not an Activity and survives the
+     * configuration change untouched, which is exactly the problem: it keeps the size and the
+     * position it was given for the screen that is no longer there. Clearing [panelSignature] is
+     * what makes the panel accept new attributes; the state carrying the new [OverlayScreen] is
+     * what makes the content inside it re-measure.
+     */
+    fun onScreenChanged() {
+        panelSignature = null
+        placement.onScreenChanged()
+        update { copy(screen = context.overlayScreen()) }
+    }
+
     fun hide() {
         captures.dismiss()
         panel.dismiss()
         markers.dismiss()
         control.dismiss()
-        _state.value = OverlayUiState()
+        _state.value = OverlayUiState(screen = context.overlayScreen())
     }
 
     /**
@@ -177,31 +203,37 @@ class OverlayCoordinator(
      */
     private fun refreshPanel(current: OverlayUiState) {
         if (!current.showPanel) {
-            panelTyping = null
+            panelSignature = null
             panel.dismiss()
-            placement.keepClearOf(0)
+            placement.keepClearOf()
             return
         }
 
-        if (panelTyping == current.typing) return
-        panelTyping = current.typing
+        val screen = current.screen ?: context.overlayScreen()
+        val signature = "${current.typing}|${screen.profile.widthPixels}x${screen.profile.heightPixels}"
+        if (panelSignature == signature) return
+        panelSignature = signature
 
-        panel.show(
-            OverlayLayoutParams.panel(
-                typing = current.typing,
-                displayWidth = context.currentScreenProfile().widthPixels,
-                bottomInsetPixels = context.overlayBounds().bottomInset,
-            ),
-        ) {
+        panel.show(context.panelParams(current.typing, screen)) {
             OverlayTheme {
                 val live by state.collectAsStateWithLifecycle()
                 when (val open = live.panel) {
                     is PanelState.StepEditor ->
-                        StepPanel(editing = open.step, actions = stepPanelActions(open.step, callbacks, ::reduce))
+                        StepPanel(
+                            editing = open.step,
+                            leaving = open.leaving,
+                            screen = live.screen,
+                            actions = stepPanelActions(open.step, callbacks, ::reduce),
+                        )
 
                     is PanelState.ScenarioEditor ->
                         live.scenario?.let {
-                            ScenarioPanel(scenario = it, actions = scenarioPanelActions(it, callbacks, ::reduce))
+                            ScenarioPanel(
+                                scenario = it,
+                                screen = live.screen,
+                                confirmingRebuild = open.confirmingRebuild,
+                                actions = scenarioPanelActions(it, callbacks, ::reduce),
+                            )
                         }
 
                     null -> Unit
@@ -210,3 +242,33 @@ class OverlayCoordinator(
         }
     }
 }
+
+/**
+ * OV-37: a sheet on the bottom edge, or one on the end edge, depending on how the phone is held.
+ *
+ * The width in landscape is capped rather than proportional. Half of a 2992-pixel screen is a
+ * text field two-thirds of a metre wide on paper and unreadable in practice; what a form wants
+ * is a column, and a column has a width that stops growing.
+ */
+private fun Context.panelParams(
+    typing: Boolean,
+    screen: OverlayScreen,
+): WindowManager.LayoutParams =
+    if (screen.landscape) {
+        val density = resources.displayMetrics.density
+        OverlayLayoutParams.sidePanel(
+            typing = typing,
+            width = (SIDE_PANEL_WIDTH_DP * density).toInt().coerceAtMost(screen.profile.widthPixels / 2),
+            displayHeight = screen.profile.heightPixels,
+            endInsetPixels = screen.bounds.rightInset,
+        )
+    } else {
+        OverlayLayoutParams.panel(
+            typing = typing,
+            displayWidth = screen.profile.widthPixels,
+            bottomInsetPixels = screen.bounds.bottomInset,
+        )
+    }
+
+/** OV-37: as wide as a phone's portrait sheet, which is as wide as a form should be. */
+private const val SIDE_PANEL_WIDTH_DP = 400
