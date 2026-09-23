@@ -22,6 +22,7 @@ internal fun stepPanelActions(
         onKeepEditing = { update { it.stayed() } },
         onDelete = { callbacks.onStepDeleted(editing.draft.stepId) },
         onGo = { by -> callbacks.onStepNavigated(editing.draft.stepId, by) },
+        onCropTemplate = callbacks::onCropTemplate,
     )
 
 /** FS-15: every one of these is the edit and the save at once — there is no Save for a Scenario. */

@@ -1,5 +1,7 @@
 package com.pbh.autoclick.domain.scenario
 
+import java.util.UUID
+
 /**
  * A reason the editor refuses to save a Step (SM-17).
  *
@@ -37,6 +39,17 @@ sealed interface StepViolation {
         val length: Int,
         val maximum: Int,
     ) : StepViolation
+
+    /**
+     * RC-29: this Step looks for a Template whose file is no longer on disk.
+     *
+     * Caught here rather than left to the run, where it would be a wait that expires — the right
+     * behaviour at run time, and a baffling one to watch when the real answer is "the picture is
+     * gone".
+     */
+    data class TemplateMissing(
+        val templateId: UUID,
+    ) : StepViolation
 }
 
 /**
@@ -48,6 +61,7 @@ sealed interface StepViolation {
 fun Step.violations(
     limits: GestureLimits = GestureLimits(),
     profile: ScreenProfile? = null,
+    knownTemplates: Set<UUID>? = null,
 ): List<StepViolation> =
     buildList {
         when (val current = action) {
@@ -80,6 +94,14 @@ fun Step.violations(
 
         if (profile != null) {
             points.filterNot { it.isInside(profile) }.forEach { add(StepViolation.PointOutsideScreen(it)) }
+        }
+
+        // RC-29. Null means the caller has no library to check against — the runner, for one —
+        // rather than a library with nothing in it, so nothing is judged.
+        if (knownTemplates != null) {
+            listOfNotNull(effectiveSearch?.templateId, guard?.search?.templateId)
+                .filterNot { it in knownTemplates }
+                .forEach { add(StepViolation.TemplateMissing(it)) }
         }
     }
 

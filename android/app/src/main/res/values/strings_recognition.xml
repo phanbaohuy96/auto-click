@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A3, recognition. See android/docs/sdd/10-recognition.md. -->
+<resources>
+    <!-- RC-7: cropping -->
+    <string name="crop_target_title">Crop what this step looks for</string>
+    <string name="crop_guard_title">Crop what this step waits for</string>
+    <string name="crop_hint">Drag a box around it</string>
+    <string name="crop_hint_ready">Release to keep this, or drag again</string>
+    <string name="crop_use">Use this</string>
+    <string name="crop_cancel">Cancel</string>
+
+    <!-- RC-19, RC-24: the panel -->
+    <string name="recognition_section_find">Find on screen</string>
+    <string name="recognition_section_guard">Only when</string>
+    <string name="recognition_find_add">Aim at a picture</string>
+    <string name="recognition_guard_add">Add a condition</string>
+    <string name="recognition_remove">Remove</string>
+    <string name="recognition_recrop">Crop again</string>
+    <string name="recognition_fixed_point">This step presses a fixed point</string>
+    <string name="recognition_no_guard">This step always runs</string>
+    <string name="recognition_guard_present">Wait until it is on screen</string>
+    <string name="recognition_guard_absent">Wait until it is gone</string>
+    <string name="recognition_threshold">How close a match: %1$d%%</string>
+    <string name="recognition_wait">Wait up to %1$s</string>
+    <string name="recognition_timeout_label">If the wait runs out</string>
+    <string name="recognition_timeout_stop">Stop the scenario</string>
+    <string name="recognition_timeout_skip">Skip this step</string>
+    <string name="recognition_region_near">Searching near where it was cropped</string>
+    <string name="recognition_region_all">Searching the whole screen</string>
+    <string name="recognition_region_widen">Search everywhere</string>
+    <string name="recognition_missing">This picture is no longer on the phone</string>
+    <string name="recognition_preview">The picture this step looks for</string>
+    <string name="recognition_row_finds">finds a picture</string>
+    <string name="recognition_row_guarded">waits for a picture</string>
+
+    <!-- RC-21: how a run ends because of one of these -->
+    <string name="overlay_template_not_found">Step %1$d never found its picture</string>
+    <string name="overlay_guard_unmet">Step %1$d was still waiting</string>
+    <string name="overlay_step_skipped">Step %1$d skipped</string>
+    <string name="overlay_step_of_skipped">Step %1$d of %2$d · %3$d skipped</string>
+</resources>

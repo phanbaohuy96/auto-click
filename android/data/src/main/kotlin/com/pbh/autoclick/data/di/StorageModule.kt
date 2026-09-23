@@ -7,8 +7,10 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.pbh.autoclick.core.common.DispatcherProvider
 import com.pbh.autoclick.data.scenario.FileScenarioStore
+import com.pbh.autoclick.data.scenario.FileTemplateStore
 import com.pbh.autoclick.data.settings.DataStoreSettings
 import com.pbh.autoclick.domain.repository.ScenarioRepository
+import com.pbh.autoclick.domain.repository.TemplateFiles
 import com.pbh.autoclick.domain.settings.SettingsRepository
 import dagger.Module
 import dagger.Provides
@@ -34,6 +36,14 @@ object StorageModule {
     @Provides
     @Singleton
     fun provideScenarioRepository(store: FileScenarioStore): ScenarioRepository = store
+
+    /** RC-27: the same root, so a Scenario's pictures stay inside its own directory. */
+    @Provides
+    @Singleton
+    fun provideTemplateFiles(
+        @ApplicationContext context: Context,
+        dispatchers: DispatcherProvider,
+    ): TemplateFiles = FileTemplateStore(File(context.filesDir, SCENARIOS_DIRECTORY), dispatchers)
 
     @Provides
     @Singleton

@@ -44,9 +44,21 @@ internal fun Step.summary(): String {
  * ran into the coordinates until neither could be scanned.
  */
 @Composable
-internal fun Step.timing(): String =
-    if (repeatCount > 1) {
-        stringResource(R.string.step_row_timing_repeated, repeatCount, delayMillisecondsAfter)
-    } else {
-        stringResource(R.string.step_row_timing, delayMillisecondsAfter)
-    }
+internal fun Step.timing(): String {
+    val clock =
+        if (repeatCount > 1) {
+            stringResource(R.string.step_row_timing_repeated, repeatCount, delayMillisecondsAfter)
+        } else {
+            stringResource(R.string.step_row_timing, delayMillisecondsAfter)
+        }
+    // RC-19, RC-24: a row that looks for something is doing something the coordinates do not
+    // explain, and the list is where a user decides which Step to open.
+    val looks =
+        listOfNotNull(
+            stringResource(R.string.recognition_row_finds).takeIf { effectiveSearch != null },
+            stringResource(R.string.recognition_row_guarded).takeIf { guard != null },
+        )
+    return (looks + clock).joinToString(SEPARATOR)
+}
+
+private const val SEPARATOR = " · "

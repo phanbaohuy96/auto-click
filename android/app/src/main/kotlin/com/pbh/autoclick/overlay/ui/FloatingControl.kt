@@ -111,7 +111,19 @@ fun FloatingControl(
 
                     is OverlayUiState.RunState.Running ->
                         RunningRow(
-                            caption = stringResource(R.string.overlay_step_of, run.stepNumber, run.stepCount),
+                            caption =
+                                if (state.skippedSteps == 0) {
+                                    stringResource(R.string.overlay_step_of, run.stepNumber, run.stepCount)
+                                } else {
+                                    // RC-21: a skipped Step is a Step doing what it was told, and
+                                    // the one thing worse than seeing it is not seeing it.
+                                    stringResource(
+                                        R.string.overlay_step_of_skipped,
+                                        run.stepNumber,
+                                        run.stepCount,
+                                        state.skippedSteps,
+                                    )
+                                },
                             actions = actions,
                         )
 
@@ -397,4 +409,6 @@ private fun FinishReason.describeFinish(): String =
         is FinishReason.GestureCancelled -> stringResource(R.string.overlay_gesture_cancelled, stepIndex + 1)
         is FinishReason.NoFocusedField -> stringResource(R.string.overlay_no_field, stepIndex + 1)
         is FinishReason.GlobalActionRefused -> stringResource(R.string.overlay_action_refused, stepIndex + 1)
+        is FinishReason.TemplateNotFound -> stringResource(R.string.overlay_template_not_found, stepIndex + 1)
+        is FinishReason.GuardUnmet -> stringResource(R.string.overlay_guard_unmet, stepIndex + 1)
     }

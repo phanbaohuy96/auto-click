@@ -38,7 +38,12 @@ data class StoredScenario(
     val fileSchemaVersion: Int = CURRENT_SCHEMA_VERSION,
 ) {
     companion object {
-        /** FS-5. Raised only when the format changes in a way an older build cannot read. */
-        const val CURRENT_SCHEMA_VERSION = 1
+        /**
+         * FS-5. Raised only when the format changes in a way an older build cannot read.
+         *
+         * 2 is recognition (`RC-28`), and a **Scenario** that does not use it is still written as
+         * 1 — this is the highest version this build can *read*, not the version it always writes.
+         */
+        const val CURRENT_SCHEMA_VERSION = 2
     }
 }

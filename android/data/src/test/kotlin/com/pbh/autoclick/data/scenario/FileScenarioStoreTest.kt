@@ -191,7 +191,7 @@ class FileScenarioStoreTest {
             val result = store().duplicate(id)
 
             assertIs<AppResult.Failure>(result)
-            assertEquals(DomainError.ScenarioTooNew(99, 1), result.error)
+            assertEquals(DomainError.ScenarioTooNew(99, StoredScenario.CURRENT_SCHEMA_VERSION), result.error)
         }
 
     @Test

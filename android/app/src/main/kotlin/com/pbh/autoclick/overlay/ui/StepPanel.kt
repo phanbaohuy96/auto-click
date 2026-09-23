@@ -36,7 +36,9 @@ import androidx.compose.ui.unit.dp
 import com.pbh.autoclick.R
 import com.pbh.autoclick.domain.editor.StepActionKind
 import com.pbh.autoclick.domain.editor.StepDraft
+import com.pbh.autoclick.domain.editor.usesTarget
 import com.pbh.autoclick.domain.scenario.ScenarioLimits
+import com.pbh.autoclick.overlay.CropPurpose
 import com.pbh.autoclick.overlay.EditingStep
 import com.pbh.autoclick.overlay.OverlayScreen
 import com.pbh.autoclick.overlay.PanelExit
@@ -92,6 +94,10 @@ fun StepPanel(
                 CommonFields(editing.draft, actions.onDraftChanged, onFocus)
             }
 
+            // RC-22: the search belongs to the Target, so it is offered only where there is one.
+            if (editing.draft.kind.usesTarget) FindSection(editing, actions)
+            GuardSection(editing, actions)
+
             editing.violations.forEach {
                 Text(
                     text = it.describe(),
@@ -117,6 +123,8 @@ data class StepPanelActions(
     val onDelete: () -> Unit,
     /** OV-24: -1 opens the previous Step in the Scenario, +1 the next. */
     val onGo: (Int) -> Unit,
+    /** RC-7: take the Overlay off the screen and crop a Template out of what is underneath. */
+    val onCropTemplate: (CropPurpose) -> Unit,
 )
 
 /**

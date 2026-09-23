@@ -79,7 +79,9 @@ class ScenarioJsonTest {
     fun `the schema version is written every time`() {
         val text = encode(Scenario(name = "Any"))
 
-        assertTrue(text.contains(""""schemaVersion": ${StoredScenario.CURRENT_SCHEMA_VERSION}"""), text)
+        // RC-28: the version written is the lowest that can express the Scenario, and a Scenario
+        // with nothing in it needs the oldest. RecognitionJsonTest holds the other half.
+        assertTrue(text.contains(""""schemaVersion": 1"""), text)
     }
 
     @Test

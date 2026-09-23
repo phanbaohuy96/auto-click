@@ -45,6 +45,8 @@ class OverlayCoordinator(
             windowManager = windowManager,
             onRecordingEvent = callbacks::onRecordingEvent,
             onPickEvent = callbacks::onPickEvent,
+            onCropped = callbacks::onCropped,
+            onCancelCrop = callbacks::onCancelCrop,
         )
 
     private val _state = MutableStateFlow(OverlayUiState(screen = context.overlayScreen()))
@@ -161,6 +163,13 @@ class OverlayCoordinator(
         val signature = "${markers.signature}|${panel.isShowing}|${captures.signature}"
         if (attached != null && attached != signature) control.dismiss()
         attached = signature
+
+        // RC-7: the one moment the control comes down. Nothing can be running while a Template
+        // is being cropped, so no Stop is being taken away.
+        if (!current.showControl) {
+            control.dismiss()
+            return
+        }
 
         val wasShowing = control.isShowing
         refreshControl()

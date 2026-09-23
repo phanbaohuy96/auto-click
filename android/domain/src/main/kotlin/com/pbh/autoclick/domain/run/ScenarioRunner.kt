@@ -1,5 +1,6 @@
 package com.pbh.autoclick.domain.run
 
+import com.pbh.autoclick.domain.recognition.TemplateFinder
 import com.pbh.autoclick.domain.scenario.GestureLimits
 import com.pbh.autoclick.domain.scenario.RunCount
 import com.pbh.autoclick.domain.scenario.Scenario
@@ -27,8 +28,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 class ScenarioRunner(
     private val dispatcher: GestureDispatcher,
     private val limits: GestureLimits = GestureLimits(),
+    /** RC-24, RC-26: how a Step looks at the screen. Null when recognition is unavailable. */
+    finder: TemplateFinder? = null,
 ) {
     private val stopRequested = AtomicBoolean(false)
+    private val preconditions = StepPreconditions(finder)
 
     /** GX-8: honoured between strokes and during one. The stroke in flight still finishes. */
     fun requestStop() {
@@ -117,7 +121,7 @@ class ScenarioRunner(
         }
 
         onEvent(RunEvent.StepStarted(stepIndex = index, iteration = iteration))
-        var outcome = perform(step, index)
+        var outcome = perform(step, index, onEvent)
 
         if (outcome == null && stopRequested.get()) {
             onEvent(RunEvent.Stopping)
@@ -129,21 +133,44 @@ class ScenarioRunner(
         return outcome
     }
 
-    /** GX-4: repeats the Action in place, and the delay is observed once, by the caller. */
+    /**
+     * GX-4: repeats the Action in place, and the delay is observed once, by the caller.
+     *
+     * RC-26 puts the Guard and the Target search **inside** this loop, once per repetition. A Step
+     * that presses a button ten times is ten chances for the button to move or the advert to come
+     * back, and resolving once outside would spend nine of them on a stale answer.
+     *
+     * A skipped Step still observes its delay. The delay belongs to the sequence's rhythm rather
+     * than to the Action, and the next Step is entitled to the same gap either way.
+     */
     private suspend fun perform(
         step: Step,
         index: Int,
+        onEvent: (RunEvent) -> Unit,
     ): FinishReason? {
-        repeat(step.repeatCount) { repetition ->
+        var outcome: FinishReason? = null
+        var repetition = 0
+        var skipped = false
+
+        while (outcome == null && !skipped && repetition < step.repeatCount) {
             if (repetition > 0) {
                 // GX-5: a yield even when everything is set to zero, or the run is a tight loop
                 // that starves the thread it would have to be stopped from.
                 delay(MINIMUM_GAP_MILLISECONDS)
             }
-            performOnce(step, index)?.let { return it }
-            if (stopRequested.get()) return null
+            when (val resolution = preconditions.resolve(step, index)) {
+                is Resolution.End -> outcome = resolution.reason
+                is Resolution.Skip -> {
+                    onEvent(RunEvent.StepSkipped(stepIndex = index))
+                    skipped = true
+                }
+
+                is Resolution.Run -> outcome = performOnce(resolution.step, index)
+            }
+            if (stopRequested.get()) break
+            repetition++
         }
-        return null
+        return outcome
     }
 
     private suspend fun performOnce(

@@ -96,6 +96,13 @@ class MarkerWindows(
                         onDragBy = { x, y -> moveBy(drawn, x, y) },
                         onDragFinished = {},
                         onTapped = { onTapped(drawn) },
+                        // RC-23: read from the Scenario rather than carried on the Marker, which
+                        // is arithmetic over points and has no business knowing about pictures.
+                        searching =
+                            live.scenario
+                                ?.steps
+                                ?.firstOrNull { it.id == drawn.stepId }
+                                ?.effectiveSearch != null,
                     )
                 }
             }

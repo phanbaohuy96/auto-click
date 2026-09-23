@@ -4,6 +4,7 @@ import com.pbh.autoclick.domain.editor.StepDraft
 import com.pbh.autoclick.domain.overlay.Marker
 import com.pbh.autoclick.domain.scenario.Scenario
 import com.pbh.autoclick.domain.scenario.ScreenPoint
+import com.pbh.autoclick.domain.scenario.ScreenRegion
 import com.pbh.autoclick.overlay.ui.RecordingEvent
 import java.util.UUID
 
@@ -19,6 +20,7 @@ interface OverlayCallbacks :
     RunCallbacks,
     RecordCallbacks,
     PickCallbacks,
+    CropCallbacks,
     EditCallbacks,
     ShellCallbacks
 
@@ -55,6 +57,24 @@ interface PickCallbacks {
 
     /** PK-3: leave aiming without creating anything. */
     fun onCancelPick()
+}
+
+/**
+ * RC-7: cropping a **Template** out of a still frame of the screen.
+ *
+ * Its own interface for the same reason [PickCallbacks] is not [RecordCallbacks]: all three take
+ * the Overlay off the screen and wait for a finger, and all three mean something different by it.
+ * Recording asks *what did you do*, picking asks *where do you mean*, and this asks *what does it
+ * look like*.
+ */
+interface CropCallbacks {
+    /** Takes the Overlay down, takes one frame, and puts the frame back up to be cropped. */
+    fun onCropTemplate(purpose: CropPurpose)
+
+    /** RC-8: the rectangle the user settled on, in raw display pixels. */
+    fun onCropped(region: ScreenRegion)
+
+    fun onCancelCrop()
 }
 
 /** Everything that changes the open Scenario. Each of these is written to disk at once (`FS-15`). */
