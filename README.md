@@ -1,6 +1,10 @@
 # Auto Click
 
 <p align="center">
+  <b>English</b> | <a href="README.vi.md">Tiếng Việt</a> | <a href="README.zh-Hans.md">简体中文</a> | <a href="README.ja.md">日本語</a> | <a href="README.es.md">Español</a>
+</p>
+
+<p align="center">
   <img src="docs/assets/hero_showcase.jpg" alt="Auto Click Cross-Platform Showcase" width="100%" />
 </p>
 
