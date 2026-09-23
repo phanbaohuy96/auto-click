@@ -22,7 +22,7 @@ Automatice el trabajo repetitivo emitiendo pulsaciones y clics sintéticos de al
 
 | Plataforma | Interfaz y estado | Descripción |
 |---|---|---|
-| [**`macos/`**](macos/README.md) | **App de barra de menús** (macOS 14+) · *Publicada* | Desarrollada en Swift / SwiftUI, impulsada por ScreenCaptureKit y Apple Vision. Verificada a mano en hardware real — [73 resultados e2e registrados](docs/manual-e2e-tests.md). |
+| [**`macos/`**](macos/README.md) | **App de barra de menús** (macOS 14+) · *Publicada* | Desarrollada en Swift / SwiftUI, impulsada por ScreenCaptureKit y Apple Vision. Verificada a mano en hardware real — [una suite e2e manual registrada resultado por resultado](docs/manual-e2e-tests.md). |
 | [**`android/`**](android/README.md) | **Panel flotante superpuesto** (Android 11+) · *Completada* | Desarrollada en Jetpack Compose sobre el Servicio de Accesibilidad de Android. Probada en emulador — **aún no en hardware físico** ([pruebas](android/docs/testing.md)). |
 
 ---
@@ -124,7 +124,7 @@ Datos extraídos del análisis de mercado en [`android/docs/landscape.md`](andro
 | **Objetivo: texto OCR** | ✅ Apple Vision | ❌ No implementado (dependencia de ML Kit) |
 | **Grabación de acciones** | ✅ Eventos de ratón con cadencia real | ✅ Paso táctil fluido (multitáctil no grabado) |
 | **Idiomas de interfaz** | ✅ 5 idiomas, cambio inmediato | ✅ 5 idiomas, cambio sincronizado en vivo |
-| **Verificado en hardware real** | ✅ [73 pruebas manuales documentadas](docs/manual-e2e-tests.md) | ❌ Solo emulador ([pruebas](android/docs/testing.md)) |
+| **Verificado en hardware real** | ✅ [suite e2e manual](docs/manual-e2e-tests.md) | ❌ Solo emulador ([pruebas](android/docs/testing.md)) |
 
 ---
 

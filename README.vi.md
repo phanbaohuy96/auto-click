@@ -22,7 +22,7 @@ Tự động hoá các tác vụ lặp đi lặp lại bằng cách phát các s
 
 | Nền tảng | Giao diện & Trạng thái | Mô tả |
 |---|---|---|
-| [**`macos/`**](macos/README.md) | **Menu-bar App** (macOS 14+) · *Đang phát hành* | Swift / SwiftUI, sử dụng ScreenCaptureKit và Apple Vision. Đã xác minh thủ công trên phần cứng thật — [73 kết quả test e2e](docs/manual-e2e-tests.md). |
+| [**`macos/`**](macos/README.md) | **Menu-bar App** (macOS 14+) · *Đang phát hành* | Swift / SwiftUI, sử dụng ScreenCaptureKit và Apple Vision. Đã xác minh thủ công trên phần cứng thật — [bộ kiểm thử e2e thủ công, ghi lại từng kết quả một](docs/manual-e2e-tests.md). |
 | [**`android/`**](android/README.md) | **Floating Overlay Service** (Android 11+) · *Đã hoàn thiện 4 lát cắt* | Lớp phủ Jetpack Compose điều khiển qua AccessibilityService. Đã chạy trên máy ảo — **chưa chạy trên thiết bị vật lý** ([kế hoạch kiểm thử](android/docs/testing.md)). |
 
 ---
@@ -124,7 +124,7 @@ Tổng hợp từ khảo sát thực tế trong [`android/docs/landscape.md`](an
 | **Mục tiêu: Chữ (OCR)** | ✅ Apple Vision | ❌ Chưa có — phụ thuộc ML Kit và không phát hành qua Play |
 | **Ghi thao tác** | ✅ Sự kiện chuột, giữ thời gian thực | ✅ Chạm xuyên qua; chưa ghi cử chỉ đa chạm |
 | **Ngôn ngữ giao diện** | ✅ 5 ngôn ngữ, đổi tức thì | ✅ 5 ngôn ngữ, đổi tức thì trên cả 2 bề mặt |
-| **Xác minh trên phần cứng thật** | ✅ [73 kết quả test thủ công](docs/manual-e2e-tests.md) | ❌ Mới kiểm thử trên máy ảo ([testing](android/docs/testing.md)) |
+| **Xác minh trên phần cứng thật** | ✅ [bộ kiểm thử e2e thủ công](docs/manual-e2e-tests.md) | ❌ Mới kiểm thử trên máy ảo ([testing](android/docs/testing.md)) |
 
 ---
 

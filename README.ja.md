@@ -22,7 +22,7 @@
 
 | プラットフォーム | インターフェースとステータス | 概要 |
 |---|---|---|
-| [**`macos/`**](macos/README.md) | **メニューバーアプリ**（macOS 14+）· *リリース中* | Swift / SwiftUI 製。ScreenCaptureKit と Apple Vision を活用。実機で手作業による検証済み — [73 件の E2E テスト結果](docs/manual-e2e-tests.md)。 |
+| [**`macos/`**](macos/README.md) | **メニューバーアプリ**（macOS 14+）· *リリース中* | Swift / SwiftUI 製。ScreenCaptureKit と Apple Vision を活用。実機で手作業による検証済み — [結果を一件ずつ記録した手動 E2E テスト](docs/manual-e2e-tests.md)。 |
 | [**`android/`**](android/README.md) | **フローティングオーバーレイサービス**（Android 11+）· *全4スライス完成* | AccessibilityService（ユーザー補助サービス）上で動作する Jetpack Compose オーバーレイ。エミュレータでのみ実行 — **実機テストは未実施**（[テスト計画](android/docs/testing.md)）。 |
 
 ---
@@ -124,7 +124,7 @@
 | **ターゲット：OCR テキスト** | ✅ Apple Vision フレームワーク | ❌ 未搭載（ML Kit 依存および野良配布のため） |
 | **操作レコーディング** | ✅ マウスイベント・実時間保持 | ✅ タッチ透過記録（マルチタッチは非対応） |
 | **インターフェース言語** | ✅ 5言語、リアルタイム切替 | ✅ 5言語、両UIで即座に同期切替 |
-| **実機ハードウェア検証** | ✅ [73件の実機テスト結果](docs/manual-e2e-tests.md) | ❌ エミュレータのみ（[テスト計画](android/docs/testing.md)） |
+| **実機ハードウェア検証** | ✅ [手動 E2E テスト](docs/manual-e2e-tests.md) | ❌ エミュレータのみ（[テスト計画](android/docs/testing.md)） |
 
 ---
 

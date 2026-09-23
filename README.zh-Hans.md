@@ -22,7 +22,7 @@
 
 | 平台 | 界面与状态 | 概述 |
 |---|---|---|
-| [**`macos/`**](macos/README.md) | **菜单栏应用**（macOS 14+）· *已发布* | Swift / SwiftUI 开发，由 ScreenCaptureKit 与 Apple Vision 驱动。在真实硬件上手工验证 — [73 项端到端测试结果](docs/manual-e2e-tests.md)。 |
+| [**`macos/`**](macos/README.md) | **菜单栏应用**（macOS 14+）· *已发布* | Swift / SwiftUI 开发，由 ScreenCaptureKit 与 Apple Vision 驱动。在真实硬件上手工验证 — [逐条记录的手工端到端测试](docs/manual-e2e-tests.md)。 |
 | [**`android/`**](android/README.md) | **悬浮窗服务**（Android 11+）· *四个切片已全部完成* | 基于 AccessibilityService 的 Jetpack Compose 悬浮窗应用。目前仅在模拟器上运行 — **尚未在实体设备上验证**（[测试记录](android/docs/testing.md)）。 |
 
 ---
@@ -124,7 +124,7 @@
 | **目标：OCR 文本** | ✅ 原生 Apple Vision 框架 | ❌ 暂未开发（受限于 ML Kit 与分发途径） |
 | **操作录制** | ✅ 捕获鼠标事件，保留真实节奏 | ✅ 触控穿透录制；多指手势暂未支持自动录制 |
 | **界面语言** | ✅ 5 种，即时切换 | ✅ 5 种，两层交互表面同时即时生效 |
-| **真机物理验证** | ✅ [73 项手工测试结果验证](docs/manual-e2e-tests.md) | ❌ 仅在模拟器验证（[测试记录](android/docs/testing.md)） |
+| **真机物理验证** | ✅ [手工端到端测试](docs/manual-e2e-tests.md) | ❌ 仅在模拟器验证（[测试记录](android/docs/testing.md)） |
 
 ---
 
