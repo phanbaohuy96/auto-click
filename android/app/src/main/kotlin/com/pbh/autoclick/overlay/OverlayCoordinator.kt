@@ -167,7 +167,7 @@ class OverlayCoordinator(
         // TP-7: the one moment the control comes down. Nothing can be running while a Template
         // is being cropped, so no Stop is being taken away.
         if (!current.showControl) {
-            control.dismiss()
+            control.dismiss(immediate = true)
             return
         }
 
@@ -213,7 +213,9 @@ class OverlayCoordinator(
     private fun refreshPanel(current: OverlayUiState) {
         if (!current.showPanel) {
             panelSignature = null
-            panel.dismiss()
+            // TP-7: the panel is the biggest thing on the screen and the one most likely to be
+            // over whatever the user wants to crop.
+            panel.dismiss(immediate = current.isCropping)
             placement.keepClearOf()
             return
         }

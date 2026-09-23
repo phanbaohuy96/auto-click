@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.pbh.autoclick.R
@@ -39,6 +40,7 @@ import com.pbh.autoclick.domain.scenario.ScenarioLimits
 import com.pbh.autoclick.domain.scenario.ScreenPoint
 import com.pbh.autoclick.domain.scenario.ScreenRegion
 import com.pbh.autoclick.overlay.CropPurpose
+import com.pbh.autoclick.overlay.OverlayBounds
 import kotlin.math.roundToInt
 
 /**
@@ -61,6 +63,7 @@ fun CropLayer(
     onConfirm: (ScreenRegion) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    bounds: OverlayBounds = OverlayBounds(width = 0, height = 0),
 ) {
     var start by remember { mutableStateOf<ScreenPoint?>(null) }
     var region by remember { mutableStateOf<ScreenRegion?>(null) }
@@ -95,6 +98,7 @@ fun CropLayer(
             purpose = purpose,
             region = chosen,
             bigEnough = bigEnough,
+            bounds = bounds,
             onConfirm = { chosen?.let(onConfirm) },
             onCancel = onCancel,
         )
@@ -150,17 +154,23 @@ private fun BoxScope.CropBar(
     purpose: CropPurpose,
     region: ScreenRegion?,
     bigEnough: Boolean,
+    bounds: OverlayBounds,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
 ) {
     val nearTheTop = region != null && region.top < BAR_AVOIDANCE_PIXELS
+    val density = LocalDensity.current
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier =
             Modifier
                 .align(if (nearTheTop) Alignment.BottomCenter else Alignment.TopCenter)
-                .padding(BAR_MARGIN)
-                .clip(MaterialTheme.shapes.large),
+                .padding(
+                    start = BAR_MARGIN,
+                    end = BAR_MARGIN,
+                    top = BAR_MARGIN + with(density) { bounds.topInset.toDp() },
+                    bottom = BAR_MARGIN + with(density) { bounds.bottomInset.toDp() },
+                ).clip(MaterialTheme.shapes.large),
     ) {
         Column(Modifier.padding(BAR_PADDING)) {
             Text(

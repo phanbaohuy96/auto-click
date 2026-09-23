@@ -747,8 +747,15 @@ class OverlayService : Service() {
         /** RD-5: long enough for `updateViewLayout` to have taken the touchable flag away. */
         private const val FLAG_SETTLE_MILLISECONDS = 24L
 
-        /** TP-7: long enough for the window manager to have actually taken the Overlay down. */
-        private const val WINDOW_SETTLE_MILLISECONDS = 160L
+        /**
+         * TP-7: long enough for the screen to be Auto Click's no more.
+         *
+         * Two things have to have happened, and the longer of them sets this. The windows have to
+         * be gone, which `removeViewImmediate` now makes true before this delay starts; and the
+         * platform's own rate limit on `takeScreenshot` — about one call every 333 ms — has to
+         * have elapsed, or the capture is refused and the crop comes back empty.
+         */
+        private const val WINDOW_SETTLE_MILLISECONDS = 400L
 
         /** OV-37: long enough for the display's own metrics to have caught up with the rotation. */
         private const val ROTATION_SETTLE_MILLISECONDS = 400L

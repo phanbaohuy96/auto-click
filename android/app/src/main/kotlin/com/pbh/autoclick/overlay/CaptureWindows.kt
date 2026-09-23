@@ -65,9 +65,18 @@ internal class CaptureWindows(
             cropping.dismiss()
             return
         }
+        val bounds = context.overlayBounds()
         cropping.show(layout(listening = true)) {
             OverlayTheme {
-                CropLayer(frame = frame, purpose = purpose, onConfirm = onCropped, onCancel = onCancelCrop)
+                CropLayer(
+                    frame = frame,
+                    purpose = purpose,
+                    onConfirm = onCropped,
+                    onCancel = onCancelCrop,
+                    // OV-31: this window is measured against the display, so the system bars are
+                    // inside it rather than outside. The bar would otherwise sit on the clock.
+                    bounds = bounds,
+                )
             }
         }
     }

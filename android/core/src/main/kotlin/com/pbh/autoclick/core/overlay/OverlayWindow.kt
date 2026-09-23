@@ -141,14 +141,31 @@ class OverlayWindow(
      *
      * Safe to call when nothing is showing, and safe to call twice — both happen on the paths that
      * are already going wrong, which are the paths that most need this to work.
+     *
+     * [immediate] is `TP-7` and nothing else. `removeView` is a **request**: the window survives
+     * until the window manager next runs, and on the emulator that was long enough for a
+     * screenshot taken 160 ms later to still contain the panel that had been dismissed — a
+     * Template cropped out of that frame carries Auto Click's own interface inside it and can
+     * never match anything again.
+     *
+     * It is not the default, because `OV-13` re-attaches the control on **every** state change to
+     * keep Stop on top. Removing it synchronously there leaves a frame with no control on the
+     * screen at all, and a Stop button that blinks is a Stop button the user has to aim at.
      */
-    fun dismiss() {
+    fun dismiss(immediate: Boolean = false) {
         val view = composeView ?: return
         composeView = null
 
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         view.disposeComposition()
-        runCatching { windowManager.removeView(view) }
+        if (immediate) {
+            // Throws when the view is no longer attached, which is exactly the case where the
+            // deferred call would have had nothing left to do either.
+            runCatching { windowManager.removeViewImmediate(view) }
+                .onFailure { runCatching { windowManager.removeView(view) } }
+        } else {
+            runCatching { windowManager.removeView(view) }
+        }
         viewModelStore.clear()
     }
 }

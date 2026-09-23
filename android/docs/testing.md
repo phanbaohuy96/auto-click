@@ -190,6 +190,36 @@ untested until one is:
 - **Whether a re-emitted swipe is good enough to use.** `RD-5` says plainly that it will arrive
   late; nobody has yet recorded a drag in an application that cares.
 
+### What the emulator did prove about recognition and languages
+
+A3 and A4 were both walked end to end on the emulator (Pixel 10 Pro XL, API 37, 1344 × 2992).
+
+- **A Template was cropped, found and pressed.** Crop the **Photos** icon out of the home screen,
+  save, run: the search found it, the **Step** moved onto the match, the tap landed, and
+  `topResumedActivity` became `com.google.android.apps.photos/.home.HomeActivity`. The
+  `scenario.json` written was schema 2 with the point at the crop's centre `835, 2105` and a
+  **Search region** of `596, 1866 → 1074, 2344` — which is `TP-9`'s padding of 48 dp × 3 arithmetic
+  exactly.
+- **And the other half.** Run the same **Scenario** from inside Photos, where the icon is not on
+  screen: after the five-second wait the run ended and the control said *Step 1 never found its
+  picture*. `TP-21`'s two outcomes are both real.
+- **The language changed under the Overlay.** Choosing Tiếng Việt, and then 日本語, re-lettered the
+  Activity **and** the floating control **and** the open panel with no restart and nothing
+  recreated — `IL-5`, which is the whole reason A4 was a slice rather than four resource
+  directories. Choosing *follow the system* removed the key from the preferences rather than
+  writing a language, as `IL-1` requires.
+
+### Two things this cost, both found on the emulator
+
+- **`TP-7` needs `removeViewImmediate`.** `removeView` is a request: the window survives until the
+  window manager next runs. A frame taken 160 ms after the Overlay was dismissed still contained
+  the panel and the floating control, which would have been baked into the **Template**. The fix
+  is a synchronous removal on the crop path only — `OV-13` re-attaches the control on every state
+  change, and removing it synchronously there makes Stop blink.
+- **`adb shell am force-stop` switches the accessibility service off.** The package's entry is
+  taken out of `Settings.Secure.enabled_accessibility_services`, so every force-stop in a test
+  script has to be followed by putting it back. Re-launching with `am start` does not.
+
 ### Platform behaviour worth knowing about
 
 - **A full-screen `FLAG_NOT_TOUCHABLE` overlay is forced to 80% alpha.** The system logs
