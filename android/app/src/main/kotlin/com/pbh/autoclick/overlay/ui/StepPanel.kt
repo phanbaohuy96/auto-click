@@ -125,6 +125,8 @@ data class StepPanelActions(
     val onGo: (Int) -> Unit,
     /** RC-7: take the Overlay off the screen and crop a Template out of what is underneath. */
     val onCropTemplate: (CropPurpose) -> Unit,
+    /** Runs this draft once, on its own, and saves nothing. */
+    val onTry: () -> Unit,
 )
 
 /**
@@ -208,6 +210,12 @@ private fun PanelFooter(
             description = stringResource(R.string.step_next),
             enabled = editing.canGoForward,
         )
+        // GX-1 for one Step. Beside the arrows rather than beside Save, because it is about
+        // *this* Step like they are, and because a button next to Save that does not save is the
+        // one place a misfire costs the user their edits.
+        TextButton(onClick = actions.onTry, enabled = editing.canSave) {
+            Text(stringResource(R.string.step_try))
+        }
         Spacer(Modifier.weight(1f))
         TextButton(onClick = actions.onCancel) { Text(stringResource(R.string.step_cancel)) }
         Button(

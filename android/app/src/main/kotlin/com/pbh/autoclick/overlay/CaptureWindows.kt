@@ -85,7 +85,7 @@ internal class CaptureWindows(
             return
         }
         recording.show(layout(listening = session.listening)) {
-            OverlayTheme { RecordingLayer(onTouch = onRecordingEvent) }
+            OverlayTheme { RecordingLayer(onTouch = onRecordingEvent, passThrough = session.passThrough) }
         }
     }
 

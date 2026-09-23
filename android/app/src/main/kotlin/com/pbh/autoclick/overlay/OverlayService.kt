@@ -39,6 +39,7 @@ import com.pbh.autoclick.domain.run.ScenarioRunner
 import com.pbh.autoclick.domain.run.freeTheTouchGesture
 import com.pbh.autoclick.domain.scenario.GestureLimits
 import com.pbh.autoclick.domain.scenario.Guard
+import com.pbh.autoclick.domain.scenario.RunCount
 import com.pbh.autoclick.domain.scenario.Scenario
 import com.pbh.autoclick.domain.scenario.ScreenPoint
 import com.pbh.autoclick.domain.scenario.ScreenRegion
@@ -222,38 +223,34 @@ class OverlayService : Service() {
         object : RunCallbacks {
             override fun onStart() {
                 val current = scenario ?: return
-                // One run at a time. Start is only offered while stopped, but the state and the
-                // job are two facts and a second runner would dispatch into the first one's
-                // strokes — the job is the one that knows.
-                if (runJob?.isActive == true) return
                 // OV-20: belt as well as braces. OverlayUiState.showPanel already refuses to draw
                 // the panel once a run exists; closing it here means the focusable window is gone
                 // before the first Gesture rather than one state update later.
                 coordinator?.update { copy(panel = null) }
-                val dispatcher = accessibilityDispatcher() ?: return
-                // RC-2, RC-27: one screen source and one Template cache for the whole run, so a
-                // Template is decoded once however many polls look for it.
-                val finder =
-                    TemplateFinder(
-                        screen = AccessibilityScreens { overlayContext.currentScreenProfile() },
-                        templates = StoredTemplates(templates, current.id),
-                    )
-                val activeRunner = ScenarioRunner(dispatcher, dispatcher.gestureLimits, finder)
-                runner = activeRunner
-                runJob =
-                    scope.launch {
-                        try {
-                            activeRunner.run(current, overlayContext.currentScreenProfile()) { event ->
-                                coordinator?.update { applied(event, current.steps.size) }
-                            }
-                        } finally {
-                            // OV-25: the run is over however it ended, and nothing else will say
-                            // so. A cancelled coroutine sends no Finished event, and the Overlay
-                            // would keep the state only a live runner can leave.
-                            runner = null
-                            coordinator?.update { settled() }
-                        }
-                    }
+                startRun(current)
+            }
+
+            /**
+             * One Step, on its own, with the panel left where it is.
+             *
+             * The panel is not closed, only hidden — `OverlayUiState.showPanel` is false while
+             * anything runs, so it goes away for the length of the try and comes back with the
+             * draft still in it. Closing it would make Try cost the user their edits, which is
+             * the opposite of what a Try is for.
+             *
+             * The countdown is dropped: the finger that pressed Try is already on the panel, not
+             * over the target, and three seconds of waiting to see one tap is three seconds of
+             * wondering whether the button worked. Nothing is written — [applyEdit] is not called.
+             */
+            override fun onTryStep(draft: StepDraft) {
+                val current = scenario ?: return
+                startRun(
+                    current.copy(
+                        steps = listOf(draft.toStep()),
+                        runCount = RunCount.Times(1),
+                        countdownMilliseconds = 0,
+                    ),
+                )
             }
 
             /**
@@ -328,11 +325,11 @@ class OverlayService : Service() {
      */
     private val recordCallbacks =
         object : RecordCallbacks {
-            override fun onRecord() {
+            override fun onRecord(passThrough: Boolean) {
                 if (scenario == null) return
                 val dispatcher = accessibilityDispatcher() ?: return
                 replaying = false
-                coordinator?.update { copy(panel = null, recording = RecordingSession()) }
+                coordinator?.update { copy(panel = null, recording = RecordingSession(passThrough = passThrough)) }
                 recorder =
                     Recorder(dispatcher) { touch ->
                         coordinator?.update {
@@ -382,9 +379,19 @@ class OverlayService : Service() {
              * of milliseconds.
              */
             override fun onRecordingEvent(event: RecordingEvent) {
-                if (replaying) return
-                val active = recorder ?: return
+                val active = recorder?.takeUnless { replaying } ?: return
                 val gesture = active.accept(event) ?: return
+                // RD-9: silent mode is this method minus everything below it. The touch has been
+                // recorded and the application underneath is left exactly as it was, which is the
+                // whole point — marking six places on one screen without setting any of them off.
+                if (coordinator
+                        ?.state
+                        ?.value
+                        ?.recording
+                        ?.passThrough == false
+                ) {
+                    return
+                }
                 replaying = true
                 scope.launch {
                     try {
@@ -648,6 +655,41 @@ class OverlayService : Service() {
             EditCallbacks by editCallbacks,
             ShellCallbacks by shellCallbacks {}
 
+    /**
+     * GX-7: one run at a time, and everything a run needs built in one place.
+     *
+     * Start and Try differ in what they hand over and in nothing else. The job, rather than the
+     * state, is what knows whether a run is in flight: the two are separate facts, and a second
+     * runner would dispatch into the first one's strokes.
+     */
+    private fun startRun(toRun: Scenario) {
+        if (runJob?.isActive == true) return
+        val dispatcher = accessibilityDispatcher() ?: return
+        // RC-2, RC-27: one screen source and one Template cache for the whole run, so a Template
+        // is decoded once however many polls look for it.
+        val finder =
+            TemplateFinder(
+                screen = AccessibilityScreens { overlayContext.currentScreenProfile() },
+                templates = StoredTemplates(templates, toRun.id),
+            )
+        val activeRunner = ScenarioRunner(dispatcher, dispatcher.gestureLimits, finder)
+        runner = activeRunner
+        runJob =
+            scope.launch {
+                try {
+                    activeRunner.run(toRun, overlayContext.currentScreenProfile()) { event ->
+                        coordinator?.update { applied(event, toRun.steps.size) }
+                    }
+                } finally {
+                    // OV-25: the run is over however it ended, and nothing else will say so. A
+                    // cancelled coroutine sends no Finished event, and the Overlay would keep the
+                    // state only a live runner can leave.
+                    runner = null
+                    coordinator?.update { settled() }
+                }
+            }
+    }
+
     /** FS-15: there is no Save button for the Scenario itself — editing it *is* saving it. */
     private fun applyEdit(edited: Scenario) {
         scenario = edited
@@ -694,10 +736,6 @@ class OverlayService : Service() {
         }
     }
 
-    private fun accessibilityDispatcher(): AutoClickAccessibilityService? =
-        AutoClickAccessibilityService.instance
-            ?: null.also { Log.w(TAG, "no accessibility service connected") }
-
     companion object {
         private const val TAG = "OverlayService"
         internal const val NOTIFICATION_ID = 1
@@ -729,6 +767,11 @@ class OverlayService : Service() {
         }
     }
 }
+
+/** GX-1: the connected service, or a line in the log saying why nothing happened. */
+private fun accessibilityDispatcher(): AutoClickAccessibilityService? =
+    AutoClickAccessibilityService.instance
+        ?: null.also { Log.w("OverlayService", "no accessibility service connected") }
 
 private fun Intent.scenarioId(): UUID? =
     getStringExtra(OverlayService.EXTRA_SCENARIO_ID)?.let { runCatching { UUID.fromString(it) }.getOrNull() }

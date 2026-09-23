@@ -54,4 +54,26 @@ class ScenarioListViewModel
         fun delete(scenario: StoredScenario) {
             launch { store.delete(scenario.scenario.id) }
         }
+
+        /**
+         * FS-15 again: renaming **is** saving, so there is no second step and no Save button.
+         *
+         * A blank name is refused rather than repaired. `SM-4`'s repair value exists for a file
+         * that arrived damaged; a user emptying the field is asking a question, and the answer is
+         * "a Scenario has to be called something", not a silent rewrite to "Untitled scenario".
+         */
+        fun rename(
+            scenario: StoredScenario,
+            name: String,
+        ) {
+            val trimmed = name.trim()
+            if (scenario.readOnly || trimmed.isEmpty()) return
+            launch { store.save(scenario.scenario.copy(name = trimmed)) }
+        }
+
+        /** FS-3: a copy of the whole directory, Templates included (`RC-27`). */
+        fun duplicate(scenario: StoredScenario) {
+            if (scenario.readOnly) return
+            launch { store.duplicate(scenario.scenario.id) }
+        }
     }

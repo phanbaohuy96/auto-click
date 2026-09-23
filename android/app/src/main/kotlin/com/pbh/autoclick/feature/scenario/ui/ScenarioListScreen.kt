@@ -18,14 +18,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -63,6 +66,7 @@ fun ScenarioListScreen(
     val context = LocalContext.current
     var ready by remember { mutableStateOf(context.readPermissionStatus().ready) }
     var confirmingDelete by remember { mutableStateOf<StoredScenario?>(null) }
+    var renaming by remember { mutableStateOf<StoredScenario?>(null) }
 
     // PM-9: a permission can be turned off while the app is in the background, and that is a
     // supported thing to do rather than an error. The answer is re-read, never remembered.
@@ -108,6 +112,8 @@ fun ScenarioListScreen(
                     ScenarioRow(
                         stored = stored,
                         onOpen = { viewModel.open(stored) },
+                        onRename = { renaming = stored },
+                        onDuplicate = { viewModel.duplicate(stored) },
                         onDelete = { confirmingDelete = stored },
                     )
                 }
@@ -120,6 +126,14 @@ fun ScenarioListScreen(
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
             )
         }
+    }
+
+    renaming?.let { target ->
+        RenameDialog(
+            stored = target,
+            onRename = { viewModel.rename(target, it) },
+            onDismiss = { renaming = null },
+        )
     }
 
     confirmingDelete?.let { target ->
@@ -180,10 +194,52 @@ private fun EmptyState() {
     }
 }
 
+/**
+ * Renaming, with the Save this app otherwise does not have.
+ *
+ * A dialogue rather than an editable row, because the list is a list of things to open and a text
+ * field in it would be a target for the tap that meant "open this one".
+ */
+@Composable
+private fun RenameDialog(
+    stored: StoredScenario,
+    onRename: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by remember(stored.scenario.id) { mutableStateOf(stored.scenario.name) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.scenario_rename_title)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(stringResource(R.string.scenario_name)) },
+                singleLine = true,
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onRename(name)
+                    onDismiss()
+                },
+                enabled = name.isNotBlank(),
+            ) { Text(stringResource(R.string.step_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.step_cancel)) }
+        },
+    )
+}
+
 @Composable
 private fun ScenarioRow(
     stored: StoredScenario,
     onOpen: () -> Unit,
+    onRename: () -> Unit,
+    onDuplicate: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Card(
@@ -220,9 +276,60 @@ private fun ScenarioRow(
                 )
             }
             Spacer(Modifier.padding(horizontal = 2.dp))
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.scenario_delete))
+            RowMenu(
+                readOnly = stored.readOnly,
+                onRename = onRename,
+                onDuplicate = onDuplicate,
+                onDelete = onDelete,
+            )
+        }
+    }
+}
+
+/**
+ * Rename, duplicate and delete, behind one control.
+ *
+ * FS-14: a file this build cannot decode offers only Delete. Renaming it would write this build's
+ * schema over a document whose Steps are in the part it could not read, and duplicating it would
+ * make a second copy of the same loss — which is the requirement, said in the interface.
+ */
+@Composable
+private fun RowMenu(
+    readOnly: Boolean,
+    onRename: () -> Unit,
+    onDuplicate: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.scenario_more))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            if (!readOnly) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.scenario_rename)) },
+                    onClick = {
+                        open = false
+                        onRename()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.scenario_duplicate)) },
+                    onClick = {
+                        open = false
+                        onDuplicate()
+                    },
+                )
             }
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.scenario_delete)) },
+                onClick = {
+                    open = false
+                    onDelete()
+                },
+            )
         }
     }
 }

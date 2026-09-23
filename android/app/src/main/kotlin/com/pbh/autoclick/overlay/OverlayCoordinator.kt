@@ -189,7 +189,7 @@ class OverlayCoordinator(
                             onStop = callbacks::onStop,
                             onAddStep = callbacks::onAddStep,
                             onCancelPick = callbacks::onCancelPick,
-                            onRecord = callbacks::onRecord,
+                            onRecord = { callbacks.onRecord(passThrough = true) },
                             onStopRecording = callbacks::onStopRecording,
                             onOpenPanel = { update { copy(panel = PanelState.ScenarioEditor()) } },
                             onDone = { update { done() } },

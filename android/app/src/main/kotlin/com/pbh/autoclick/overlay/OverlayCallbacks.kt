@@ -28,6 +28,15 @@ interface OverlayCallbacks :
 interface RunCallbacks {
     fun onStart()
 
+    /**
+     * GX-1 for one Step: run **this draft**, on its own, without the Scenario around it.
+     *
+     * The draft rather than the Step on disk, because the question being asked is "does what I
+     * have just changed do what I meant", and a Try that ran the old version would answer a
+     * different question. Nothing is saved by trying.
+     */
+    fun onTryStep(draft: StepDraft)
+
     fun onStop()
 
     fun onFreeTheTouch()
@@ -35,7 +44,8 @@ interface RunCallbacks {
 
 /** RD-1 to RD-8: recording a session of real touches and turning it into Steps. */
 interface RecordCallbacks {
-    fun onRecord()
+    /** RD-5, RD-9: [passThrough] hands each touch back to the application; silent does not. */
+    fun onRecord(passThrough: Boolean)
 
     fun onStopRecording()
 

@@ -162,6 +162,14 @@ enum class CropPurpose {
 data class RecordingSession(
     val touches: Int = 0,
     val listening: Boolean = true,
+    /**
+     * RD-9: false for a *silent* session, which swallows the touch and hands nothing back.
+     *
+     * The two modes are the same window with different promises, and the user has to be able to
+     * tell which one is in force — in pass-through the application underneath is advancing under
+     * synthetic touches (`RD-5`), and silently it is not moving at all. `RD-6`'s border says so.
+     */
+    val passThrough: Boolean = true,
 )
 
 /**

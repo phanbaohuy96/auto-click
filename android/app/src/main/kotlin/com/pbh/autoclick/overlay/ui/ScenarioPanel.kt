@@ -106,6 +106,10 @@ fun ScenarioPanel(
                     PanelSectionLabel(stringResource(R.string.scenario_section_run))
                     RunSettings(scenario, actions, onFocus)
                 }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PanelSectionLabel(stringResource(R.string.scenario_section_record))
+                    RecordModes(actions)
+                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -131,6 +135,8 @@ data class ScenarioPanelActions(
     val onAskRebuild: () -> Unit,
     val onKeepScreen: () -> Unit,
     val onRebuild: () -> Unit,
+    /** RD-9: a session that notes each touch and hands nothing back to the app underneath. */
+    val onRecordSilently: () -> Unit,
     val onFreeTheTouch: () -> Unit,
     val onOpenApp: () -> Unit,
     val onCloseOverlay: () -> Unit,
@@ -412,6 +418,32 @@ private fun Footer(actions: ScenarioPanelActions) {
                 description = stringResource(R.string.overlay_open_app),
             )
             TextButton(onClick = actions.onCloseOverlay) { Text(stringResource(R.string.overlay_close)) }
+        }
+    }
+}
+
+/**
+ * RD-9: the two recordings, named by what they do to the application underneath.
+ *
+ * The control's record button is the ordinary one and stays where it is (`RD-5`) — it is the mode
+ * that makes a sequence spanning several screens recordable at all. Silent is the other half, and
+ * it lives here rather than beside it because choosing between two modes is a decision, and the
+ * control is a row of verbs.
+ *
+ * Both sentences say what happens to the app underneath rather than naming a mode. "Silent" means
+ * nothing to somebody who has not read RD-9; "the app will not react" is the whole difference.
+ */
+@Composable
+private fun RecordModes(actions: ScenarioPanelActions) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.scenario_record_silent_about),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = actions.onRecordSilently) {
+            Text(stringResource(R.string.scenario_record_silent))
         }
     }
 }

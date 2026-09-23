@@ -58,4 +58,5 @@
     <string name="step_discard_message">This step has edits that were never saved. Leaving now loses them.</string>
     <string name="step_discard_confirm">Discard</string>
     <string name="step_discard_dismiss">Keep editing</string>
+    <string name="step_try">Try it</string>
 </resources>

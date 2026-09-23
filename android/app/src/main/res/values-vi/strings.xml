@@ -10,4 +10,8 @@
     <string name="scenario_delete_title">Xoá “%1$s”?</string>
     <string name="scenario_delete_body">Các bước và cài đặt của nó sẽ mất theo. Không hoàn tác được.</string>
     <string name="scenario_none_title">Chưa có gì ở đây</string>
+    <string name="scenario_rename">Đổi tên</string>
+    <string name="scenario_rename_title">Đổi tên kịch bản</string>
+    <string name="scenario_duplicate">Nhân bản</string>
+    <string name="scenario_more">Thêm</string>
 </resources>
