@@ -38,14 +38,38 @@
     <string name="summary_swipe">Swipe %1$d, %2$d to %3$d, %4$d</string>
     <string name="summary_multi_touch">%1$d contacts at once</string>
     <string name="summary_set_text">Type \"%1$s\"</string>
-    <string name="summary_repeated">%1$s, %2$d times</string>
     <string name="run_notification_ready">Ready — nothing is running</string>
     <string name="tile_free_the_touch">Free the touch</string>
     <string name="run_notification_about_to_start">About to start</string>
     <string name="overlay_record">Record</string>
-    <string name="overlay_stop_recording">Finish recording</string>
-    <plurals name="overlay_recorded">
-        <item quantity="one">Recording · %1$d touch</item>
-        <item quantity="other">Recording · %1$d touches</item>
+    <string name="overlay_stop_recording">Finish</string>
+    <!-- The pulsing dot beside this says "recording"; the words only have to say how much. -->
+    <plurals name="overlay_touches">
+        <item quantity="one">%1$d touch</item>
+        <item quantity="other">%1$d touches</item>
     </plurals>
+    <!-- OV-33: nothing is written that was not written already. This closes the editor. -->
+    <string name="overlay_done">Done</string>
+    <!-- PK-1: shown over the screen the user is aiming at. -->
+    <string name="pick_hint">Tap where the step should touch, or drag for a swipe</string>
+    <string name="pick_cancel">Cancel</string>
+    <!-- OV-38: what each part of the scenario panel is called. -->
+    <string name="scenario_section_scenario">Scenario</string>
+    <string name="scenario_section_run">Run</string>
+    <string name="scenario_section_steps">Steps</string>
+    <string name="scenario_subtitle">%1$s · %2$s</string>
+    <string name="step_row_timing">then wait %1$d ms</string>
+    <string name="step_row_timing_repeated">%1$d× · then wait %2$d ms</string>
+    <!-- SM-18: which way round the screen was when this scenario was measured. -->
+    <string name="scenario_orientation_portrait">Portrait</string>
+    <string name="scenario_orientation_landscape">Landscape</string>
+    <string name="scenario_orientation_auto">Follows your phone</string>
+    <string name="scenario_screen_size">%1$d × %2$d %3$s</string>
+    <string name="scenario_screen_mismatch_title">Built on a different screen</string>
+    <string name="scenario_screen_mismatch_body">Measured on %1$s. This screen is %2$s, so the scenario will not run here.</string>
+    <string name="scenario_rebuild">Rebuild for this screen</string>
+    <string name="scenario_rebuild_title">Rebuild for this screen?</string>
+    <string name="scenario_rebuild_message">The steps, their order and their timing are kept. Every point is pulled inside this screen and has to be aimed again.</string>
+    <string name="scenario_rebuild_confirm">Rebuild</string>
+    <string name="scenario_rebuild_dismiss">Cancel</string>
 </resources>

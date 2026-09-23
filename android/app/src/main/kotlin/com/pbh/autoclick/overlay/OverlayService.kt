@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.hardware.display.DisplayManager
 import android.os.IBinder
 import android.util.Log
@@ -11,8 +12,8 @@ import android.view.Display
 import android.view.ViewConfiguration
 import android.view.WindowManager
 import com.pbh.autoclick.domain.editor.StepDraft
-import com.pbh.autoclick.domain.editor.newStep
 import com.pbh.autoclick.domain.editor.previewing
+import com.pbh.autoclick.domain.editor.rebuiltFor
 import com.pbh.autoclick.domain.editor.toDraft
 import com.pbh.autoclick.domain.editor.toStep
 import com.pbh.autoclick.domain.editor.withPointsFrom
@@ -24,6 +25,7 @@ import com.pbh.autoclick.domain.editor.withStepsAdded
 import com.pbh.autoclick.domain.model.AppResult
 import com.pbh.autoclick.domain.overlay.Marker
 import com.pbh.autoclick.domain.overlay.withMarkerMoved
+import com.pbh.autoclick.domain.recording.toPickedStep
 import com.pbh.autoclick.domain.recording.toSteps
 import com.pbh.autoclick.domain.repository.ScenarioRepository
 import com.pbh.autoclick.domain.run.FinishReason
@@ -144,6 +146,28 @@ class OverlayService : Service() {
         return START_NOT_STICKY
     }
 
+    /**
+     * OV-37: the phone was rotated, and no Overlay window has noticed.
+     *
+     * A Service receives this as a `ComponentCallbacks`, which is the only notice this process
+     * gets: the windows are attached to the window manager rather than to an Activity, so nothing
+     * recreates them and they keep the size and position they were given for the screen that is
+     * no longer there. Left alone, the control ends up off the bottom of a shorter screen and the
+     * panel keeps a portrait phone's width on a landscape one.
+     *
+     * Done twice on purpose. `maximumWindowMetrics` is the display's, and on the test device it
+     * still reported the old bounds when this callback arrived; the second pass is what actually
+     * lands, and the first is what makes the common case immediate.
+     */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        coordinator?.onScreenChanged()
+        scope.launch {
+            delay(ROTATION_SETTLE_MILLISECONDS)
+            coordinator?.onScreenChanged()
+        }
+    }
+
     override fun onDestroy() {
         runner?.requestStop()
         coordinator?.hide()
@@ -229,6 +253,36 @@ class OverlayService : Service() {
                     dispatcher.releaseEverything()
                     dispatcher.dispatch(freeTheTouchGesture(ScreenPoint(0, 0)))
                 }
+            }
+        }
+
+    /** PK-1: the gesture being aimed, or null when the screen is not armed. */
+    private var picker: Picker? = null
+
+    private val pickCallbacks =
+        object : PickCallbacks {
+            /**
+             * PK-2: the aimed gesture becomes a Step, and the panel opens on it.
+             *
+             * `scaledTouchSlop` decides tap from swipe, the same platform number recording uses
+             * (`RD-3`), so one finger that wandered a little means the same thing on both routes.
+             */
+            override fun onPickEvent(event: RecordingEvent) {
+                val touch = picker?.accept(event) ?: return
+                val current = scenario ?: return
+                picker = null
+
+                val slop = ViewConfiguration.get(overlayContext).scaledTouchSlop
+                val profile = current.screenProfile ?: overlayContext.currentScreenProfile()
+                val picked = touch.toPickedStep(slop)
+                coordinator?.update { copy(picking = false) }
+                applyEdit(current.withStepAdded(picked, profile))
+                openPanel(picked.id)
+            }
+
+            override fun onCancelPick() {
+                picker = null
+                coordinator?.update { copy(picking = false) }
             }
         }
 
@@ -319,18 +373,21 @@ class OverlayService : Service() {
     private val editCallbacks =
         object : EditCallbacks {
             /**
-             * A new Step in the middle of the screen, then the panel open on it (`OV-23`).
+             * PK-1: adding a Step is aiming at the screen, not dropping one in the middle of it.
              *
-             * The middle because it is the one place guaranteed to be visible and not under the
-             * floating control, and because the Marker is meant to be dragged from there to
-             * wherever it belongs — it is a starting position, not a guess at the user's intent.
+             * What this used to do was put a Step at the centre of the display and open the panel
+             * on it, leaving the user to drag a Marker from the middle of somebody else's
+             * application to wherever they actually meant. The centre of the screen is never the
+             * answer, so that first drag was unavoidable — and while it was happening the panel
+             * was open over the thing being aimed at.
+             *
+             * So the Overlay gets out of the way instead and waits for one gesture. The panel
+             * opens afterwards, on a Step that already knows where it goes.
              */
             override fun onAddStep() {
-                val current = scenario ?: return
-                val profile = current.screenProfile ?: overlayContext.currentScreenProfile()
-                val added = newStep(ScreenPoint(profile.widthPixels / 2, profile.heightPixels / 2))
-                applyEdit(current.withStepAdded(added, profile))
-                openPanel(added.id)
+                if (scenario == null) return
+                picker = Picker()
+                coordinator?.update { copy(panel = null, picking = true) }
             }
 
             /**
@@ -374,6 +431,21 @@ class OverlayService : Service() {
 
             override fun onStepOpened(stepId: UUID) {
                 openPanel(stepId)
+            }
+
+            /**
+             * SM-18: the same Steps, measured against the screen in front of the user.
+             *
+             * The **Screen profile** is captured once and kept (`SM-14`) so that a mismatch is
+             * reported rather than quietly overwritten — which leaves a user who built a
+             * **Scenario** in portrait and now wants it in landscape with nothing to do but
+             * delete every **Step**. This is the way out, and it is deliberately only reachable
+             * from the panel that is already telling them the screens do not match.
+             */
+            override fun onRebuildForThisScreen() {
+                val current = scenario ?: return
+                applyEdit(current.rebuiltFor(overlayContext.currentScreenProfile()))
+                coordinator?.update { copy(panel = PanelState.ScenarioEditor()) }
             }
 
             override fun onStepSaved(draft: StepDraft) {
@@ -465,6 +537,7 @@ class OverlayService : Service() {
             OverlayCallbacks,
             RunCallbacks by runCallbacks,
             RecordCallbacks by recordCallbacks,
+            PickCallbacks by pickCallbacks,
             EditCallbacks by editCallbacks,
             ShellCallbacks by shellCallbacks {}
 
@@ -516,6 +589,9 @@ class OverlayService : Service() {
 
         /** RD-5: long enough for `updateViewLayout` to have taken the touchable flag away. */
         private const val FLAG_SETTLE_MILLISECONDS = 24L
+
+        /** OV-37: long enough for the display's own metrics to have caught up with the rotation. */
+        private const val ROTATION_SETTLE_MILLISECONDS = 400L
 
         const val ACTION_OPEN = "com.pbh.autoclick.OPEN"
         const val ACTION_STOP = "com.pbh.autoclick.STOP"

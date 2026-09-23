@@ -21,6 +21,7 @@ ambiguous about which platform it belongs to.
 | `RD` | Recording | [08](./08-recording.md) |
 | `DS` | The design system | [07](./07-design-system.md) |
 | `AP` | Settings that are not a Scenario | [04](./04-storage.md) |
+| `PK` | Picking a point to aim a Step at | [09](./09-picking.md) |
 
 macOS identifiers — `DM`, `EX`, `ST`, `UI`, `RC`, `RG`, `SF`, `LC` — keep their meaning when cited
 from here, and always link back to [`../../../docs/sdd/`](../../../docs/sdd/).

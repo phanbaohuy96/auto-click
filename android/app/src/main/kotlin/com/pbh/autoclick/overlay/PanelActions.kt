@@ -14,9 +14,13 @@ internal fun stepPanelActions(
         onDraftChanged = { draft -> update { it.withStep { open -> open.copy(step = open.step.copy(draft = draft)) } } },
         onTypingChanged = { typing -> update { it.withPanelTyping(typing) } },
         onSave = { callbacks.onStepSaved(editing.draft) },
-        onCancel = { update { it.copy(panel = null) } },
+        // OV-36: both exits go through the same question, and neither asks it when there is
+        // nothing to lose.
+        onBack = { update { it.leaving(PanelExit.TO_SCENARIO) } },
+        onCancel = { update { it.leaving(PanelExit.CLOSED) } },
+        onDiscard = { update { it.leftBehind() } },
+        onKeepEditing = { update { it.stayed() } },
         onDelete = { callbacks.onStepDeleted(editing.draft.stepId) },
-        onMove = { by -> callbacks.onStepMoved(editing.draft.stepId, by) },
         onGo = { by -> callbacks.onStepNavigated(editing.draft.stepId, by) },
     )
 
@@ -35,6 +39,11 @@ internal fun scenarioPanelActions(
         onOpenStep = callbacks::onStepOpened,
         onMoveStep = callbacks::onStepMoved,
         onDeleteStep = callbacks::onStepDeleted,
+        // SM-18: asked about before it happens, because it is the one edit here that cannot be
+        // undone by doing the opposite — a clamped point has forgotten where it used to be.
+        onAskRebuild = { update { it.withScenarioPanel { open -> open.copy(confirmingRebuild = true) } } },
+        onKeepScreen = { update { it.withScenarioPanel { open -> open.copy(confirmingRebuild = false) } } },
+        onRebuild = callbacks::onRebuildForThisScreen,
         onFreeTheTouch = callbacks::onFreeTheTouch,
         onOpenApp = callbacks::onOpenApp,
         onCloseOverlay = callbacks::onCloseOverlay,
@@ -43,6 +52,9 @@ internal fun scenarioPanelActions(
 
 internal fun OverlayUiState.withStep(edit: (PanelState.StepEditor) -> PanelState.StepEditor): OverlayUiState =
     copy(panel = (panel as? PanelState.StepEditor)?.let(edit) ?: panel)
+
+internal fun OverlayUiState.withScenarioPanel(edit: (PanelState.ScenarioEditor) -> PanelState.ScenarioEditor): OverlayUiState =
+    copy(panel = (panel as? PanelState.ScenarioEditor)?.let(edit) ?: panel)
 
 internal fun OverlayUiState.withPanelTyping(typing: Boolean): OverlayUiState =
     copy(

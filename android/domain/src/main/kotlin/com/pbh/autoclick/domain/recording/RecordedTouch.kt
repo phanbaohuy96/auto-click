@@ -1,5 +1,7 @@
 package com.pbh.autoclick.domain.recording
 
+import com.pbh.autoclick.domain.editor.DEFAULT_TRAVEL_MILLISECONDS
+import com.pbh.autoclick.domain.editor.newStep
 import com.pbh.autoclick.domain.scenario.GestureLimits
 import com.pbh.autoclick.domain.scenario.ScenarioLimits
 import com.pbh.autoclick.domain.scenario.ScenarioLimits.clampedTo
@@ -75,6 +77,30 @@ private fun RecordedTouch.toAction(
         // that silently does nothing (GX-13).
         StepAction.Swipe(destination = end, durationMilliseconds = held.coerceAtLeast(1L))
     }
+}
+
+/**
+ * PK-2: the **Step** one *aimed* gesture produces, which is not what a recorded one produces.
+ *
+ * The **shape** is taken from the finger, exactly as recording takes it: a finger that stayed put
+ * means a `tap`, one that travelled means a `swipe` between the two ends. That is the whole reason
+ * the picker captures a gesture rather than a point — a swipe would otherwise cost the user three
+ * more actions to describe.
+ *
+ * The **timing is thrown away**, and this is the difference. A recording captures a performance,
+ * so how long a finger stayed down is part of what the user did and `RD-3` keeps it. Aiming is not
+ * a performance; it is somebody picking a spot while still deciding. Keeping that duration would
+ * turn three seconds of hesitation into a three-second hold, and build a Step out of a pause. The
+ * Step gets the ordinary defaults instead, and the panel that opens next is where a hold or a
+ * travel time is chosen on purpose.
+ */
+fun RecordedTouch.toPickedStep(slopPixels: Int = DEFAULT_SLOP_PIXELS): Step {
+    val travel = max(abs(end.x - start.x), abs(end.y - start.y))
+    if (travel <= slopPixels) return newStep(start)
+    return Step(
+        action = StepAction.Swipe(destination = end, durationMilliseconds = DEFAULT_TRAVEL_MILLISECONDS),
+        target = StepTarget(start),
+    )
 }
 
 /**

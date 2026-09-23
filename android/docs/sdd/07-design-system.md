@@ -83,3 +83,44 @@ looks like.
 - **Motion.** Nothing here animates beyond what Material 3 does by itself. The Overlay is drawn
   over content the user is watching, and a control that moves on its own would be a distraction
   from the thing being automated rather than a delight.
+
+## DS-6 — glass, and the blur it cannot have
+
+**DS-6** `[A2]` The floating control is translucent. **No Overlay window asks for a blur behind
+it.**
+
+Android has a real blur for this: `FLAG_BLUR_BEHIND` with `setBlurBehindRadius`, available since
+API 31, and the test device reports `isCrossWindowBlurEnabled` as true. It is unusable here, and
+the reason is not aesthetic.
+
+Asking a window for a blur makes WindowManager create a **display-wide dim layer** beneath it. That
+layer is a system surface whose occlusion mode is `BLOCK_UNTRUSTED`, and Android's untrusted-touch
+rules then drop every touch aimed at an untrusted window below it — which is every other window
+this application owns. With the blur on, the panel, the **Marker**s and the recording layer stopped
+answering touches entirely; `InputDispatcher` reported `Untrusted touch due to occlusion by /1000`
+and named `Dim Layer for - Display 0 … mode=BLOCK_UNTRUSTED` as the obscuring surface.
+
+The floating control kept working throughout, because it sits above the layer. That is what makes
+this worth a regression test rather than a comment: the one window a developer is looking at while
+they add the blur is the one window that does not break.
+
+So the choice was never between a frost and a tint. It was between a frost and an editor that
+answers touches, and the control is translucent without one.
+
+The alpha is chosen for that. Without a blur the background composites unchanged, so it is the only
+thing keeping somebody else's paragraph from being readable through the control. At 0.78 it plainly
+was: a row of Gmail's body text sampled through the control gave 92 where the page was white and 43
+where a glyph was — the same contrast as the sharp text beside it, merely dimmed. At **0.88** those
+two values are 71 and 62; the text behind survives as a shape and nothing more, while the control's
+own label sits at 236 against 71. `OV-13` says the control must be found and pressed in a panic; it
+cannot also be a window onto a sentence.
+
+**DS-7** `[A2]` No Overlay window casts a drop shadow.
+
+A shadow is offset downwards, so on a rounded window it pools in the two **bottom** corners and
+shows as a grey wedge outside the curve — measured at 20% grey against a white application, and
+reported as a defect. What replaces it covers more cases for less: the hairline gives the window an
+edge over a dark wallpaper where the surface is the same value as the background, and over a light
+application the surface is near-black and needs no help at all, which is the case the shadow was
+added for. Where two Overlay windows meet, they are told apart by surface tone, because on a dark
+scheme a shadow between them was never visible anyway.

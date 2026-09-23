@@ -18,7 +18,12 @@ It has been run on an emulator (Pixel 10 Pro XL, API 37) and **never on a physic
 | One directory per **Scenario** on disk, and a `DataStore` for what is not one ([04](docs/sdd/04-storage.md)) | Trying one **Step** on its own, without running the **Scenario** |
 | The runner, and every exit path releasing ([05](docs/sdd/05-gesture-execution.md)) | Renaming or duplicating a **Scenario** from the Activity |
 | The **Overlay**, **Marker**s, the movable control, both faces of the panel ([06](docs/sdd/06-overlay-and-markers.md)) | Anything at all on physical hardware |
-| Onboarding, including the Android 13 wall ([02](docs/sdd/02-permissions-and-onboarding.md)) | |
+| Onboarding, including the Android 13 wall ([02](docs/sdd/02-permissions-and-onboarding.md)) | A blurred control — the platform blur blocks every other window's touches ([07](docs/sdd/07-design-system.md)) |
+| Aiming a **Step** at the screen instead of dropping it in the middle ([09](docs/sdd/09-picking.md)) | |
+| The panel as a bottom sheet: drag to expand, then scroll ([06](docs/sdd/06-overlay-and-markers.md)) | A real rotation — only a display resize has been tested ([testing](docs/testing.md)) |
+| A way back from a **Step** to its **Scenario**, and one question before either exit ([06](docs/sdd/06-overlay-and-markers.md)) | |
+| Landscape: the panel as a side sheet, and the windows put back after a screen change ([06](docs/sdd/06-overlay-and-markers.md)) | |
+| A **Scenario**'s orientation, auto-detected, and rebuilding it for another screen ([03](docs/sdd/03-scenario-model.md)) | |
 
 ## Where to read what
 
@@ -32,7 +37,8 @@ It has been run on an emulator (Pixel 10 Pro XL, API 37) and **never on a physic
 | [`docs/sdd/04-storage.md`](docs/sdd/04-storage.md) | What `scenario.json` looks like, and what happens when it is wrong |
 | [`docs/sdd/05-gesture-execution.md`](docs/sdd/05-gesture-execution.md) | What happens when the user presses Stop, and why that is most of the code |
 | [`docs/sdd/06-overlay-and-markers.md`](docs/sdd/06-overlay-and-markers.md) | Why a Marker is a window of its own, and why Stop is re-attached last |
-| [`docs/sdd/07-design-system.md`](docs/sdd/07-design-system.md) | Why the Overlay is dark at every hour of the day |
+| [`docs/sdd/07-design-system.md`](docs/sdd/07-design-system.md) | Why the Overlay is dark at every hour of the day, and why it has no blur |
+| [`docs/sdd/09-picking.md`](docs/sdd/09-picking.md) | Why aiming discards the timing that recording keeps |
 | [`docs/sdd/08-recording.md`](docs/sdd/08-recording.md) | Why recording has to swallow a touch and then hand it back |
 | [`docs/adr/`](docs/adr/) | Android decisions, numbered from 0012 in the product-wide sequence |
 | [`docs/landscape.md`](docs/landscape.md) | What the competing apps do, what users punish them for, and our answers |

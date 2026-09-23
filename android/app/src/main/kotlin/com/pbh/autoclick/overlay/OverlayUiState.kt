@@ -36,6 +36,8 @@ data class OverlayUiState(
     val panel: PanelState? = null,
     /** RD-1: the session in progress, or null when nothing is being recorded. */
     val recording: RecordingSession? = null,
+    /** PK-1: true while the Overlay is hidden and one gesture is being waited for. */
+    val picking: Boolean = false,
     /**
      * The Screen profile this Scenario's coordinates are measured against (`SM-14`), once it has
      * one.
@@ -46,6 +48,8 @@ data class OverlayUiState(
      * off-screen.
      */
     val authoringProfile: ScreenProfile? = null,
+    /** OV-37: the screen in front of the user, re-read whenever the phone is rotated. */
+    val screen: OverlayScreen? = null,
 ) {
     val scenarioName: String get() = scenario?.name.orEmpty()
 
@@ -57,11 +61,17 @@ data class OverlayUiState(
     /** RD-1: recording, like running, is a state in which the editor has to be out of the way. */
     val isRecording: Boolean get() = recording != null
 
+    /** PK-1: the user is aiming one Step at the screen underneath, and nothing may be in front of it. */
+    val isPicking: Boolean get() = picking
+
     /**
-     * OV-11, RD-1: Markers would be tapped by the very Gestures they describe — and, while
-     * recording, they would swallow the touches meant for the application underneath.
+     * OV-11, RD-1, PK-1: Markers would be tapped by the very Gestures they describe; while
+     * recording or picking they would swallow the touches meant for the application underneath.
+     *
+     * [collapsed] is in here too, and that is `OV-33`. Collapsing the control means "get out of my
+     * way", and a dozen handles left scattered over the screen is not out of the way.
      */
-    val showMarkers: Boolean get() = !running && !isRecording
+    val showMarkers: Boolean get() = !running && !isRecording && !isPicking && !collapsed
 
     /**
      * OV-20: the panel is open only while nothing is running.
@@ -70,7 +80,7 @@ data class OverlayUiState(
      * input focus, so "it is closed before a run starts" has to be a property of the state and not
      * a call somebody remembers to make. A `setText` Step therefore never has this window to find.
      */
-    val showPanel: Boolean get() = panel != null && !running && !isRecording
+    val showPanel: Boolean get() = panel != null && !running && !isRecording && !isPicking && !collapsed
 
     /** OV-20: the window drops FLAG_NOT_FOCUSABLE only while a field in it holds the caret. */
     val typing: Boolean get() = showPanel && panel?.typing == true
@@ -125,12 +135,31 @@ sealed interface PanelState {
     /** OV-28: the Scenario as a whole — its name, how often it runs, and its Steps in order. */
     data class ScenarioEditor(
         override val typing: Boolean = false,
+        /** SM-18: true while the user is being asked whether to re-measure against this screen. */
+        val confirmingRebuild: Boolean = false,
     ) : PanelState
 
     data class StepEditor(
         val step: EditingStep,
         override val typing: Boolean = false,
+        /** OV-36: the way out that is waiting on an answer, or null when none is. */
+        val leaving: PanelExit? = null,
     ) : PanelState
+}
+
+/**
+ * OV-36: the two ways out of the Step panel, which differ only in where they leave the user.
+ *
+ * Both discard the draft, so both are asked about — see [OverlayUiState.leaving]. Keeping them as
+ * one type rather than two booleans is what stops a confirmation being answered for the wrong
+ * exit, which is a dialogue that closes the panel when the user asked to go up a level.
+ */
+enum class PanelExit {
+    /** Up to the Scenario, which is the list of every Step. */
+    TO_SCENARIO,
+
+    /** Out of the editor entirely, leaving the Markers and the control. */
+    CLOSED,
 }
 
 /**
@@ -173,3 +202,44 @@ data class EditingStep(
 
     val canGoForward: Boolean get() = stepNumber < stepCount && !isDirty
 }
+
+/**
+ * OV-33: "I am finished", which is the one thing the editor could not previously be told.
+ *
+ * It writes nothing. Every edit was already on disk the moment it was made (`FS-15`), so there is
+ * no pending state for a Save button to flush — what was missing was a way to put the editor away
+ * in one press instead of closing the panel, then collapsing, and leaving the Markers behind.
+ */
+internal fun OverlayUiState.done(): OverlayUiState = copy(panel = null, collapsed = true, lastFinish = null)
+
+/**
+ * OV-36: asked for a way out of the Step panel.
+ *
+ * Nothing about the Step is written and nothing is thrown away yet. If the draft differs from the
+ * Step on disk the question is put on screen and the panel stays exactly as it was; if it does
+ * not, there is nothing to ask about and the exit happens at once. Asking either way would train
+ * the user to dismiss the dialogue without reading it, which is the same as not having one.
+ *
+ * This is the half `OV-24` was missing. The arrows between Steps refuse to move while there are
+ * unsaved edits, because walking sideways looks like staying put; leaving is visibly leaving, so
+ * it is allowed — once the user has said so.
+ */
+internal fun OverlayUiState.leaving(exit: PanelExit): OverlayUiState {
+    val open = panel as? PanelState.StepEditor ?: return this
+    return if (open.step.isDirty) copy(panel = open.copy(leaving = exit)) else left(exit)
+}
+
+/** OV-36: the question answered with *discard*, so the exit that was asked about happens. */
+internal fun OverlayUiState.leftBehind(): OverlayUiState {
+    val open = panel as? PanelState.StepEditor ?: return this
+    return left(open.leaving ?: PanelExit.CLOSED)
+}
+
+/** OV-36: the question answered with *keep editing*, so nothing happens but the asking stops. */
+internal fun OverlayUiState.stayed(): OverlayUiState = copy(panel = (panel as? PanelState.StepEditor)?.copy(leaving = null) ?: panel)
+
+private fun OverlayUiState.left(exit: PanelExit): OverlayUiState =
+    when (exit) {
+        PanelExit.TO_SCENARIO -> copy(panel = PanelState.ScenarioEditor())
+        PanelExit.CLOSED -> copy(panel = null)
+    }

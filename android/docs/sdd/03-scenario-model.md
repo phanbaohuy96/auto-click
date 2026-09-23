@@ -108,6 +108,28 @@ than written as literals, and the constants above are what those return today. A
 would exceed either is refused at the editor, not at the dispatcher: a gesture rejected mid-run is
 a **Step** that silently did nothing.
 
+**SM-18** `[A2]` A **Scenario**'s orientation is **auto-detected and shown**, and there is one way
+to change it: hold the phone the other way and rebuild.
+
+The orientation is not a field. It is `screenProfile.rotation`'s other half — read off the pixels,
+so a device that reports `LANDSCAPE_LEFT` while taller than it is wide is still portrait — and it
+arrives with the profile when the first **Marker** is placed (`SM-14`). Before then the panel says
+the **Scenario** follows the phone, because that is exactly what it will do; afterwards it names
+the screen it was measured on.
+
+When the screen in front of the user is not that screen, the panel says so, in the same words
+`SM-15` would use after Start, and offers **rebuild for this screen**. Rebuilding replaces the
+**Screen profile** and clamps every point into the new one. The **Step**s, their order, their
+**Action**s and their timings all survive; only the coordinates become suspect, and they were
+suspect already.
+
+**Nothing is transformed, and there is no orientation picker.** Rotating a point ninety degrees is
+true about the display and false about the application, whose buttons are somewhere else entirely
+once it has re-laid itself out — [ADR-0013] is the same reason a coordinate is not stored as a
+fraction. A picker would have to promise that transform. Holding the phone the way the
+**Scenario** is meant to run is the same thing aiming a **Step** already asks for, so it is what
+this asks for too.
+
 ## What is deliberately absent in A1
 
 - **Guard** — it needs recognition, which is A3. A1 has no conditions of any kind.

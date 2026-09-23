@@ -2,29 +2,24 @@ package com.pbh.autoclick.overlay.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pbh.autoclick.R
@@ -46,12 +42,14 @@ import com.pbh.autoclick.domain.scenario.RunCount
 import com.pbh.autoclick.domain.scenario.Scenario
 import com.pbh.autoclick.domain.scenario.ScenarioLimits
 import com.pbh.autoclick.domain.scenario.Step
+import com.pbh.autoclick.domain.scenario.orientation
+import com.pbh.autoclick.overlay.OverlayScreen
 import java.util.UUID
 
-/** Tall enough for a scrollable list of Steps, short enough to leave the screen underneath usable. */
-private val MAX_PANEL_HEIGHT = 440.dp
-
 private const val MILLISECONDS_PER_SECOND = 1_000
+
+/** How wide the number column is: two digits and a hair, so 1 and 12 end on the same pixel. */
+private val STEP_NUMBER_WIDTH = 26.dp
 
 /**
  * The Scenario as a whole: its name, how often it runs, and every Step in order (`OV-28`).
@@ -60,12 +58,18 @@ private const val MILLISECONDS_PER_SECOND = 1_000
  * "Untitled" and run exactly once, because `Scenario.name`, `runCount` and `countdownMilliseconds`
  * had no way in — and a Step with no Marker (`SM-8`) could only be reached by walking to it from a
  * Step that had one.
+ *
+ * Laid out in named sections (`OV-38`) rather than as one column of controls. The first version
+ * was the fields in the order they occurred to whoever added them, which is how a name field, two
+ * numbers and a list of twelve Steps came to look like one undifferentiated wall.
  */
 @Composable
 fun ScenarioPanel(
     scenario: Scenario,
     actions: ScenarioPanelActions,
     modifier: Modifier = Modifier,
+    screen: OverlayScreen? = null,
+    confirmingRebuild: Boolean = false,
 ) {
     // OV-20, exactly as the Step panel counts it: a count rather than a boolean, so focus moving
     // between two fields does not drop the window out of focus in between.
@@ -73,31 +77,41 @@ fun ScenarioPanel(
     val typing = focusedFields > 0
     LaunchedEffect(typing) { actions.onTypingChanged(typing) }
     val onFocus: (Boolean) -> Unit = { gained -> focusedFields += if (gained) 1 else -1 }
+    val rebuild: (@Composable BoxScope.() -> Unit)? =
+        if (confirmingRebuild) {
+            { RebuildConfirm(actions) }
+        } else {
+            null
+        }
 
-    OverlaySurface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+    OverlayPanelSheet(
+        screen = screen,
+        modifier = modifier,
+        header = { Header(scenario, actions) },
+        footer = { Footer(actions) },
+        confirm = rebuild,
     ) {
         Column(
-            modifier =
-                Modifier
-                    .imePadding()
-                    .heightIn(max = MAX_PANEL_HEIGHT)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(top = 12.dp, bottom = 12.dp),
         ) {
-            Header(scenario, actions)
+            ScreenBanner(built = scenario.screenProfile, screen = screen, onAskRebuild = actions.onAskRebuild)
 
             key(scenario.id) {
-                NameField(scenario, actions, onFocus)
-                RunSettings(scenario, actions, onFocus)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PanelSectionLabel(stringResource(R.string.scenario_section_scenario))
+                    NameField(scenario, actions, onFocus)
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PanelSectionLabel(stringResource(R.string.scenario_section_run))
+                    RunSettings(scenario, actions, onFocus)
+                }
             }
 
-            HorizontalDivider()
-            StepList(scenario, actions)
-            HorizontalDivider()
-            Footer(actions)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                StepsHeader(scenario, actions)
+                StepList(scenario, actions)
+            }
         }
     }
 }
@@ -113,29 +127,62 @@ data class ScenarioPanelActions(
     /** OV-6: -1 moves the Step one place earlier, +1 one place later. */
     val onMoveStep: (UUID, Int) -> Unit,
     val onDeleteStep: (UUID) -> Unit,
+    /** SM-18: ask about re-measuring, and the two answers. */
+    val onAskRebuild: () -> Unit,
+    val onKeepScreen: () -> Unit,
+    val onRebuild: () -> Unit,
     val onFreeTheTouch: () -> Unit,
     val onOpenApp: () -> Unit,
     val onCloseOverlay: () -> Unit,
     val onDismiss: () -> Unit,
 )
 
+/**
+ * OV-33, SM-18: the Scenario's name, and what the Overlay knows about the screen it lives on.
+ *
+ * The line under the name is the whole of the orientation interface in the ordinary case. A
+ * Scenario with no Marker yet has no screen of its own and says so — it will take whichever one
+ * the phone is in when the first point is placed — and one with Markers names the screen it was
+ * measured against. Neither is a control, because neither is a choice.
+ */
 @Composable
 private fun Header(
     scenario: Scenario,
     actions: ScenarioPanelActions,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = pluralStringResource(R.plurals.overlay_steps, scenario.steps.size, scenario.steps.size),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = actions.onAddStep) {
-            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.overlay_add_step))
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = PANEL_ROW_INSET),
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(start = PANEL_GUTTER - PANEL_ROW_INSET)) {
+                Text(
+                    text = scenario.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text =
+                        stringResource(
+                            R.string.scenario_subtitle,
+                            pluralStringResource(R.plurals.overlay_steps, scenario.steps.size, scenario.steps.size),
+                            scenario.screenProfile?.orientation?.label()
+                                ?: stringResource(R.string.scenario_orientation_auto),
+                        ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            PanelIconButton(
+                onClick = actions.onDismiss,
+                icon = Icons.Default.Close,
+                description = stringResource(R.string.step_cancel),
+            )
         }
-        IconButton(onClick = actions.onDismiss) {
-            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.step_cancel))
-        }
+        // OV-38: without this the run settings scroll up behind the title and the two are read as
+        // one broken row — it was the first thing wrong with this panel on a real screen.
+        HorizontalDivider(modifier = Modifier.padding(top = 6.dp))
     }
 }
 
@@ -202,6 +249,33 @@ private fun RunSettings(
     }
 }
 
+/** OV-38: the list's own heading, and the one button that adds to it. */
+@Composable
+private fun StepsHeader(
+    scenario: Scenario,
+    actions: ScenarioPanelActions,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        PanelSectionLabel(
+            text =
+                stringResource(
+                    R.string.scenario_subtitle,
+                    stringResource(R.string.scenario_section_steps),
+                    scenario.steps.size.toString(),
+                ),
+            modifier = Modifier.weight(1f),
+        )
+        PanelIconButton(
+            onClick = actions.onAddStep,
+            icon = Icons.Default.Add,
+            description = stringResource(R.string.overlay_add_step),
+        )
+    }
+}
+
 /**
  * OV-28: every Step, in order, reachable whether or not it draws a Marker.
  *
@@ -218,11 +292,13 @@ private fun StepList(
             text = stringResource(R.string.scenario_no_steps),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(vertical = 8.dp),
         )
         return
     }
 
     scenario.steps.forEachIndexed { index, step ->
+        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainerHighest)
         StepRow(
             step = step,
             number = index + 1,
@@ -233,6 +309,13 @@ private fun StepList(
     }
 }
 
+/**
+ * OV-38: one Step, as two lines rather than one.
+ *
+ * What it does is the line that is read; what it costs in time is the line underneath, in the
+ * quieter colour. They were one line before, which meant either the timing was missing — and a
+ * Scenario is mostly timing — or it ran into the coordinates and neither could be scanned.
+ */
 @Composable
 private fun StepRow(
     step: Step,
@@ -243,31 +326,63 @@ private fun StepRow(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().clickable { actions.onOpenStep(step.id) },
+        modifier = Modifier.fillMaxWidth().clickable { actions.onOpenStep(step.id) }.padding(vertical = 2.dp),
     ) {
         Text(
+            // Right-aligned in a fixed column, so the titles start at the same pixel whether the
+            // Scenario has nine Steps or ninety.
             text = number.toString(),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.widthIn(min = 24.dp),
+            textAlign = TextAlign.End,
+            modifier = Modifier.widthIn(min = STEP_NUMBER_WIDTH),
         )
-        Text(
-            text = step.summary(),
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
+        Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+            Text(
+                text = step.summary(),
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = step.timing(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        // One icon family for the pair. They were a chevron and a filled triangle, which sit at
+        // different heights in their own boxes and read as two unrelated controls.
+        PanelIconButton(
+            onClick = { actions.onMoveStep(step.id, -1) },
+            icon = Icons.Default.KeyboardArrowUp,
+            description = stringResource(R.string.step_move_up),
+            enabled = canMoveUp,
         )
-        IconButton(onClick = { actions.onMoveStep(step.id, -1) }, enabled = canMoveUp) {
-            Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.step_move_up))
-        }
-        IconButton(onClick = { actions.onMoveStep(step.id, 1) }, enabled = canMoveDown) {
-            Icon(Icons.Default.ArrowDropDown, contentDescription = stringResource(R.string.step_move_down))
-        }
-        IconButton(onClick = { actions.onDeleteStep(step.id) }) {
-            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.step_delete))
-        }
+        PanelIconButton(
+            onClick = { actions.onMoveStep(step.id, 1) },
+            icon = Icons.Default.KeyboardArrowDown,
+            description = stringResource(R.string.step_move_down),
+            enabled = canMoveDown,
+        )
+        PanelIconButton(
+            onClick = { actions.onDeleteStep(step.id) },
+            icon = Icons.Default.Delete,
+            description = stringResource(R.string.step_delete),
+        )
     }
+}
+
+/** SM-18: asked before it happens, because a clamped point has forgotten where it used to be. */
+@Composable
+private fun BoxScope.RebuildConfirm(actions: ScenarioPanelActions) {
+    PanelConfirm(
+        title = stringResource(R.string.scenario_rebuild_title),
+        message = stringResource(R.string.scenario_rebuild_message),
+        confirmLabel = stringResource(R.string.scenario_rebuild_confirm),
+        dismissLabel = stringResource(R.string.scenario_rebuild_dismiss),
+        onConfirm = actions.onRebuild,
+        onDismiss = actions.onKeepScreen,
+    )
 }
 
 /**
@@ -280,20 +395,23 @@ private fun StepRow(
  */
 @Composable
 private fun Footer(actions: ScenarioPanelActions) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        TextButton(onClick = actions.onFreeTheTouch) {
-            Icon(Icons.Default.Refresh, contentDescription = null)
-            Spacer(Modifier.widthIn(min = 6.dp))
-            Text(stringResource(R.string.overlay_free_the_touch))
+    Column {
+        HorizontalDivider()
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = PANEL_TEXT_BUTTON_INSET, vertical = 4.dp),
+        ) {
+            TextButton(onClick = actions.onFreeTheTouch) {
+                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.padding(end = 6.dp))
+                Text(stringResource(R.string.overlay_free_the_touch))
+            }
+            Spacer(Modifier.weight(1f))
+            PanelIconButton(
+                onClick = actions.onOpenApp,
+                icon = Icons.AutoMirrored.Filled.ExitToApp,
+                description = stringResource(R.string.overlay_open_app),
+            )
+            TextButton(onClick = actions.onCloseOverlay) { Text(stringResource(R.string.overlay_close)) }
         }
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = actions.onOpenApp) {
-            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = stringResource(R.string.overlay_open_app))
-        }
-        TextButton(onClick = actions.onCloseOverlay) { Text(stringResource(R.string.overlay_close)) }
     }
 }
