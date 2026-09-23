@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class ScenarioRunner(
     private val dispatcher: GestureDispatcher,
     private val limits: GestureLimits = GestureLimits(),
-    /** RC-24, RC-26: how a Step looks at the screen. Null when recognition is unavailable. */
+    /** TP-24, TP-26: how a Step looks at the screen. Null when recognition is unavailable. */
     finder: TemplateFinder? = null,
 ) {
     private val stopRequested = AtomicBoolean(false)
@@ -136,7 +136,7 @@ class ScenarioRunner(
     /**
      * GX-4: repeats the Action in place, and the delay is observed once, by the caller.
      *
-     * RC-26 puts the Guard and the Target search **inside** this loop, once per repetition. A Step
+     * TP-26 puts the Guard and the Target search **inside** this loop, once per repetition. A Step
      * that presses a button ten times is ten chances for the button to move or the advert to come
      * back, and resolving once outside would spend nine of them on a stale answer.
      *

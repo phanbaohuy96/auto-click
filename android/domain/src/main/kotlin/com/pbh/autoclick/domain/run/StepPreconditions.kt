@@ -8,7 +8,7 @@ import com.pbh.autoclick.domain.scenario.Presence
 import com.pbh.autoclick.domain.scenario.Step
 
 /**
- * Everything that has to be true, or found, before a Step may run (`RC-24`, `RC-26`, `RC-20`).
+ * Everything that has to be true, or found, before a Step may run (`TP-24`, `TP-26`, `TP-20`).
  *
  * Its own class rather than two more methods on the runner, because it is the one part of a run
  * that looks at the screen. The runner's job is order, repetition and stopping; this one's is
@@ -22,7 +22,7 @@ import com.pbh.autoclick.domain.scenario.Step
 internal class StepPreconditions(
     private val finder: TemplateFinder?,
 ) {
-    /** RC-26: the Guard first, then the Target search, and both before the Action. */
+    /** TP-26: the Guard first, then the Target search, and both before the Action. */
     suspend fun resolve(
         step: Step,
         index: Int,
@@ -45,7 +45,7 @@ internal class StepPreconditions(
         val found =
             finder?.await(search, Presence.PRESENT) as? SearchResult.Found
                 ?: return search.onTimeout.resolutionFor(FinishReason.TemplateNotFound(index))
-        // RC-20: the match moves the whole Step, so the gesture keeps the shape it was drawn with.
+        // TP-20: the match moves the whole Step, so the gesture keeps the shape it was drawn with.
         return Resolution.Run(step.movedTo(found.at))
     }
 }
@@ -57,10 +57,10 @@ internal sealed interface Resolution {
         val step: Step,
     ) : Resolution
 
-    /** RC-21: this Step does not happen, and the next one does. */
+    /** TP-21: this Step does not happen, and the next one does. */
     data object Skip : Resolution
 
-    /** RC-21: the run is over, and the user is told which Step and why. */
+    /** TP-21: the run is over, and the user is told which Step and why. */
     data class End(
         val reason: FinishReason,
     ) : Resolution

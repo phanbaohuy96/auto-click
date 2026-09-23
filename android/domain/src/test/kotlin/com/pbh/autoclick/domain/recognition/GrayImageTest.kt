@@ -45,7 +45,7 @@ class GrayImageTest {
         assertEquals(listOf(1f, 2f, 4f, 5f), cropped.pixels.toList())
     }
 
-    /** RC-9: a Search region dragged past the edge is still a region, not an exception. */
+    /** TP-9: a Search region dragged past the edge is still a region, not an exception. */
     @Test
     fun `a crop is clipped to what is actually there`() {
         val image = GrayImage(2, 2, floatArrayOf(0f, 1f, 2f, 3f))

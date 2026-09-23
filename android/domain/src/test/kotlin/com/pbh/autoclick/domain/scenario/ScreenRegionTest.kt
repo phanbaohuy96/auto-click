@@ -33,7 +33,7 @@ class ScreenRegionTest {
     }
 
     /**
-     * RC-9: the default Search region hugs the crop.
+     * TP-9: the default Search region hugs the crop.
      *
      * Half the longer side, floored at 48 dp and capped at 160 dp. At a density of 3 that is
      * 144 and 480 pixels, and a 400-pixel-wide crop asks for 200 — inside both, so 200 it is.

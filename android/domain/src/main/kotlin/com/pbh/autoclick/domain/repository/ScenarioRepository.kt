@@ -41,7 +41,7 @@ data class StoredScenario(
         /**
          * FS-5. Raised only when the format changes in a way an older build cannot read.
          *
-         * 2 is recognition (`RC-28`), and a **Scenario** that does not use it is still written as
+         * 2 is recognition (`TP-28`), and a **Scenario** that does not use it is still written as
          * 1 — this is the highest version this build can *read*, not the version it always writes.
          */
         const val CURRENT_SCHEMA_VERSION = 2

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- A3, recognition. See android/docs/sdd/10-recognition.md. -->
 <resources>
-    <!-- RC-7: cropping -->
+    <!-- TP-7: cropping -->
     <string name="crop_target_title">Crop what this step looks for</string>
     <string name="crop_guard_title">Crop what this step waits for</string>
     <string name="crop_hint">Drag a box around it</string>
@@ -9,7 +9,7 @@
     <string name="crop_use">Use this</string>
     <string name="crop_cancel">Cancel</string>
 
-    <!-- RC-19, RC-24: the panel -->
+    <!-- TP-19, TP-24: the panel -->
     <string name="recognition_section_find">Find on screen</string>
     <string name="recognition_section_guard">Only when</string>
     <string name="recognition_find_add">Aim at a picture</string>
@@ -33,7 +33,7 @@
     <string name="recognition_row_finds">finds a picture</string>
     <string name="recognition_row_guarded">waits for a picture</string>
 
-    <!-- RC-21: how a run ends because of one of these -->
+    <!-- TP-21: how a run ends because of one of these -->
     <string name="overlay_template_not_found">Step %1$d never found its picture</string>
     <string name="overlay_guard_unmet">Step %1$d was still waiting</string>
     <string name="overlay_step_skipped">Step %1$d skipped</string>

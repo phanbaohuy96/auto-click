@@ -115,7 +115,7 @@ fun FloatingControl(
                                 if (state.skippedSteps == 0) {
                                     stringResource(R.string.overlay_step_of, run.stepNumber, run.stepCount)
                                 } else {
-                                    // RC-21: a skipped Step is a Step doing what it was told, and
+                                    // TP-21: a skipped Step is a Step doing what it was told, and
                                     // the one thing worse than seeing it is not seeing it.
                                     stringResource(
                                         R.string.overlay_step_of_skipped,

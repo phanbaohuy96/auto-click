@@ -5,7 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertSame
 
-/** RC-20: a match moves the whole Step, so the gesture keeps the shape it was drawn with. */
+/** TP-20: a match moves the whole Step, so the gesture keeps the shape it was drawn with. */
 class StepMovedTest {
     private fun step(
         action: StepAction,

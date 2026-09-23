@@ -5,8 +5,8 @@ package com.pbh.autoclick.domain.recognition
  *
  * A type of its own rather than a `Bitmap`, for two reasons that matter. The matcher touches a
  * pixel millions of times, so the pixels have to be one flat contiguous array rather than a
- * call into a platform object; and keeping Android out of it is what lets the whole of `RC-10`
- * to `RC-17` be tested on the JVM with images built by hand.
+ * call into a platform object; and keeping Android out of it is what lets the whole of `TP-10`
+ * to `TP-17` be tested on the JVM with images built by hand.
  *
  * [pixels] is brightness `0…1`, laid out row by row.
  */
@@ -65,7 +65,7 @@ class GrayImage(
     /**
      * The part of this image inside [left, top, width, height], clipped to what is actually there.
      *
-     * Used for the **Search region** (`RC-9`): searching a rectangle is the same code as searching
+     * Used for the **Search region** (`TP-9`): searching a rectangle is the same code as searching
      * the screen, with a smaller haystack and an offset the caller adds back.
      */
     fun cropped(

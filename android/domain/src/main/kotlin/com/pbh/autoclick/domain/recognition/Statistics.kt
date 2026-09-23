@@ -14,7 +14,7 @@ internal data class Statistics(
     val deviation: Double,
 )
 
-/** The population standard deviation, which is what `RC-11` means by a Template's contrast. */
+/** The population standard deviation, which is what `TP-11` means by a Template's contrast. */
 fun standardDeviation(pixels: FloatArray): Float = (statistics(pixels).deviation / sqrt(max(1, pixels.size).toDouble())).toFloat()
 
 internal fun statistics(pixels: FloatArray): Statistics {
@@ -29,7 +29,7 @@ internal fun statistics(pixels: FloatArray): Statistics {
 /**
  * Normalised cross-correlation at one position.
  *
- * Accumulating in `Double` rather than `Float` is **not** micro-tuning (`RC-14`). The form
+ * Accumulating in `Double` rather than `Float` is **not** micro-tuning (`TP-14`). The form
  * `Σh² − n·h̄²` suffers **catastrophic cancellation**: two large nearly equal numbers are
  * subtracted and the small difference left loses most of its significant digits. At `Float`
  * precision, over a **Template** of some 15,000 pixels, the error reaches ~2·10⁻³ — enough for a

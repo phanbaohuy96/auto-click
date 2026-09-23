@@ -8,7 +8,7 @@ import com.pbh.autoclick.domain.scenario.TemplateSearch
 import java.util.UUID
 
 /**
- * The recognition half of the file format (RC-19, RC-21, RC-24), split from [ScenarioMapper] only
+ * The recognition half of the file format (TP-19, TP-21, TP-24), split from [ScenarioMapper] only
  * because the two together are more functions than one file should hold.
  *
  * Reading is the forgiving direction, as everywhere else in FS-12: a name this build does not know

@@ -4,7 +4,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * A rectangle of the display in raw device pixels, used as a **Search region** (`RC-9`).
+ * A rectangle of the display in raw device pixels, used as a **Search region** (`TP-9`).
  *
  * Half-open: [left] and [top] are inside, [right] and [bottom] are the first column and row that
  * are not. Same convention as every other rectangle on the platform, and the reason [width] and
@@ -45,7 +45,7 @@ data class ScreenRegion(
 }
 
 /**
- * The **Search region** suggested after a crop (`RC-9`).
+ * The **Search region** suggested after a crop (`TP-9`).
  *
  * The padding is half the **Template**'s longer side, floored and capped, because what a game asks
  * you to press almost always stays near where it was cropped — and a whole-screen scan is both

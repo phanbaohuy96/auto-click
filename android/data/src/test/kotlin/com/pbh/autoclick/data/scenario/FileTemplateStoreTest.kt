@@ -16,7 +16,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** RC-27: `<scenario>/templates/<template>.png`, and the sweep that keeps it honest. */
+/** TP-27: `<scenario>/templates/<template>.png`, and the sweep that keeps it honest. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class FileTemplateStoreTest {
     @get:Rule

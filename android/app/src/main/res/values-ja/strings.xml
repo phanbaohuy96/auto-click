@@ -1,0 +1,19 @@
+<resources>
+    <string name="accessibility_service_summary">あなたの代わりにタップ・スワイプ・入力します</string>
+    <string name="accessibility_service_description">Auto Click は、あなた自身が設定したタップとスワイプを再生するだけです。この権限が必要なのは、他のアプリにタッチを送ることが、Android がユーザー補助サービスに許可している唯一の操作だからです。画面の内容は読み取らず、すべてこの端末内に留まり、インターネットを使う権限もありません。</string>
+    <string name="scenario_new">新しいシナリオ</string>
+    <string name="scenario_none">シナリオがまだありません。作成して、自動化したいアプリの上にマーカーを置いてください。</string>
+    <string name="scenario_default_name">名称未設定</string>
+    <string name="scenario_step_count">%1$d ステップ</string>
+    <string name="scenario_too_new">新しいバージョンで保存されています — 削除しかできません</string>
+    <string name="scenario_delete">削除</string>
+    <string name="scenario_delete_title">「%1$s」を削除しますか？</string>
+    <string name="scenario_delete_body">ステップも設定も一緒になくなります。取り消しはできません。</string>
+    <string name="scenario_none_title">まだ何もありません</string>
+    <string name="scenario_rename">名前を変更</string>
+    <string name="scenario_rename_title">シナリオの名前を変更</string>
+    <string name="scenario_duplicate">複製</string>
+    <string name="scenario_more">その他</string>
+    <string name="language">言語</string>
+    <string name="language_system">システムに合わせる</string>
+</resources>

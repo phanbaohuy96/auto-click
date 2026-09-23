@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -45,8 +46,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pbh.autoclick.R
 import com.pbh.autoclick.core.ui.BaseScreen
+import com.pbh.autoclick.core.ui.InterfaceLanguage
 import com.pbh.autoclick.domain.repository.StoredScenario
 import com.pbh.autoclick.feature.onboarding.readPermissionStatus
 import com.pbh.autoclick.overlay.OverlayService
@@ -67,6 +70,7 @@ fun ScenarioListScreen(
     var ready by remember { mutableStateOf(context.readPermissionStatus().ready) }
     var confirmingDelete by remember { mutableStateOf<StoredScenario?>(null) }
     var renaming by remember { mutableStateOf<StoredScenario?>(null) }
+    val languageTag by viewModel.state.collectAsStateWithLifecycle()
 
     // PM-9: a permission can be turned off while the app is in the background, and that is a
     // supported thing to do rather than an error. The answer is re-read, never remembered.
@@ -79,6 +83,10 @@ fun ScenarioListScreen(
         viewModel = viewModel,
         title = stringResource(R.string.app_name),
         actions = {
+            LanguageMenu(
+                chosen = languageTag.languageTag,
+                onChoose = viewModel::chooseLanguage,
+            )
             TextButton(onClick = onSetUp) { Text(stringResource(R.string.onboarding_reopen)) }
         },
         onEffect = { effect ->
@@ -330,6 +338,52 @@ private fun RowMenu(
                     onDelete()
                 },
             )
+        }
+    }
+}
+
+/**
+ * IL-2: the five languages, under their own names, plus the phone's own.
+ *
+ * In the Activity rather than in the Overlay, and that is not an oversight: the Overlay is what
+ * the user opens when they are somewhere else entirely, and a settings menu is not what they went
+ * there for. This is the surface that already holds the set-up entry.
+ */
+@Composable
+private fun LanguageMenu(
+    chosen: String?,
+    onChoose: (String?) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+
+    Box {
+        // Its own name rather than a globe, because Material's core icon set has no globe and
+        // because the name is the better label anyway: it says what will change *and* what it is
+        // currently set to, in one word the user can already read.
+        TextButton(onClick = { open = true }) {
+            Text(InterfaceLanguage.entries.firstOrNull { it.tag == chosen }?.nativeName ?: stringResource(R.string.language))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.language_system)) },
+                trailingIcon = { if (chosen == null) Icon(Icons.Default.Check, contentDescription = null) },
+                onClick = {
+                    open = false
+                    onChoose(null)
+                },
+            )
+            InterfaceLanguage.entries.forEach { language ->
+                DropdownMenuItem(
+                    text = { Text(language.nativeName) },
+                    trailingIcon = {
+                        if (chosen == language.tag) Icon(Icons.Default.Check, contentDescription = null)
+                    },
+                    onClick = {
+                        open = false
+                        onChoose(language.tag)
+                    },
+                )
+            }
         }
     }
 }

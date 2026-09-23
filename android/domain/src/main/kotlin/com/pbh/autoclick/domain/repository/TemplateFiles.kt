@@ -3,7 +3,7 @@ package com.pbh.autoclick.domain.repository
 import java.util.UUID
 
 /**
- * The pixels of a Scenario's Templates, which live beside its `scenario.json` (`RC-27`).
+ * The pixels of a Scenario's Templates, which live beside its `scenario.json` (`TP-27`).
  *
  * Bytes rather than images on purpose. Encoding a PNG is Android's job and the store's job is the
  * directory, so `:data` stays free of `Bitmap` and the whole of it keeps being testable on the JVM
@@ -15,10 +15,10 @@ import java.util.UUID
  * these had to know.
  */
 interface TemplateFiles {
-    /** Every Template this Scenario has pixels for. Used by `RC-29`'s check in the editor. */
+    /** Every Template this Scenario has pixels for. Used by `TP-29`'s check in the editor. */
     suspend fun ids(scenarioId: UUID): Set<UUID>
 
-    /** The PNG bytes, or null when the file has gone (`RC-29`). */
+    /** The PNG bytes, or null when the file has gone (`TP-29`). */
     suspend fun read(
         scenarioId: UUID,
         templateId: UUID,

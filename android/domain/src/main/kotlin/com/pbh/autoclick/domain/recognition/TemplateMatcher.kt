@@ -4,12 +4,12 @@ import kotlin.math.abs
 import kotlin.math.max
 
 /**
- * Finds a **Template** inside a larger image with pyramid normalised cross-correlation (`RC-10`).
+ * Finds a **Template** inside a larger image with pyramid normalised cross-correlation (`TP-10`).
  *
  * A port of macOS's `TemplateMatcher.swift`, with one part deliberately left behind: matching at a
  * second scale. Android has one display and `SM-15` refuses to run a **Scenario** against a
  * **Screen profile** that is not the one it was built on, so a **Template** is always searched for
- * at the size it was cropped at — `RC-18` says this at length.
+ * at the size it was cropped at — `TP-18` says this at length.
  *
  * Why a pyramid at all: a 120 × 48 **Template** on a 1344 × 2992 screen is about 4 million
  * positions × 5,760 pixels ≈ **23 billion** comparisons for one search. Scanning coarsely at a
@@ -28,7 +28,7 @@ object TemplateMatcher {
     const val REFINEMENT_RADIUS = 8
 
     /**
-     * How many coarse candidates are kept for refinement (`RC-12`).
+     * How many coarse candidates are kept for refinement (`TP-12`).
      *
      * One is not enough. Real interfaces are full of repeated detail — a row of identical buttons,
      * a table's rules — so the best spot at the coarse level is often not the right one at native
@@ -37,7 +37,7 @@ object TemplateMatcher {
     const val COARSE_CANDIDATE_LIMIT = 8
 
     /**
-     * The share of its contrast the downscaled **Template** has to keep (`RC-11`).
+     * The share of its contrast the downscaled **Template** has to keep (`TP-11`).
      *
      * Downscaling too far **wipes out** high-frequency detail — text, one-pixel borders, small
      * checker patterns — turning a coarse template into a nearly flat array. The coarse scan then
@@ -46,7 +46,7 @@ object TemplateMatcher {
     const val CONTRAST_RETENTION = 0.5f
 
     /**
-     * Ceiling on the comparisons one coarse scan may cost (`RC-13`).
+     * Ceiling on the comparisons one coarse scan may cost (`TP-13`).
      *
      * In direct tension with [CONTRAST_RETENTION]: keeping contrast wants less downscaling, and
      * scanning wants more. When no level satisfies both, **the ceiling wins** — a less accurate
@@ -133,7 +133,7 @@ object TemplateMatcher {
     }
 
     /**
-     * Separated correlation peaks at the coarse level (`RC-12`).
+     * Separated correlation peaks at the coarse level (`TP-12`).
      *
      * Non-maximum suppression at half the **Template**'s size; without it every candidate would
      * pile up around one peak and keeping several of them would buy nothing.
@@ -202,7 +202,7 @@ object TemplateMatcher {
         for (originY in bounds.minY..bounds.maxY) {
             for (originX in bounds.minX..bounds.maxX) {
                 val score = correlation(template, templateStatistics, haystack, originX, originY)
-                // RC-16: strictly greater, so a tie keeps the spot found first — topmost, then
+                // TP-16: strictly greater, so a tie keeps the spot found first — topmost, then
                 // leftmost — and the result is the same on every run.
                 if (score > (best?.score ?: Double.NEGATIVE_INFINITY)) best = Match(originX, originY, score)
             }

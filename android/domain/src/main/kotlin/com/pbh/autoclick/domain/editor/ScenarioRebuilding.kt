@@ -38,7 +38,7 @@ private fun Step.withPointsClampedInto(profile: ScreenProfile): Step =
     copy(
         target = StepTarget(target.point.clampedInto(profile)),
         action = action.withPointsClampedInto(profile),
-        // RC-9: a Search region is display coordinates too, so it is clamped by the same rule.
+        // TP-9: a Search region is display coordinates too, so it is clamped by the same rule.
         // The Template itself is left alone — its pixels are a picture, not a position.
         search = search?.let { it.copy(region = it.region?.clampedInto(profile)) },
         guard = guard?.let { open -> open.copy(search = open.search.copy(region = open.search.region?.clampedInto(profile))) },

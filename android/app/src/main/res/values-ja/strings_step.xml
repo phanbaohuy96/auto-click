@@ -1,0 +1,54 @@
+<resources>
+    <string name="step_panel_title">ステップ %1$d / %2$d</string>
+    <string name="step_previous">前のステップ</string>
+    <string name="step_next">次のステップ</string>
+    <string name="step_move_up">前に移動</string>
+    <string name="step_move_down">後ろに移動</string>
+    <string name="step_delete">ステップを削除</string>
+    <string name="step_cancel">キャンセル</string>
+    <string name="step_save">保存</string>
+
+    <string name="step_kind_tap">タップ</string>
+    <string name="step_kind_swipe">スワイプ</string>
+    <string name="step_kind_multi_touch">マルチタッチ</string>
+    <string name="step_kind_global">システム</string>
+    <string name="step_kind_text">入力</string>
+
+    <string name="step_hold">長押し（ミリ秒）</string>
+    <string name="step_duration">所要時間（ミリ秒）</string>
+    <string name="step_repeat">繰り返し</string>
+    <string name="step_delay">その後待つ（ミリ秒）</string>
+    <string name="step_text">テキスト</string>
+    <string name="step_contact">接点 %1$d（ミリ秒）</string>
+    <string name="step_add_contact">接点を追加</string>
+    <string name="step_remove_contact">接点 %1$d を削除</string>
+    <string name="step_points_hint">画面上のマーカーをドラッグして点を動かします。</string>
+    <string name="step_range">%1$d 〜 %2$d</string>
+
+    <string name="global_back">戻る</string>
+    <string name="global_home">ホーム</string>
+    <string name="global_recents">最近のアプリ</string>
+    <string name="global_notifications">通知</string>
+    <string name="global_quick_settings">クイック設定</string>
+    <string name="global_lock_screen">画面ロック</string>
+    <string name="global_screenshot">スクリーンショット</string>
+
+    <string name="violation_too_many_paths">接点 %1$d はこの端末が許す数（%2$d）を超えています</string>
+    <string name="violation_too_few_paths">マルチタッチには少なくとも %1$d 個の接点が必要です</string>
+    <string name="violation_duration_too_long">%1$d ミリ秒はこの端末が許す長さ（%2$d ミリ秒）を超えています</string>
+    <string name="violation_zero_duration">スワイプには時間が必要です — ゼロならタップになります</string>
+    <string name="violation_point_outside">点 %1$d, %2$d は画面の外です</string>
+    <string name="violation_text_too_long">%1$d 文字は許される %2$d 文字を超えています</string>
+    <string name="step_action_heading">このステップがすること</string>
+    <string name="step_about_tap">1 点に触れて離します。</string>
+    <string name="step_about_swipe">ある点から別の点へドラッグします。どちらも画面上のマーカーです。</string>
+    <string name="step_about_multi_touch">ピンチのように、複数の点に同時に触れます。</string>
+    <string name="step_about_global">戻る・ホーム・最近のアプリなどのシステムキーを押します。どこにも触れません。</string>
+    <string name="step_about_text">すでにカーソルがある入力欄に文字を入れます。どこにも触れません。</string>
+    <string name="step_back_to_scenario">シナリオに戻る</string>
+    <string name="step_discard_title">この変更を破棄しますか？</string>
+    <string name="step_discard_message">このステップには保存していない変更があります。いま離れると失われます。</string>
+    <string name="step_discard_confirm">破棄</string>
+    <string name="step_discard_dismiss">編集を続ける</string>
+    <string name="step_try">試す</string>
+</resources>

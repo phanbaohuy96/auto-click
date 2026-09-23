@@ -36,7 +36,7 @@ internal fun ScenarioDto.toDomain(): Scenario =
 
 internal fun Scenario.toDto(): ScenarioDto =
     ScenarioDto(
-        // RC-28: the lowest version that can express this Scenario. A sequence of plain taps is
+        // TP-28: the lowest version that can express this Scenario. A sequence of plain taps is
         // still exactly a version 1 file, and writing 2 for it would make every Scenario on the
         // phone unreadable to the previous build in exchange for nothing.
         schemaVersion = if (usesRecognition) RECOGNITION_SCHEMA_VERSION else BASE_SCHEMA_VERSION,
@@ -102,7 +102,7 @@ private fun Step.toDto(): StepDto =
 
 private fun String.toUuidOrRandom(): UUID = runCatching { UUID.fromString(this) }.getOrElse { UUID.randomUUID() }
 
-/** FS-5: a file without recognition in it stays a version 1 file (RC-28). */
+/** FS-5: a file without recognition in it stays a version 1 file (TP-28). */
 private const val BASE_SCHEMA_VERSION = 1
 
 private const val RECOGNITION_SCHEMA_VERSION = 2

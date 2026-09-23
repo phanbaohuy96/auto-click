@@ -73,7 +73,7 @@ fun MarkerHandle(
                     onTap = onTapped,
                 ),
     ) {
-        // RC-23: a Step that finds a picture still has a Marker, and the Marker is where the
+        // TP-23: a Step that finds a picture still has a Marker, and the Marker is where the
         // picture was cropped — which is where the Step acts if the match comes back where it was
         // made, and only then. The broken ring is that "only then": the number is still the
         // Step's, and the position is a starting guess rather than a promise.
@@ -138,7 +138,7 @@ private fun Marker.label(): String = if (isArrival) "\u2192" else stepNumber.toS
 private val Marker.isArrival: Boolean
     get() = role == MarkerRole.SWIPE_END || role == MarkerRole.TOUCH_END
 
-/** RC-23: a broken ring just inside the Marker's edge, in pixels because a Canvas works in them. */
+/** TP-23: a broken ring just inside the Marker's edge, in pixels because a Canvas works in them. */
 private const val SEARCH_RING_INSET_PIXELS = 7f
 private const val SEARCH_RING_WIDTH_PIXELS = 3f
 private val SEARCH_RING_DASHES = floatArrayOf(7f, 6f)

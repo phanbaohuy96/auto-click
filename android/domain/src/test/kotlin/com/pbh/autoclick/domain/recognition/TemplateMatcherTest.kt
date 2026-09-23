@@ -8,7 +8,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * RC-10 to RC-17, which is the part of recognition that can be wrong without anyone noticing.
+ * TP-10 to TP-17, which is the part of recognition that can be wrong without anyone noticing.
  *
  * Every image here is built by hand rather than loaded, which is the whole reason [GrayImage] is
  * not a `Bitmap`.
@@ -59,7 +59,7 @@ class TemplateMatcherTest {
         assertTrue(match.score < 0.9, "unrelated noise correlated at ${match.score}")
     }
 
-    /** RC-14: `Float` accumulation lets this exceed 1, which is mathematically impossible. */
+    /** TP-14: `Float` accumulation lets this exceed 1, which is mathematically impossible. */
     @Test
     fun `a score never goes above one`() {
         val template = noise(40, 40, seed = 3)
@@ -85,7 +85,7 @@ class TemplateMatcherTest {
     }
 
     /**
-     * RC-16: two identical patches, and the answer has to be the same on every run.
+     * TP-16: two identical patches, and the answer has to be the same on every run.
      *
      * Topmost then leftmost, which is what "keep the first spot found" means when the scan walks
      * rows outwards from the origin.
@@ -105,7 +105,7 @@ class TemplateMatcherTest {
     }
 
     /**
-     * RC-11, and the bug it exists to hold shut.
+     * TP-11, and the bug it exists to hold shut.
      *
      * A one-pixel checker pattern averages to a flat grey at any downscale, so the level chosen
      * for it has to be 1 — at 8 the coarse template is a featureless square and the refinement
@@ -116,11 +116,11 @@ class TemplateMatcherTest {
         val checker = GrayImage(32, 32, FloatArray(32 * 32) { if ((it / 32 + it % 32) % 2 == 0) 0f else 1f })
 
         // A haystack small enough that native resolution is inside the ceiling, so the choice is
-        // about contrast and nothing else. RC-13 is what happens when it is not, and is below.
+        // about contrast and nothing else. TP-13 is what happens when it is not, and is below.
         assertEquals(1, TemplateMatcher.downsampleFactor(checker, noise(100, 100)))
     }
 
-    /** RC-11 the other way: a broad shape keeps its contrast, so the cheap level is taken. */
+    /** TP-11 the other way: a broad shape keeps its contrast, so the cheap level is taken. */
     @Test
     fun `a template of broad shapes is downscaled as far as it can afford`() {
         val halves = GrayImage(64, 64, FloatArray(64 * 64) { if (it % 64 < 32) 0f else 1f })
@@ -128,7 +128,7 @@ class TemplateMatcherTest {
         assertTrue(TemplateMatcher.downsampleFactor(halves, noise(400, 400)) > 1)
     }
 
-    /** RC-13: when contrast and the ceiling disagree, the ceiling wins. */
+    /** TP-13: when contrast and the ceiling disagree, the ceiling wins. */
     @Test
     fun `the cost ceiling wins over keeping contrast`() {
         val checker = GrayImage(64, 64, FloatArray(64 * 64) { if ((it / 64 + it % 64) % 2 == 0) 0f else 1f })
@@ -147,7 +147,7 @@ class TemplateMatcherTest {
     }
 
     /**
-     * RC-12: the coarse level's best spot is often not the right one.
+     * TP-12: the coarse level's best spot is often not the right one.
      *
      * The decoy has every 2 × 2 cell's pixels rotated, so **every** downscaled level sees the two
      * as identical and the coarse scan cannot tell them apart. It is also earlier in scan order,

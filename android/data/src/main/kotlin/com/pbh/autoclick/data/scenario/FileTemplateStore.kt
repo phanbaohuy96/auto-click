@@ -11,7 +11,7 @@ import java.nio.file.StandardCopyOption
 import java.util.UUID
 
 /**
- * `<scenario>/templates/<template>.png`, and nothing else (`RC-27`).
+ * `<scenario>/templates/<template>.png`, and nothing else (`TP-27`).
  *
  * Takes the same [root] as [FileScenarioStore] and knows nothing about it, so a Scenario's
  * document and its pictures cannot get out of step in the way two stores would allow — this is

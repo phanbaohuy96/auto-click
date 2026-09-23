@@ -37,7 +37,7 @@ object StorageModule {
     @Singleton
     fun provideScenarioRepository(store: FileScenarioStore): ScenarioRepository = store
 
-    /** RC-27: the same root, so a Scenario's pictures stay inside its own directory. */
+    /** TP-27: the same root, so a Scenario's pictures stay inside its own directory. */
     @Provides
     @Singleton
     fun provideTemplateFiles(

@@ -70,7 +70,7 @@ interface PickCallbacks {
 }
 
 /**
- * RC-7: cropping a **Template** out of a still frame of the screen.
+ * TP-7: cropping a **Template** out of a still frame of the screen.
  *
  * Its own interface for the same reason [PickCallbacks] is not [RecordCallbacks]: all three take
  * the Overlay off the screen and wait for a finger, and all three mean something different by it.
@@ -81,7 +81,7 @@ interface CropCallbacks {
     /** Takes the Overlay down, takes one frame, and puts the frame back up to be cropped. */
     fun onCropTemplate(purpose: CropPurpose)
 
-    /** RC-8: the rectangle the user settled on, in raw display pixels. */
+    /** TP-8: the rectangle the user settled on, in raw display pixels. */
     fun onCropped(region: ScreenRegion)
 
     fun onCancelCrop()

@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.pbh.autoclick.domain.settings.AppSettings
 import com.pbh.autoclick.domain.settings.ControlPosition
 import com.pbh.autoclick.domain.settings.SettingsRepository
@@ -29,17 +30,26 @@ class DataStoreSettings(
         }
     }
 
+    /** IL-1: removed rather than emptied, so "follow the phone" and "chose English" stay different. */
+    override suspend fun setLanguageTag(tag: String?) {
+        store.edit {
+            if (tag == null) it.remove(LANGUAGE) else it[LANGUAGE] = tag
+        }
+    }
+
     /** Both coordinates or neither: half a position is not a position. */
     private fun Preferences.toSettings(): AppSettings {
         val x = this[CONTROL_X]
         val y = this[CONTROL_Y]
         return AppSettings(
             controlPosition = if (x != null && y != null) ControlPosition(x, y) else null,
+            languageTag = this[LANGUAGE],
         )
     }
 
     private companion object {
         val CONTROL_X = intPreferencesKey("control_x")
         val CONTROL_Y = intPreferencesKey("control_y")
+        val LANGUAGE = stringPreferencesKey("language")
     }
 }

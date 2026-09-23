@@ -16,18 +16,18 @@ data class Step(
     val repeatCount: Int = 1,
     val delayMillisecondsAfter: Int = ScenarioLimits.DEFAULT_DELAY_MILLISECONDS,
     /**
-     * RC-19: a **Template** to find first, whose match moves this Step's points.
+     * TP-19: a **Template** to find first, whose match moves this Step's points.
      *
      * Null is the ordinary case and means [target] is where the Step acts, full stop.
      */
     val search: TemplateSearch? = null,
-    /** RC-24: a condition waited for before the Action, or null when there is none. */
+    /** TP-24: a condition waited for before the Action, or null when there is none. */
     val guard: Guard? = null,
 ) {
     /** SM-8: a Step whose Action ignores its Target draws no Marker. */
     val hasMarker: Boolean get() = action.usesTarget
 
-    /** RC-22: the two Actions that ignore their Target ignore a search attached to it as well. */
+    /** TP-22: the two Actions that ignore their Target ignore a search attached to it as well. */
     val effectiveSearch: TemplateSearch? get() = search.takeIf { action.usesTarget }
 
     /** Every point this Step touches, so a Screen profile check has something to walk. */
@@ -41,7 +41,7 @@ data class Step(
             }
 
     /**
-     * RC-20: this Step with every point moved so that [target] lands on [to].
+     * TP-20: this Step with every point moved so that [target] lands on [to].
      *
      * The whole Step moves rigidly rather than only its first point. Resolving the start and
      * leaving the rest absolute would turn "swipe this card away" into "swipe from wherever the

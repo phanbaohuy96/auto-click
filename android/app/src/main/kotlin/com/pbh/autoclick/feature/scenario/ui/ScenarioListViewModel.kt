@@ -1,11 +1,13 @@
 package com.pbh.autoclick.feature.scenario.ui
 
 import androidx.lifecycle.viewModelScope
+import com.pbh.autoclick.core.ui.AppLanguage
 import com.pbh.autoclick.core.ui.BaseViewModel
 import com.pbh.autoclick.core.ui.UiEffect
 import com.pbh.autoclick.data.scenario.FileScenarioStore
 import com.pbh.autoclick.domain.repository.StoredScenario
 import com.pbh.autoclick.domain.scenario.Scenario
+import com.pbh.autoclick.domain.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -15,6 +17,8 @@ import javax.inject.Inject
 data class ScenarioListUiState(
     val scenarios: List<StoredScenario> = emptyList(),
     val loading: Boolean = true,
+    /** IL-1: the chosen language, or null while the phone's own is being followed. */
+    val languageTag: String? = null,
 )
 
 sealed interface ScenarioListEffect : UiEffect {
@@ -29,13 +33,29 @@ class ScenarioListViewModel
     @Inject
     constructor(
         private val store: FileScenarioStore,
+        private val settings: SettingsRepository,
     ) : BaseViewModel<ScenarioListUiState, ScenarioListEffect>(ScenarioListUiState()) {
         init {
             store
                 .observeScenarios()
                 .onEach { setState { copy(scenarios = it, loading = false) } }
                 .launchIn(viewModelScope)
+            settings.settings
+                .onEach { setState { copy(languageTag = it.languageTag) } }
+                .launchIn(viewModelScope)
             launch { store.refresh() }
+        }
+
+        /**
+         * IL-1: written, and taking effect before the write lands.
+         *
+         * [AppLanguage] is set first so the interface changes under the user's finger; the store
+         * is what makes it survive the process. Doing it the other way round makes a language
+         * change look like a disk write, because that is what it would be waiting on.
+         */
+        fun chooseLanguage(tag: String?) {
+            AppLanguage.set(tag)
+            launch { settings.setLanguageTag(tag) }
         }
 
         fun createScenario(name: String) {
@@ -71,7 +91,7 @@ class ScenarioListViewModel
             launch { store.save(scenario.scenario.copy(name = trimmed)) }
         }
 
-        /** FS-3: a copy of the whole directory, Templates included (`RC-27`). */
+        /** FS-3: a copy of the whole directory, Templates included (`TP-27`). */
         fun duplicate(scenario: StoredScenario) {
             if (scenario.readOnly) return
             launch { store.duplicate(scenario.scenario.id) }

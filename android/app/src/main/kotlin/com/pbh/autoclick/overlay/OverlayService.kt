@@ -14,6 +14,8 @@ import android.view.ViewConfiguration
 import android.view.WindowManager
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import com.pbh.autoclick.core.ui.AppLanguage
+import com.pbh.autoclick.core.ui.localisedFor
 import com.pbh.autoclick.domain.editor.StepDraft
 import com.pbh.autoclick.domain.editor.previewing
 import com.pbh.autoclick.domain.editor.rebuiltFor
@@ -81,7 +83,7 @@ class OverlayService : Service() {
     @Inject
     lateinit var settings: SettingsRepository
 
-    /** RC-27: the pixels of this Scenario's Templates, beside its scenario.json. */
+    /** TP-27: the pixels of this Scenario's Templates, beside its scenario.json. */
     @Inject
     lateinit var templates: TemplateFiles
 
@@ -109,7 +111,7 @@ class OverlayService : Service() {
     private var replaying = false
 
     /**
-     * RC-7: the still frame being cropped, kept as a Bitmap rather than only as what is drawn.
+     * TP-7: the still frame being cropped, kept as a Bitmap rather than only as what is drawn.
      *
      * The Overlay shows an `ImageBitmap` and the crop has to come out of the real pixels, so both
      * exist for as long as the crop does and neither outlives it.
@@ -121,7 +123,9 @@ class OverlayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        createRunNotificationChannel()
+        // IL-3: the notification is not Compose, so it does not get the language for free. It is
+        // also the one part of the interface that is read while another application is in front.
+        withLanguage().createRunNotificationChannel()
         val display = getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)
         overlayContext = createWindowContext(display, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, null)
         val active =
@@ -136,7 +140,7 @@ class OverlayService : Service() {
         active.state
             .map { it.notification() }
             .distinctUntilChanged()
-            .onEach { updateRunNotification(it) }
+            .onEach { withLanguage().updateRunNotification(it) }
             .launchIn(scope)
         scope.launch {
             active.placeControl(
@@ -155,7 +159,7 @@ class OverlayService : Service() {
     ): Int {
         startForeground(
             NOTIFICATION_ID,
-            buildRunNotification(coordinator?.state?.value?.notification() ?: RunNotificationState()),
+            withLanguage().buildRunNotification(coordinator?.state?.value?.notification() ?: RunNotificationState()),
             ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
         )
 
@@ -205,7 +209,7 @@ class OverlayService : Service() {
                 is AppResult.Success -> {
                     scenario = loaded.data.scenario
                     coordinator?.show(loaded.data.scenario)
-                    // RC-27: opening is the one moment with no draft anywhere, so it is the one
+                    // TP-27: opening is the one moment with no draft anywhere, so it is the one
                     // moment a Template nothing refers to is safe to delete.
                     templates.sweep(id, loaded.data.scenario.templateIds)
                 }
@@ -409,7 +413,7 @@ class OverlayService : Service() {
         }
 
     /**
-     * RC-7: the Overlay steps aside, one frame is taken, and the frame comes back to be cropped.
+     * TP-7: the Overlay steps aside, one frame is taken, and the frame comes back to be cropped.
      *
      * The wait in the middle is the same wait macOS needed (`RG-5`) for the same reason: taking a
      * window down is a request to the window manager rather than something that has happened by
@@ -457,9 +461,9 @@ class OverlayService : Service() {
         }
 
     /**
-     * RC-8, RC-9, RC-23: the crop becomes a file, a search, and — for a Target — a Marker on it.
+     * TP-8, TP-9, TP-23: the crop becomes a file, a search, and — for a Target — a Marker on it.
      *
-     * The **Step**'s point moves to the centre of what was cropped, which is `RC-23` from the
+     * The **Step**'s point moves to the centre of what was cropped, which is `TP-23` from the
      * other end: the **Marker** ends up on the thing the user just drew a box around, which is
      * where the **Step** will act if the match comes back where it was made.
      */
@@ -665,7 +669,7 @@ class OverlayService : Service() {
     private fun startRun(toRun: Scenario) {
         if (runJob?.isActive == true) return
         val dispatcher = accessibilityDispatcher() ?: return
-        // RC-2, RC-27: one screen source and one Template cache for the whole run, so a Template
+        // TP-2, TP-27: one screen source and one Template cache for the whole run, so a Template
         // is decoded once however many polls look for it.
         val finder =
             TemplateFinder(
@@ -724,7 +728,7 @@ class OverlayService : Service() {
                     ),
             )
         }
-        // RC-29: the panel opens at once and the pictures follow. Decoding them is a file read and
+        // TP-29: the panel opens at once and the pictures follow. Decoding them is a file read and
         // a decode, and a panel that waited for both would feel like a panel that had not opened.
         scope.launch {
             val previews = templates.previewsFor(current.id, current.steps[index])
@@ -743,7 +747,7 @@ class OverlayService : Service() {
         /** RD-5: long enough for `updateViewLayout` to have taken the touchable flag away. */
         private const val FLAG_SETTLE_MILLISECONDS = 24L
 
-        /** RC-7: long enough for the window manager to have actually taken the Overlay down. */
+        /** TP-7: long enough for the window manager to have actually taken the Overlay down. */
         private const val WINDOW_SETTLE_MILLISECONDS = 160L
 
         /** OV-37: long enough for the display's own metrics to have caught up with the rotation. */
@@ -768,6 +772,9 @@ class OverlayService : Service() {
     }
 }
 
+/** IL-3: this Context with the chosen language on it, read fresh so a change is picked up. */
+private fun Context.withLanguage(): Context = localisedFor(AppLanguage.tag.value)
+
 /** GX-1: the connected service, or a line in the log saying why nothing happened. */
 private fun accessibilityDispatcher(): AutoClickAccessibilityService? =
     AutoClickAccessibilityService.instance
@@ -776,7 +783,7 @@ private fun accessibilityDispatcher(): AutoClickAccessibilityService? =
 private fun Intent.scenarioId(): UUID? =
     getStringExtra(OverlayService.EXTRA_SCENARIO_ID)?.let { runCatching { UUID.fromString(it) }.getOrNull() }
 
-/** RC-29: every Template this Step refers to, decoded, so the panel can show what it looks for. */
+/** TP-29: every Template this Step refers to, decoded, so the panel can show what it looks for. */
 private suspend fun TemplateFiles.previewsFor(
     scenarioId: UUID,
     step: Step,
@@ -789,7 +796,7 @@ private suspend fun TemplateFiles.previewsFor(
 private fun ControlPosition.toPoint(): ScreenPoint = ScreenPoint(x, y)
 
 /**
- * RC-19, RC-23, RC-24: the crop, applied to whichever half of the draft asked for it.
+ * TP-19, TP-23, TP-24: the crop, applied to whichever half of the draft asked for it.
  *
  * A Target crop moves the Step's point onto what was cropped; a Guard crop does not, because a
  * Guard is a condition rather than a place — "press here once the advert is gone" means *here*,
@@ -828,7 +835,7 @@ internal fun OverlayUiState.applied(
         is RunEvent.StepStarted ->
             copy(run = OverlayUiState.RunState.Running(event.stepIndex + 1, stepCount))
 
-        // RC-21: counted rather than announced. A skipped Step is not an error and must not read
+        // TP-21: counted rather than announced. A skipped Step is not an error and must not read
         // like one, but a run that quietly did nothing ten times over is the thing the user needs
         // to be able to see.
         is RunEvent.StepSkipped -> copy(skippedSteps = skippedSteps + 1)

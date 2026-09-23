@@ -14,4 +14,6 @@
     <string name="scenario_rename_title">Đổi tên kịch bản</string>
     <string name="scenario_duplicate">Nhân bản</string>
     <string name="scenario_more">Thêm</string>
+    <string name="language">Ngôn ngữ</string>
+    <string name="language_system">Theo hệ thống</string>
 </resources>

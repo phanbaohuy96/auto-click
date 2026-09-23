@@ -22,9 +22,16 @@ ambiguous about which platform it belongs to.
 | `DS` | The design system | [07](./07-design-system.md) |
 | `AP` | Settings that are not a Scenario | [04](./04-storage.md) |
 | `PK` | Picking a point to aim a Step at | [09](./09-picking.md) |
+| `TP` | Templates and recognition | [10](./10-recognition.md) |
+| `IL` | Interface languages | [11](./11-localisation.md) |
 
 macOS identifiers — `DM`, `EX`, `ST`, `UI`, `RC`, `RG`, `SF`, `LC` — keep their meaning when cited
 from here, and always link back to [`../../../docs/sdd/`](../../../docs/sdd/).
+
+Two of those are why recognition is `TP` and interface languages are `IL` rather than the obvious
+`RG` and `LC`: macOS already spends `RC` on **recording** and `LC` on **localisation**, and the
+rule above is that a bare identifier is never ambiguous about which platform it belongs to. The
+obvious name losing to the rule is the rule working.
 
 ## Status
 

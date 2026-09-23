@@ -42,7 +42,7 @@ import com.pbh.autoclick.overlay.CropPurpose
 import kotlin.math.roundToInt
 
 /**
- * RC-7: the frozen screen, with a rectangle dragged on it.
+ * TP-7: the frozen screen, with a rectangle dragged on it.
  *
  * The user is dragging on a **picture of the screen**, not on the screen. That is the point: the
  * frame was taken with nothing of Auto Click's on the display, so whatever is cropped out of it is
@@ -101,7 +101,7 @@ fun CropLayer(
     }
 }
 
-/** RC-8: a rectangle smaller than this has nothing left in it to correlate against. */
+/** TP-8: a rectangle smaller than this has nothing left in it to correlate against. */
 fun ScreenRegion.isBigEnoughForATemplate(): Boolean =
     width >= ScenarioLimits.MINIMUM_TEMPLATE_SIDE_PIXELS && height >= ScenarioLimits.MINIMUM_TEMPLATE_SIDE_PIXELS
 

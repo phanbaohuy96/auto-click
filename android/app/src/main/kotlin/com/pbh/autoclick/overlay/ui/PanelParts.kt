@@ -59,7 +59,7 @@ internal fun Stepper(
     }
 }
 
-/** RC-30: nudged by a step, and never out of the range SM-16 would have clamped it into anyway. */
+/** TP-30: nudged by a step, and never out of the range SM-16 would have clamped it into anyway. */
 internal fun TemplateSearch.byThreshold(delta: Double): TemplateSearch =
     copy(threshold = (threshold + delta).coerceIn(ScenarioLimits.matchThreshold))
 

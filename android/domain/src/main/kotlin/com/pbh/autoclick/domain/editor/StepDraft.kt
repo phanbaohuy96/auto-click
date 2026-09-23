@@ -24,7 +24,7 @@ enum class StepActionKind {
     SET_TEXT,
 }
 
-/** RC-22, SM-8: whether a Step of this kind reads its Target at all. */
+/** TP-22, SM-8: whether a Step of this kind reads its Target at all. */
 val StepActionKind.usesTarget: Boolean
     get() =
         when (this) {
@@ -68,9 +68,9 @@ data class StepDraft(
     val text: String = "",
     val repeatCount: Int = 1,
     val delayMillisecondsAfter: Int = ScenarioLimits.DEFAULT_DELAY_MILLISECONDS,
-    /** RC-19: the Template this Step aims at, or null when its point is simply its point. */
+    /** TP-19: the Template this Step aims at, or null when its point is simply its point. */
     val search: TemplateSearch? = null,
-    /** RC-24: the condition waited for before the Action, or null when there is none. */
+    /** TP-24: the condition waited for before the Action, or null when there is none. */
     val guard: Guard? = null,
 )
 
@@ -90,7 +90,7 @@ fun StepDraft.toStep(): Step =
         target = StepTarget(target),
         repeatCount = repeatCount,
         delayMillisecondsAfter = delayMillisecondsAfter,
-        // RC-22: kept whichever Action is in force, and read only by the three that use a Target.
+        // TP-22: kept whichever Action is in force, and read only by the three that use a Target.
         search = search,
         guard = guard,
     )

@@ -18,7 +18,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** RC-19, RC-21, RC-24, RC-28: recognition on disk. */
+/** TP-19, TP-21, TP-24, TP-28: recognition on disk. */
 class RecognitionJsonTest {
     private val json = FileScenarioStore.defaultJson
     private val templateId = UUID.fromString("0c22a1f0-0000-4000-8000-0000000000aa")
@@ -83,7 +83,7 @@ class RecognitionJsonTest {
     }
 
     /**
-     * RC-28: the version written is the lowest that can express the Scenario.
+     * TP-28: the version written is the lowest that can express the Scenario.
      *
      * Writing 2 for a sequence of plain taps would make every Scenario on the phone unreadable to
      * the previous build in exchange for nothing.
@@ -110,7 +110,7 @@ class RecognitionJsonTest {
     }
 
     /**
-     * RC-22: a search on an Action that ignores its Target is ignored, and does not raise the
+     * TP-22: a search on an Action that ignores its Target is ignored, and does not raise the
      * version — an older build reading this file would behave identically.
      */
     @Test
@@ -147,7 +147,7 @@ class RecognitionJsonTest {
         assertEquals(OnTimeout.STOP_SCENARIO, assertNotNull(decode(text).steps.single().search).onTimeout)
     }
 
-    /** RC-30: one impossible number must not cost the user the Scenario (SM-16's rule). */
+    /** TP-30: one impossible number must not cost the user the Scenario (SM-16's rule). */
     @Test
     fun `a threshold and a wait outside their range are clamped rather than refused`() {
         val text =

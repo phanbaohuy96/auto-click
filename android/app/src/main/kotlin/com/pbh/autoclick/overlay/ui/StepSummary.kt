@@ -51,7 +51,7 @@ internal fun Step.timing(): String {
         } else {
             stringResource(R.string.step_row_timing, delayMillisecondsAfter)
         }
-    // RC-19, RC-24: a row that looks for something is doing something the coordinates do not
+    // TP-19, TP-24: a row that looks for something is doing something the coordinates do not
     // explain, and the list is where a user decides which Step to open.
     val looks =
         listOfNotNull(

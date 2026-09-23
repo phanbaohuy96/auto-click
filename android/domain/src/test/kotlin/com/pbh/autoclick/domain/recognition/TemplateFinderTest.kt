@@ -15,7 +15,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * RC-4, RC-5, RC-21, RC-24: the waiting, on virtual time.
+ * TP-4, TP-5, TP-21, TP-24: the waiting, on virtual time.
  *
  * The clock is injected (`TemplateFinder.elapsedMilliseconds`) and wired to the test scheduler, so
  * a five-second wait is asserted in microseconds and the number asserted is the one the user set.
@@ -94,7 +94,7 @@ class TemplateFinderTest {
 
             assertEquals(1, frames.taken)
             assertEquals(0L, testScheduler.currentTime, "nothing should have been waited for")
-            // RC-17: the centre of the match, not its corner.
+            // TP-17: the centre of the match, not its corner.
             assertEquals(ScreenPoint(30 + 5, 20 + 4), result.at)
         }
 
@@ -107,10 +107,10 @@ class TemplateFinderTest {
 
             assertIs<SearchResult.Found>(result)
             assertEquals(3, frames.taken)
-            assertEquals(800L, testScheduler.currentTime, "RC-4: two polls at 400ms")
+            assertEquals(800L, testScheduler.currentTime, "TP-4: two polls at 400ms")
         }
 
-    /** RC-4: the wait is milliseconds, and it is the user's number. */
+    /** TP-4: the wait is milliseconds, and it is the user's number. */
     @Test
     fun `a template that never appears gives up when the wait runs out`() =
         runTest {
@@ -123,7 +123,7 @@ class TemplateFinderTest {
             assertTrue(testScheduler.currentTime < 1_500L, "waited ${testScheduler.currentTime}ms for a 1000ms wait")
         }
 
-    /** RC-21: zero is legitimate, and it is the whole of "close it if it happens to be there". */
+    /** TP-21: zero is legitimate, and it is the whole of "close it if it happens to be there". */
     @Test
     fun `a wait of zero still takes one look`() =
         runTest {
@@ -135,7 +135,7 @@ class TemplateFinderTest {
             assertEquals(0L, testScheduler.currentTime)
         }
 
-    /** RC-24: the same wait, read the other way round. */
+    /** TP-24: the same wait, read the other way round. */
     @Test
     fun `waiting for something to go away ends when it goes away`() =
         runTest {
@@ -159,7 +159,7 @@ class TemplateFinderTest {
         }
 
     /**
-     * RC-4: a refused frame is a poll that found nothing, and it must not shorten the wait.
+     * TP-4: a refused frame is a poll that found nothing, and it must not shorten the wait.
      *
      * The platform rate-limits `takeScreenshot` and a secure window blocks it outright, so this is
      * the ordinary case rather than the exotic one.
@@ -175,7 +175,7 @@ class TemplateFinderTest {
             assertEquals(800L, testScheduler.currentTime)
         }
 
-    /** RC-29: at run time a Template whose file has gone is a search that finds nothing. */
+    /** TP-29: at run time a Template whose file has gone is a search that finds nothing. */
     @Test
     fun `a template whose file has gone times out rather than throwing`() =
         runTest {
@@ -186,7 +186,7 @@ class TemplateFinderTest {
             assertIs<SearchResult.NotFound>(result)
         }
 
-    /** RC-15: the threshold is the user's, and a near-miss is a miss. */
+    /** TP-15: the threshold is the user's, and a near-miss is a miss. */
     @Test
     fun `a threshold of one refuses anything short of exact`() =
         runTest {
@@ -207,7 +207,7 @@ class TemplateFinderTest {
             assertIs<SearchResult.NotFound>(finder(frames).await(search(waitMilliseconds = 0, threshold = 0.5)))
         }
 
-    /** RC-9: the region is where it looks, and the point comes back in the screen's coordinates. */
+    /** TP-9: the region is where it looks, and the point comes back in the screen's coordinates. */
     @Test
     fun `a search region narrows the haystack without moving the answer`() =
         runTest {

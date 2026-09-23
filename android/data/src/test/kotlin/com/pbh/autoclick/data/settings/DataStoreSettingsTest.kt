@@ -60,4 +60,39 @@ class DataStoreSettingsTest {
 
             assertThat(store.settings.first().controlPosition).isEqualTo(ControlPosition(900, 200))
         }
+
+    /** IL-1: a language chosen on purpose survives the process. */
+    @Test
+    fun `a chosen language is written and read back`() =
+        runTest {
+            val store = settings()
+
+            store.setLanguageTag("vi")
+
+            assertThat(store.settings.first().languageTag).isEqualTo("vi")
+        }
+
+    /**
+     * IL-1: null is not "English".
+     *
+     * A phone set to Japanese shows Japanese without anybody choosing it, so "follow the phone"
+     * has to be a different value from any language — it is the absence of a choice, and it is
+     * stored as the absence of a key.
+     */
+    @Test
+    fun `putting the language back to the phone forgets the choice entirely`() =
+        runTest {
+            val store = settings()
+            store.setLanguageTag("es")
+
+            store.setLanguageTag(null)
+
+            assertThat(store.settings.first().languageTag).isNull()
+        }
+
+    @Test
+    fun `a fresh install follows the phone`() =
+        runTest {
+            assertThat(settings().settings.first().languageTag).isNull()
+        }
 }

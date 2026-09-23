@@ -31,9 +31,9 @@ import com.pbh.autoclick.overlay.CropPurpose
 import com.pbh.autoclick.overlay.EditingStep
 
 /**
- * RC-19: what this Step aims at — a point it was put on, or a picture it goes and finds.
+ * TP-19: what this Step aims at — a point it was put on, or a picture it goes and finds.
  *
- * Shown only for the three Actions that use a Target (`RC-22`). A `globalAction` has nowhere to
+ * Shown only for the three Actions that use a Target (`TP-22`). A `globalAction` has nowhere to
  * put a match, and offering the search there would be offering a setting that does nothing.
  */
 @Composable
@@ -64,10 +64,10 @@ internal fun FindSection(
 }
 
 /**
- * RC-24: the condition, which is the same search read the other way round.
+ * TP-24: the condition, which is the same search read the other way round.
  *
  * Offered for every Action, `globalAction` included: "press Back once the advert is gone" is as
- * reasonable as anything with a point in it. `RC-25` is what keeps this from being a branch —
+ * reasonable as anything with a point in it. `TP-25` is what keeps this from being a branch —
  * there is no else here, only the two things [OnTimeout] already meant.
  */
 @Composable
@@ -115,7 +115,7 @@ private fun EmptySlot(
     }
 }
 
-/** RC-24: *is it there* or *has it gone*, which are the only two conditions there are. */
+/** TP-24: *is it there* or *has it gone*, which are the only two conditions there are. */
 @Composable
 private fun PresenceChips(
     guard: Guard,
@@ -194,7 +194,7 @@ private fun SearchFields(
     }
 }
 
-/** RC-21: the two things that can happen, named as what happens rather than as a code. */
+/** TP-21: the two things that can happen, named as what happens rather than as a code. */
 @Composable
 private fun TimeoutChips(
     search: TemplateSearch,
@@ -219,7 +219,7 @@ private fun TimeoutChips(
     }
 }
 
-/** RC-9: where it looks, and the one press that widens it to everywhere. */
+/** TP-9: where it looks, and the one press that widens it to everywhere. */
 @Composable
 private fun RegionRow(
     search: TemplateSearch,

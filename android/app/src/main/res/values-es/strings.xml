@@ -1,0 +1,19 @@
+<resources>
+    <string name="accessibility_service_summary">Toca, desliza y escribe por ti</string>
+    <string name="accessibility_service_description">Auto Click repite solo los toques y deslizamientos que tú mismo configuras. Necesita este permiso porque enviar un toque a otra aplicación es lo único que Android permite hacer a un servicio de accesibilidad. No lee nada de tu pantalla, lo guarda todo en este dispositivo y no tiene permiso para usar internet.</string>
+    <string name="scenario_new">Nuevo escenario</string>
+    <string name="scenario_none">Todavía no hay escenarios. Crea uno y coloca sus marcadores sobre la aplicación que quieras automatizar.</string>
+    <string name="scenario_default_name">Sin título</string>
+    <string name="scenario_step_count">%1$d pasos</string>
+    <string name="scenario_too_new">Guardado por una versión más nueva: solo se puede borrar</string>
+    <string name="scenario_delete">Borrar</string>
+    <string name="scenario_delete_title">¿Borrar «%1$s»?</string>
+    <string name="scenario_delete_body">Sus pasos y sus ajustes se van con él. No se puede deshacer.</string>
+    <string name="scenario_none_title">Aquí no hay nada todavía</string>
+    <string name="scenario_rename">Cambiar el nombre</string>
+    <string name="scenario_rename_title">Cambiar el nombre del escenario</string>
+    <string name="scenario_duplicate">Duplicar</string>
+    <string name="scenario_more">Más</string>
+    <string name="language">Idioma</string>
+    <string name="language_system">Seguir al sistema</string>
+</resources>

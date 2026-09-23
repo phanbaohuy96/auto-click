@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="crop_target_title">このステップが探す絵を切り取る</string>
+    <string name="crop_guard_title">このステップが待つ絵を切り取る</string>
+    <string name="crop_hint">その周りを枠で囲んでください</string>
+    <string name="crop_hint_ready">指を離すと確定、もう一度ドラッグでやり直し</string>
+    <string name="crop_use">これを使う</string>
+    <string name="crop_cancel">キャンセル</string>
+
+    <string name="recognition_section_find">画面から探す</string>
+    <string name="recognition_section_guard">次の場合のみ</string>
+    <string name="recognition_find_add">絵を狙う</string>
+    <string name="recognition_guard_add">条件を追加</string>
+    <string name="recognition_remove">削除</string>
+    <string name="recognition_recrop">切り取り直す</string>
+    <string name="recognition_fixed_point">このステップは決まった点を押します</string>
+    <string name="recognition_no_guard">このステップは常に実行されます</string>
+    <string name="recognition_guard_present">画面に現れるまで待つ</string>
+    <string name="recognition_guard_absent">消えるまで待つ</string>
+    <string name="recognition_threshold">一致の厳しさ：%1$d%%</string>
+    <string name="recognition_wait">最大 %1$s 待つ</string>
+    <string name="recognition_timeout_label">待ち時間が尽きたら</string>
+    <string name="recognition_timeout_stop">シナリオを止める</string>
+    <string name="recognition_timeout_skip">このステップを飛ばす</string>
+    <string name="recognition_region_near">切り取った場所の近くを探しています</string>
+    <string name="recognition_region_all">画面全体を探しています</string>
+    <string name="recognition_region_widen">画面全体を探す</string>
+    <string name="recognition_missing">この絵はもう端末にありません</string>
+    <string name="recognition_preview">このステップが探す絵</string>
+    <string name="recognition_row_finds">絵を探す</string>
+    <string name="recognition_row_guarded">絵を待つ</string>
+
+    <string name="overlay_template_not_found">ステップ %1$d は絵を見つけられませんでした</string>
+    <string name="overlay_guard_unmet">ステップ %1$d はまだ待っていました</string>
+    <string name="overlay_step_skipped">ステップ %1$d を飛ばしました</string>
+    <string name="overlay_step_of_skipped">ステップ %1$d / %2$d · %3$d 件スキップ</string>
+</resources>

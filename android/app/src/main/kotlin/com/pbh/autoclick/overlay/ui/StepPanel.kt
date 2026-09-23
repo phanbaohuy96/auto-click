@@ -94,7 +94,7 @@ fun StepPanel(
                 CommonFields(editing.draft, actions.onDraftChanged, onFocus)
             }
 
-            // RC-22: the search belongs to the Target, so it is offered only where there is one.
+            // TP-22: the search belongs to the Target, so it is offered only where there is one.
             if (editing.draft.kind.usesTarget) FindSection(editing, actions)
             GuardSection(editing, actions)
 
@@ -123,7 +123,7 @@ data class StepPanelActions(
     val onDelete: () -> Unit,
     /** OV-24: -1 opens the previous Step in the Scenario, +1 the next. */
     val onGo: (Int) -> Unit,
-    /** RC-7: take the Overlay off the screen and crop a Template out of what is underneath. */
+    /** TP-7: take the Overlay off the screen and crop a Template out of what is underneath. */
     val onCropTemplate: (CropPurpose) -> Unit,
     /** Runs this draft once, on its own, and saves nothing. */
     val onTry: () -> Unit,

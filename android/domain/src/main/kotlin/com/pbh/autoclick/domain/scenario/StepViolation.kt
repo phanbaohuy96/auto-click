@@ -41,7 +41,7 @@ sealed interface StepViolation {
     ) : StepViolation
 
     /**
-     * RC-29: this Step looks for a Template whose file is no longer on disk.
+     * TP-29: this Step looks for a Template whose file is no longer on disk.
      *
      * Caught here rather than left to the run, where it would be a wait that expires — the right
      * behaviour at run time, and a baffling one to watch when the real answer is "the picture is
@@ -96,7 +96,7 @@ fun Step.violations(
             points.filterNot { it.isInside(profile) }.forEach { add(StepViolation.PointOutsideScreen(it)) }
         }
 
-        // RC-29. Null means the caller has no library to check against — the runner, for one —
+        // TP-29. Null means the caller has no library to check against — the runner, for one —
         // rather than a library with nothing in it, so nothing is judged.
         if (knownTemplates != null) {
             listOfNotNull(effectiveSearch?.templateId, guard?.search?.templateId)

@@ -24,7 +24,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * RC-20 to RC-26: a run that looks at the screen before it acts.
+ * TP-20 to TP-26: a run that looks at the screen before it acts.
  *
  * Driven through the **real** [TemplateFinder] over hand-built images rather than through a
  * stubbed one. What is being tested here is the sentence "the match moves the Step", and a fake
@@ -79,7 +79,7 @@ class ScenarioRunnerRecognitionTest {
         return seen to { event: RunEvent -> seen += event }
     }
 
-    /** RC-20, the whole point: the Step goes where the picture is, not where it was drawn. */
+    /** TP-20, the whole point: the Step goes where the picture is, not where it was drawn. */
     @Test
     fun `a tap lands on the match rather than on the point it was drawn at`() =
         runTest {
@@ -105,7 +105,7 @@ class ScenarioRunnerRecognitionTest {
         }
 
     /**
-     * RC-20: a swipe keeps the shape it was drawn with.
+     * TP-20: a swipe keeps the shape it was drawn with.
      *
      * Resolving only the start would turn "swipe this card away" into "swipe from wherever the
      * card is towards one fixed corner", which is a different gesture every time it moves.
@@ -151,7 +151,7 @@ class ScenarioRunnerRecognitionTest {
             assertTrue(dispatcher.gestures.isEmpty(), "nothing should have been pressed")
         }
 
-    /** RC-21: *skip* is the other half, and it is the whole of "close it if it is there". */
+    /** TP-21: *skip* is the other half, and it is the whole of "close it if it is there". */
     @Test
     fun `a template that never appears skips its step and lets the next one run`() =
         runTest {
@@ -183,7 +183,7 @@ class ScenarioRunnerRecognitionTest {
             assertEquals(listOf(RunEvent.StepSkipped(stepIndex = 0)), seen.filterIsInstance<RunEvent.StepSkipped>())
         }
 
-    /** RC-24: the condition is met, so the Step runs exactly as it would without one. */
+    /** TP-24: the condition is met, so the Step runs exactly as it would without one. */
     @Test
     fun `a guard that is satisfied lets the step through`() =
         runTest {
@@ -262,7 +262,7 @@ class ScenarioRunnerRecognitionTest {
         }
 
     /**
-     * RC-26: once per repetition, before the Action.
+     * TP-26: once per repetition, before the Action.
      *
      * A Step that presses a button ten times is ten chances for the button to move, and resolving
      * once outside the loop would spend nine of them on a stale answer.
@@ -298,7 +298,7 @@ class ScenarioRunnerRecognitionTest {
             assertEquals(3, dispatcher.gestures.size)
         }
 
-    /** RC-22: `globalAction` ignores its Target, so it ignores a search attached to one. */
+    /** TP-22: `globalAction` ignores its Target, so it ignores a search attached to one. */
     @Test
     fun `a global action never looks at the screen, however its target is decorated`() =
         runTest {

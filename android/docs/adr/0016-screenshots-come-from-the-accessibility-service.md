@@ -23,7 +23,7 @@ declared type with its own notification and its own review, and this app already
 platform surface for a frame.
 
 **The speed it buys is not speed this app can use.** `takeScreenshot` is rate-limited to about one
-call every 333 ms, and MediaProjection can deliver 60. But `RC-13` already caps one coarse scan at
+call every 333 ms, and MediaProjection can deliver 60. But `TP-13` already caps one coarse scan at
 about 40 million comparisons, which is tens to hundreds of milliseconds of arithmetic on a phone —
 so the search, not the capture, is what sets the rate. A faster frame would arrive while the
 previous one was still being looked at.
@@ -38,7 +38,7 @@ can already do.
 
 - **About 2.5 frames a second.** Waiting for a button to appear is fine at that rate. Tracking
   something that moves is not, and this app does not try to.
-- **Auto Click's own floating control is in every frame** and cannot be excluded — `RC-6`. macOS
+- **Auto Click's own floating control is in every frame** and cannot be excluded — `TP-6`. macOS
   excludes its own windows; there is no equivalent here.
 - **`takeScreenshot` can be refused** by the platform while a secure window is on screen, and it
   reports it. A refused frame is treated as a search that found nothing, which means the **Step**'s

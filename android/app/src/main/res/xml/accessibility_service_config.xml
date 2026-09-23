@@ -9,7 +9,7 @@
   canRetrieveWindowContent is required for ACTION_SET_TEXT to reach the focused field (GX-17).
   Nothing else is read, and nothing leaves the device.
 
-  canTakeScreenshot is recognition (RC-2). It is what lets a Step wait for a button to appear
+  canTakeScreenshot is recognition (TP-2). It is what lets a Step wait for a button to appear
   instead of pressing where one used to be, and ADR-0016 records why the frames come from here
   rather than from MediaProjection: this asks the user for nothing they have not already given.
 -->

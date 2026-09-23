@@ -26,7 +26,7 @@ fun Step.clampedToLimits(): Step =
         guard = guard?.let { it.copy(search = it.search.clampedToLimits()) },
     )
 
-/** RC-30: the two numbers recognition added, clamped by the same rule as every other one. */
+/** TP-30: the two numbers recognition added, clamped by the same rule as every other one. */
 fun TemplateSearch.clampedToLimits(): TemplateSearch =
     copy(
         threshold = threshold.coerceIn(ScenarioLimits.matchThreshold),

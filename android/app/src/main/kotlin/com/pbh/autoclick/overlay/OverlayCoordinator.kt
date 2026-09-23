@@ -164,7 +164,7 @@ class OverlayCoordinator(
         if (attached != null && attached != signature) control.dismiss()
         attached = signature
 
-        // RC-7: the one moment the control comes down. Nothing can be running while a Template
+        // TP-7: the one moment the control comes down. Nothing can be running while a Template
         // is being cropped, so no Stop is being taken away.
         if (!current.showControl) {
             control.dismiss()

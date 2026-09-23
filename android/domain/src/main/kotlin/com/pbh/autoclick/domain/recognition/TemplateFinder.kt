@@ -7,12 +7,12 @@ import kotlinx.coroutines.delay
 import java.util.UUID
 import kotlin.math.min
 
-/** RC-2: one frame of the display as greyscale, or null when the platform would not give one. */
+/** TP-2: one frame of the display as greyscale, or null when the platform would not give one. */
 fun interface ScreenSource {
     suspend fun frame(): GrayImage?
 }
 
-/** RC-27: a **Template**'s pixels, or null when its file has gone (`RC-29`). */
+/** TP-27: a **Template**'s pixels, or null when its file has gone (`TP-29`). */
 fun interface TemplateSource {
     suspend fun template(id: UUID): GrayImage?
 }
@@ -35,7 +35,7 @@ fun SearchResult.satisfies(expects: Presence): Boolean =
     }
 
 /**
- * Waits for a **Template** to appear, or to go away (`RC-4`, `RC-5`, `RC-21`, `RC-24`).
+ * Waits for a **Template** to appear, or to go away (`TP-4`, `TP-5`, `TP-21`, `TP-24`).
  *
  * The wait is measured in **milliseconds elapsed** and never in polls. A device that refuses a
  * frame — the platform rate-limits `takeScreenshot`, and a secure window blocks it outright — would
@@ -52,7 +52,7 @@ class TemplateFinder(
     /**
      * Polls until [expects] holds or the wait runs out, and returns whatever the last look found.
      *
-     * A **Template** whose file has gone reports *not found* on every poll, exactly as `RC-29`
+     * A **Template** whose file has gone reports *not found* on every poll, exactly as `TP-29`
      * says: at run time a missing file is a search that finds nothing, which is the `onTimeout`
      * the user chose rather than a crash. The editor is where that is caught as a mistake.
      */
@@ -66,7 +66,7 @@ class TemplateFinder(
             if (result.satisfies(expects)) return result
             val left = search.waitMilliseconds - (elapsedMilliseconds() - started)
             if (left <= 0L) return result
-            // RC-5: sleeping between two looks is what makes the second one a different screen.
+            // TP-5: sleeping between two looks is what makes the second one a different screen.
             delay(min(POLL_MILLISECONDS, left))
         }
     }
@@ -78,7 +78,7 @@ class TemplateFinder(
     }
 
     private companion object {
-        /** RC-4: the platform refuses `takeScreenshot` more often than about every 333 ms. */
+        /** TP-4: the platform refuses `takeScreenshot` more often than about every 333 ms. */
         const val POLL_MILLISECONDS = 400L
     }
 }
@@ -87,7 +87,7 @@ class TemplateFinder(
  * One look for [template] inside this frame, honouring the **Search region** and the threshold.
  *
  * The region is cropped out and searched on its own rather than masked, which is the whole of
- * `RC-9`'s saving: a smaller haystack is a cheaper scan, and the offset is added back to the point
+ * `TP-9`'s saving: a smaller haystack is a cheaper scan, and the offset is added back to the point
  * found so the caller never sees the region's coordinate space.
  */
 internal fun GrayImage.find(
@@ -101,7 +101,7 @@ internal fun GrayImage.find(
 
     val match = TemplateMatcher.bestMatch(template, haystack) ?: return SearchResult.NotFound
     if (match.score < search.threshold) return SearchResult.NotFound
-    // RC-17: the Target is the centre of what was matched, not its corner.
+    // TP-17: the Target is the centre of what was matched, not its corner.
     return SearchResult.Found(
         at = ScreenPoint(fromX + match.x + template.width / 2, fromY + match.y + template.height / 2),
         score = match.score,

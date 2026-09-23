@@ -50,14 +50,14 @@ data class StepDto(
     val target: TargetDto,
     val repeat: Int = 1,
     val delayMillisecondsAfter: Int = 100,
-    /** RC-19: absent in a schema 1 file, and absent from any Step that aims at a plain point. */
+    /** TP-19: absent in a schema 1 file, and absent from any Step that aims at a plain point. */
     val search: SearchDto? = null,
-    /** RC-24. */
+    /** TP-24. */
     val guard: GuardDto? = null,
 )
 
 /**
- * A Template search on disk (RC-19, RC-21).
+ * A Template search on disk (TP-19, TP-21).
  *
  * `template` names a file under `templates/`, and `onTimeout` is a name rather than a number for
  * the same reason `globalAction` is (SM-10): the file has to stay readable.

@@ -15,4 +15,6 @@
     <string name="scenario_rename_title">Rename scenario</string>
     <string name="scenario_duplicate">Duplicate</string>
     <string name="scenario_more">More</string>
+    <string name="language">Language</string>
+    <string name="language_system">Follow the system</string>
 </resources>

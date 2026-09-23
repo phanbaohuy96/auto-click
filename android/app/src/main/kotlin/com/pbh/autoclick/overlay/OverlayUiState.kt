@@ -39,9 +39,9 @@ data class OverlayUiState(
     val recording: RecordingSession? = null,
     /** PK-1: true while the Overlay is hidden and one gesture is being waited for. */
     val picking: Boolean = false,
-    /** RC-7: cropping a Template, or null when nothing is being cropped. */
+    /** TP-7: cropping a Template, or null when nothing is being cropped. */
     val crop: CropState? = null,
-    /** RC-21: how many Steps this run has skipped because a wait ran out. */
+    /** TP-21: how many Steps this run has skipped because a wait ran out. */
     val skippedSteps: Int = 0,
     /**
      * The Screen profile this Scenario's coordinates are measured against (`SM-14`), once it has
@@ -69,11 +69,11 @@ data class OverlayUiState(
     /** PK-1: the user is aiming one Step at the screen underneath, and nothing may be in front of it. */
     val isPicking: Boolean get() = picking
 
-    /** RC-7: true from the moment the Overlay steps aside until the crop is taken or abandoned. */
+    /** TP-7: true from the moment the Overlay steps aside until the crop is taken or abandoned. */
     val isCropping: Boolean get() = crop != null
 
     /**
-     * RC-7: whether the floating control is on the screen at all.
+     * TP-7: whether the floating control is on the screen at all.
      *
      * It is the one window that is otherwise always up — Stop has to be reachable (`OV-13`) — and
      * cropping is the one moment it must not be. The frame is taken with nothing of Auto Click's
@@ -129,7 +129,7 @@ data class OverlayUiState(
 }
 
 /**
- * Cropping a Template out of a still frame (`RC-7`).
+ * Cropping a Template out of a still frame (`TP-7`).
  *
  * [frame] is null for the moment in between: the Overlay has taken itself off the screen and the
  * frame has not come back yet. Nothing of Auto Click's is drawn in that moment, which is the whole
@@ -145,7 +145,7 @@ data class CropState(
  * What the Template being cropped is for.
  *
  * The two are the same gesture and different destinations: one becomes the thing the Step aims at
- * (`RC-19`), the other the condition it waits for (`RC-24`).
+ * (`TP-19`), the other the condition it waits for (`TP-24`).
  */
 enum class CropPurpose {
     TARGET,
@@ -223,11 +223,11 @@ enum class PanelExit {
 data class EditingStep(
     val draft: StepDraft,
     /**
-     * RC-29: the pixels of every Template this Step refers to, decoded when the panel opened.
+     * TP-29: the pixels of every Template this Step refers to, decoded when the panel opened.
      *
      * Doing double duty on purpose. It is what the panel draws, so the user can see *which
      * picture* a Step is looking for rather than a bare identifier — and its keys are the Templates
-     * that are actually on disk, which is exactly what `RC-29`'s check needs. A Template that
+     * that are actually on disk, which is exactly what `TP-29`'s check needs. A Template that
      * could not be decoded is absent from both at once, and cannot be out of step with itself.
      */
     val previews: Map<UUID, ImageBitmap> = emptyMap(),

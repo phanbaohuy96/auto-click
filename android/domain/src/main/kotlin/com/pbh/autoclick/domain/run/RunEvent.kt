@@ -15,7 +15,7 @@ sealed interface RunEvent {
     ) : RunEvent
 
     /**
-     * RC-21: this Step's Guard or Template search ran out of time, and the user chose *skip*.
+     * TP-21: this Step's Guard or Template search ran out of time, and the user chose *skip*.
      *
      * Reported rather than passed over in silence. A Step that quietly does nothing is exactly the
      * failure this app spends most of its code avoiding, and here it is a Step doing what it was
@@ -66,12 +66,12 @@ sealed interface FinishReason {
         val stepIndex: Int,
     ) : FinishReason
 
-    /** RC-21: the Template this Step aims at never appeared, and the user chose *stop*. */
+    /** TP-21: the Template this Step aims at never appeared, and the user chose *stop*. */
     data class TemplateNotFound(
         val stepIndex: Int,
     ) : FinishReason
 
-    /** RC-24: this Step's condition never came true, and the user chose *stop*. */
+    /** TP-24: this Step's condition never came true, and the user chose *stop*. */
     data class GuardUnmet(
         val stepIndex: Int,
     ) : FinishReason

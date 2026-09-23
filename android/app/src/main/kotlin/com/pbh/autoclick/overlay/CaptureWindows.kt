@@ -52,7 +52,7 @@ internal class CaptureWindows(
     }
 
     /**
-     * RC-7: the third layer, and the only one that shows the user something rather than taking it.
+     * TP-7: the third layer, and the only one that shows the user something rather than taking it.
      *
      * Attached only once the frame has come back. While it has not, [CropState.frame] is null and
      * **nothing at all** of Auto Click's is on the screen — which is the whole reason the frame is

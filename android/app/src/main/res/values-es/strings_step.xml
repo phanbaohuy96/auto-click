@@ -1,0 +1,54 @@
+<resources>
+    <string name="step_panel_title">Paso %1$d de %2$d</string>
+    <string name="step_previous">Paso anterior</string>
+    <string name="step_next">Paso siguiente</string>
+    <string name="step_move_up">Mover antes</string>
+    <string name="step_move_down">Mover después</string>
+    <string name="step_delete">Borrar el paso</string>
+    <string name="step_cancel">Cancelar</string>
+    <string name="step_save">Guardar</string>
+
+    <string name="step_kind_tap">Tocar</string>
+    <string name="step_kind_swipe">Deslizar</string>
+    <string name="step_kind_multi_touch">Multitáctil</string>
+    <string name="step_kind_global">Sistema</string>
+    <string name="step_kind_text">Escribir</string>
+
+    <string name="step_hold">Mantener (ms)</string>
+    <string name="step_duration">Duración (ms)</string>
+    <string name="step_repeat">Repetir</string>
+    <string name="step_delay">Luego esperar (ms)</string>
+    <string name="step_text">Texto</string>
+    <string name="step_contact">Contacto %1$d (ms)</string>
+    <string name="step_add_contact">Añadir contacto</string>
+    <string name="step_remove_contact">Quitar el contacto %1$d</string>
+    <string name="step_points_hint">Arrastra los marcadores de la pantalla para mover los puntos.</string>
+    <string name="step_range">%1$d a %2$d</string>
+
+    <string name="global_back">Atrás</string>
+    <string name="global_home">Inicio</string>
+    <string name="global_recents">Recientes</string>
+    <string name="global_notifications">Notificaciones</string>
+    <string name="global_quick_settings">Ajustes rápidos</string>
+    <string name="global_lock_screen">Bloquear la pantalla</string>
+    <string name="global_screenshot">Captura de pantalla</string>
+
+    <string name="violation_too_many_paths">%1$d contactos son más de los que permite este dispositivo (%2$d)</string>
+    <string name="violation_too_few_paths">Lo multitáctil necesita al menos %1$d contactos</string>
+    <string name="violation_duration_too_long">%1$d ms es más de lo que permite este dispositivo (%2$d ms)</string>
+    <string name="violation_zero_duration">Un deslizamiento necesita duración: cero sería un toque</string>
+    <string name="violation_point_outside">El punto %1$d, %2$d está fuera de la pantalla</string>
+    <string name="violation_text_too_long">%1$d caracteres son más de los %2$d permitidos</string>
+    <string name="step_action_heading">Lo que hace este paso</string>
+    <string name="step_about_tap">Toca un punto y lo suelta.</string>
+    <string name="step_about_swipe">Arrastra de un punto a otro. Los dos son marcadores en la pantalla.</string>
+    <string name="step_about_multi_touch">Varios puntos tocados a la vez, como un pellizco.</string>
+    <string name="step_about_global">Pulsa un botón del sistema: atrás, inicio o recientes. No toca nada.</string>
+    <string name="step_about_text">Escribe en el campo que ya tenga el cursor. No toca nada.</string>
+    <string name="step_back_to_scenario">Volver al escenario</string>
+    <string name="step_discard_title">¿Descartar estos cambios?</string>
+    <string name="step_discard_message">Este paso tiene cambios sin guardar. Si sales ahora se pierden.</string>
+    <string name="step_discard_confirm">Descartar</string>
+    <string name="step_discard_dismiss">Seguir editando</string>
+    <string name="step_try">Probarlo</string>
+</resources>

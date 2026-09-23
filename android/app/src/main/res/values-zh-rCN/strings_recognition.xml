@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="crop_target_title">裁剪这一步要找的图</string>
+    <string name="crop_guard_title">裁剪这一步要等的图</string>
+    <string name="crop_hint">框住它</string>
+    <string name="crop_hint_ready">松手保留，或者重新拖一次</string>
+    <string name="crop_use">就用这个</string>
+    <string name="crop_cancel">取消</string>
+
+    <string name="recognition_section_find">在屏幕上寻找</string>
+    <string name="recognition_section_guard">仅当</string>
+    <string name="recognition_find_add">瞄准一张图</string>
+    <string name="recognition_guard_add">添加条件</string>
+    <string name="recognition_remove">移除</string>
+    <string name="recognition_recrop">重新裁剪</string>
+    <string name="recognition_fixed_point">这一步点按一个固定的点</string>
+    <string name="recognition_no_guard">这一步总是会运行</string>
+    <string name="recognition_guard_present">等到它出现在屏幕上</string>
+    <string name="recognition_guard_absent">等到它消失</string>
+    <string name="recognition_threshold">匹配程度：%1$d%%</string>
+    <string name="recognition_wait">最多等待 %1$s</string>
+    <string name="recognition_timeout_label">等待超时后</string>
+    <string name="recognition_timeout_stop">停止这个场景</string>
+    <string name="recognition_timeout_skip">跳过这一步</string>
+    <string name="recognition_region_near">在裁剪的位置附近寻找</string>
+    <string name="recognition_region_all">在整块屏幕上寻找</string>
+    <string name="recognition_region_widen">全屏寻找</string>
+    <string name="recognition_missing">这张图已经不在手机上了</string>
+    <string name="recognition_preview">这一步要找的图</string>
+    <string name="recognition_row_finds">寻找一张图</string>
+    <string name="recognition_row_guarded">等待一张图</string>
+
+    <string name="overlay_template_not_found">第 %1$d 步始终没找到它的图</string>
+    <string name="overlay_guard_unmet">第 %1$d 步还在等待</string>
+    <string name="overlay_step_skipped">已跳过第 %1$d 步</string>
+    <string name="overlay_step_of_skipped">第 %1$d / %2$d 步 · 已跳过 %3$d</string>
+</resources>

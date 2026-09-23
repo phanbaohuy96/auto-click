@@ -24,14 +24,14 @@ import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 
 /**
- * One frame of the display, through the accessibility service (`RC-2`, [ADR-0016]).
+ * One frame of the display, through the accessibility service (`TP-2`, [ADR-0016]).
  *
  * `takeScreenshot` is the whole of capture here. MediaProjection is faster and asks the user for
  * the screen every single session, which would put a system dialogue in front of Start — the one
  * press this app promises is always available.
  *
  * Returns null rather than throwing on every refusal: the platform rate-limits this call, and a
- * secure window blocks it outright. `RC-4` treats a refused frame as a poll that found nothing,
+ * secure window blocks it outright. `TP-4` treats a refused frame as a poll that found nothing,
  * which is the `onTimeout` the user chose.
  *
  * [ADR-0016]: ../../../../../../../docs/adr/0016-screenshots-come-from-the-accessibility-service.md
@@ -62,7 +62,7 @@ suspend fun AccessibilityService.captureScreen(): Bitmap? =
     }
 
 /**
- * The frames a run looks at (`RC-2`, `RC-5`).
+ * The frames a run looks at (`TP-2`, `TP-5`).
  *
  * The greyscale conversion happens off the main thread because it walks every pixel of the
  * display — four million of them on the test device — and it is the cheap half of what follows.
@@ -78,11 +78,11 @@ class AccessibilityScreens(
 }
 
 /**
- * A Scenario's Templates, decoded once and kept (`RC-27`).
+ * A Scenario's Templates, decoded once and kept (`TP-27`).
  *
  * One instance per run. A **Template** is read from disk and turned into a [GrayImage] the first
  * time a **Step** asks for it and never again, which is what keeps a wait's polls to the cost of
- * the search itself. A **Template** whose file has gone is remembered as missing, so `RC-29`'s
+ * the search itself. A **Template** whose file has gone is remembered as missing, so `TP-29`'s
  * timeout does not re-read a directory two and a half times a second.
  */
 class StoredTemplates(
@@ -105,7 +105,7 @@ class StoredTemplates(
 }
 
 /**
- * RC-3: a frame the size of the **Screen profile**, so a point found in it is a point on the
+ * TP-3: a frame the size of the **Screen profile**, so a point found in it is a point on the
  * screen.
  *
  * Every device this has run on hands back a bitmap exactly the size of the display and this does
@@ -142,7 +142,7 @@ internal fun Bitmap.toGrayImage(): GrayImage {
 }
 
 /**
- * RC-8: the pixels inside the rectangle the user dragged, or null when there are none left.
+ * TP-8: the pixels inside the rectangle the user dragged, or null when there are none left.
  *
  * Clamped to the frame rather than trusted. The rectangle comes from `rawX`/`rawY`, and a finger
  * that left the screen at its very edge can report a coordinate one pixel past it.
@@ -158,11 +158,11 @@ internal fun Bitmap.cropped(region: ScreenRegion): Bitmap? {
     return Bitmap.createBitmap(this, left, top, cropWidth, cropHeight)
 }
 
-/** RC-27: a Template is a PNG, because a Template that lost a pixel would match a little worse. */
+/** TP-27: a Template is a PNG, because a Template that lost a pixel would match a little worse. */
 internal fun Bitmap.toPng(): ByteArray =
     ByteArrayOutputStream().also { compress(Bitmap.CompressFormat.PNG, PNG_QUALITY_IGNORED, it) }.toByteArray()
 
-/** RC-29: a Template to show in the panel, or null when its file has gone. */
+/** TP-29: a Template to show in the panel, or null when its file has gone. */
 internal suspend fun TemplateFiles.decodedPreview(
     scenarioId: UUID,
     templateId: UUID,
