@@ -280,4 +280,56 @@ nothing said that choosing one changes what the **Step** *does*. The heading say
 and the line beneath it describes the chosen **Action** in the **Step**'s own terms, so the answer
 is on screen before the question is asked.
 
+**OV-36** `[A2]` The **Step** panel has a way **back**, and both ways out ask before discarding.
+
+The back arrow goes up to the **Scenario**, which is the list of every **Step**. Before it the only
+way out of a **Step** was the close button, which took the panel with it — so editing a second
+**Step** meant closing the editor, finding its **Marker** again and tapping it, and a **Step** with
+no **Marker** (`SM-8`) could not be reached at all except by walking to it.
+
+Back and close both discard the draft, so both ask — and neither asks when the draft matches what
+is on disk, because a question with only one sensible answer teaches the user to dismiss it without
+reading. The question is drawn **inside the panel's own window** rather than as a dialogue: every
+window here is an Overlay with its own token and its own place in the stacking order (`OV-13`), and
+a fourth one that can appear at any moment would join that queue.
+
+This is the half `OV-24` was missing. The arrows between **Step**s still refuse to move while there
+are unsaved edits, because walking sideways looks like staying put; leaving is visibly leaving, so
+it is allowed once the user has said so.
+
+**OV-37** `[A2]` The **Overlay** survives a rotation, and in landscape the panel is a side sheet.
+
+Nothing recreates an Overlay window when the screen turns — it is attached to the window manager,
+not to an Activity — so every one of them keeps the size and the position it was given for a screen
+that is no longer there. The control ends up off the bottom of a shorter screen, the **Marker**
+layer keeps a portrait phone's bounds, and the panel keeps its width. The service takes the
+configuration change and puts them all back.
+
+It is done **twice**, a moment apart: `maximumWindowMetrics` is the display's, and on the test
+device it still reported the old bounds when the callback arrived. The second pass is the one that
+lands; the first is what makes the ordinary case immediate.
+
+In landscape the panel moves to the end edge, full height and four hundred density-independent
+pixels wide. A bottom sheet on a screen a third as tall has a peek height a fifth of what it has in
+portrait, and every field in it stretched across the whole width — a text box the width of the
+phone holding two digits. Against the end edge the sheet has the height to be useful and a width a
+form can be read at, and the part of the screen being automated stays visible beside it. There is
+no drag-to-expand there, because there is nothing to expand into: the same sheet state is built
+with its two heights equal, so every pixel of a swipe goes to the body.
+
+**OV-38** `[A2]` The panel is laid out from one gutter, in named sections.
+
+Every row — header, body, footer — is measured from the same sixteen density-independent pixels.
+Before this the header's first glyph sat at 63 physical pixels, the body's text at 48 and the
+footer at a third number, which is what "not aligned" meant when it was reported. An icon button is
+larger than its icon, so the rows that hold them are inset by the difference; that arithmetic is
+written down once rather than guessed at each row.
+
+The **Scenario** panel is sections rather than a column of controls: the name, how it runs, and
+then the **Step**s under a heading that counts them and carries the one button that adds to them.
+Each **Step** is two lines — what it does, and what it costs in time — because a **Scenario** is
+mostly timing, and on one line the numbers ran into the coordinates until neither could be scanned.
+The reorder arrows are one icon family now; they were a chevron and a filled triangle, which sit at
+different heights inside their own boxes and read as two unrelated controls.
+
 [ADR-0015]: ../adr/0015-compose-in-the-overlay.md

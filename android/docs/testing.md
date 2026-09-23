@@ -133,6 +133,22 @@ confirming one.
   `recorded a touch of 1ms`, 41ms apart — the layer recording its own re-emission. Two guards
   rather than one, and the same test then gave two touches for two taps.
 
+### What the emulator could not be made to do
+
+`OV-37` was verified, but not by rotating the emulator. This AVD (Pixel 10 Pro XL, API 37) refused
+to turn: `settings put system user_rotation 1` with auto-rotate off, `cmd window user-rotation lock
+1`, `cmd window set-ignore-orientation-request true` and `adb emu rotate` all reported success and
+left `dumpsys window displays` at `cur=1344x2992`, with `screencap` returning a portrait image.
+
+So it was verified with `wm size 2992x1344` instead, which delivers the same configuration change
+and the same new `maximumWindowMetrics` to the service. What that **does** prove is everything above
+the sensor: `onConfigurationChanged` arrives, the panel window is rebuilt as
+`(0,0)(1200x1344) gr=TOP END`, the **Marker** layer is resized to `2992x1344`, the floating control
+is clamped back inside the new bounds and held clear of the sheet, and `wm size reset` puts all of
+it back. What it does **not** prove is the rotation path itself — `Display.rotation` stays
+`ROTATION_0` throughout. `SM-18` reads the orientation off the pixels rather than off that value,
+which is why the test works at all, and is also the reason the untested part is narrow.
+
 **Currently unverified — no physical Android device is in use on this project.** Everything below is
 untested until one is:
 
@@ -142,6 +158,7 @@ untested until one is:
 - Vendor power optimisers — Samsung One UI sleep, MIUI, and their habit of stopping a service that
   looks idle. Reported as a cause of silent death across the category.
 - Skin-specific **Overlay** restrictions.
+- **A real rotation** — see above. The configuration-change path is proved; the sensor path is not.
 - **Stop on the floating control, pressed mid-stroke, with a real finger** (`OV-13`). The window is
   demonstrably able to take the touch — see the `dumpsys` evidence above — and the notification
   path is proven, but a finger on the control mid-gesture has never been tried. `OV-13` claims Stop

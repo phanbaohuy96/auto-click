@@ -20,7 +20,10 @@ It has been run on an emulator (Pixel 10 Pro XL, API 37) and **never on a physic
 | The **Overlay**, **Marker**s, the movable control, both faces of the panel ([06](docs/sdd/06-overlay-and-markers.md)) | Anything at all on physical hardware |
 | Onboarding, including the Android 13 wall ([02](docs/sdd/02-permissions-and-onboarding.md)) | A blurred control — the platform blur blocks every other window's touches ([07](docs/sdd/07-design-system.md)) |
 | Aiming a **Step** at the screen instead of dropping it in the middle ([09](docs/sdd/09-picking.md)) | |
-| The panel as a bottom sheet: drag to expand, then scroll ([06](docs/sdd/06-overlay-and-markers.md)) | |
+| The panel as a bottom sheet: drag to expand, then scroll ([06](docs/sdd/06-overlay-and-markers.md)) | A real rotation — only a display resize has been tested ([testing](docs/testing.md)) |
+| A way back from a **Step** to its **Scenario**, and one question before either exit ([06](docs/sdd/06-overlay-and-markers.md)) | |
+| Landscape: the panel as a side sheet, and the windows put back after a screen change ([06](docs/sdd/06-overlay-and-markers.md)) | |
+| A **Scenario**'s orientation, auto-detected, and rebuilding it for another screen ([03](docs/sdd/03-scenario-model.md)) | |
 
 ## Where to read what
 
