@@ -101,7 +101,7 @@ ruled out are in [ADR-0010](../adr/0010-strings-files-and-a-live-bundle-swap.md)
 - **LC-13** `[Slice 6]` `[done]` The interface language **never** reaches
   `VNRecognizeTextRequest.recognitionLanguages` (`RG-13`) or the input source (`EX-27`). These are
   three unrelated things that the word *language* happens to cover; see the *Flagged ambiguities*
-  entry in [`CONTEXT.md`](../../CONTEXT.md).
+  entry in [`macos/CONTEXT.md`](../../macos/CONTEXT.md), where two of the three are defined.
 
   OCR reads text belonging to **the application being automated**, which has nothing to do with the
   language of Auto Click's own menus.

@@ -8,7 +8,8 @@ behaviour is not obvious from the code itself.
 
 | Document | Answers |
 |---|---|
-| [`../../CONTEXT.md`](../../CONTEXT.md) | What the concepts are **called** and what they **mean** |
+| [`../../CONTEXT.md`](../../CONTEXT.md) | What the **shared** concepts are called and what they mean |
+| [`../../macos/CONTEXT.md`](../../macos/CONTEXT.md) | The terms that exist **only** on macOS |
 | [`../adr/`](../adr/) | **Why** this option was chosen over that one |
 | `docs/sdd/` (this document) | What the system **must do**, precise enough to check |
 

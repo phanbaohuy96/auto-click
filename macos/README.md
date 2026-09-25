@@ -165,7 +165,8 @@ window reappears on its own.
 
 | Document | Answers |
 |---|---|
-| [`../CONTEXT.md`](../CONTEXT.md) | What the concepts are called and what they mean |
+| [`../CONTEXT.md`](../CONTEXT.md) | What the shared concepts are called and what they mean |
+| [`CONTEXT.md`](CONTEXT.md) | The terms that exist only on macOS — **Simple mode**, **Locked application**, **Anchor window**, **Input source** |
 | [`../docs/adr/`](../docs/adr/) | Why this option was chosen over that one |
 | [`../docs/sdd/`](../docs/sdd/) | What the system must do, precise enough to check |
 | [`../docs/manual-e2e-tests.md`](../docs/manual-e2e-tests.md) | What can only be checked by hand, and how |
