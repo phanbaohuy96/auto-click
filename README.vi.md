@@ -55,6 +55,11 @@ Lỗi tồi tệ nhất trong toàn bộ nhóm ứng dụng này là **đơ cả
 - **`SF-1`** — Bộ điều phối luôn giải phóng mọi phím chuột đang giữ và mọi nét chạm cảm ứng trên **bất kỳ** lối thoát nào: hoàn thành, bấm Dừng, huỷ bỏ, hoặc gặp lỗi ([tài liệu an toàn](docs/sdd/08-permissions-and-safety.md)).
 - Trên Android, tính năng **Giải phóng chạm (Free the touch)** cho phép khắc phục chỉ bằng một chạm từ thông báo thường trực hoặc ô Cài đặt nhanh (Quick Settings tile), nhả điểm chạm bị kẹt mà không cần khởi động lại điện thoại.
 
+<p align="center">
+  <img src="docs/assets/touch-safety.jpg" alt="Điểm chạm bị kẹt ở bên trái, đã được nhả ở bên phải" width="78%" />
+</p>
+<p align="center"><em>Trái: điểm chạm bị kẹt — lỗi mà cả nhóm ứng dụng này đều dính. Phải: đã nhả — <code>SF-1</code> nhả ở mọi lối thoát, còn Giải phóng chạm là để cứu điểm đã kẹt sẵn.</em></p>
+
 ### 2. 👁️ Định vị mục tiêu thông minh thay vì tin vào toạ độ mù
 
 Toạ độ cố định sẽ hỏng ngay khi cửa sổ di chuyển, banner quảng cáo trượt, hoặc giao diện thay đổi bố cục.
@@ -77,6 +82,11 @@ Một **Bước** ghép nối chính xác một **Hành động** với một **
 - **Hành động (Actions)** — macOS: click (đơn, đúp, ba lần, giữ), cuộn, di chuyển chuột, kéo, gõ chuỗi ký tự, phím tắt. Android: chạm (tap), vuốt (swipe), đa chạm (multi-touch), hành động hệ thống (global action), nhập văn bản (set text).
 - **Mục tiêu (Targets)** — macOS: tại con trỏ, toạ độ tuyệt đối, toạ độ tương đối theo góc cửa sổ gần nhất, **Mẫu** ảnh, đoạn văn bản OCR. Android: một toạ độ, có thể di dời theo kết quả tìm kiếm **Mẫu** ảnh.
 - **Không rẽ nhánh rối rắm** — Một **Bước** tự quyết định kết quả của chính nó khi hết giờ và không bao giờ can thiệp vào Bước khác ([ADR-0011](docs/adr/0011-a-scenario-has-no-branches.md)). Không có logic `if`/`else` phức tạp gây lỗi.
+
+<p align="center">
+  <img src="docs/assets/action-times-target.jpg" alt="Mọi Hành động đều ghép được với mọi Mục tiêu" width="78%" />
+</p>
+<p align="center"><em>Hành động bên trái, Mục tiêu bên phải — một Bước là một cặp, và hai bên được chọn độc lập với nhau.</em></p>
 
 ### 4. 📱 Lớp phủ Nổi trên Android (Floating Overlay)
 

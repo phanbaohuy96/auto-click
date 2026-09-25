@@ -55,6 +55,11 @@
 - **`SF-1` 规范** — 在**任何**退出路径（执行完成、手动停止、取消或异常中断）下，运行器都必须强制释放每一个被按下的鼠标按键与每一个触摸笔画（[安全设计文档](docs/sdd/08-permissions-and-safety.md)）。
 - 在 Android 上，常驻通知栏与快捷设置图块（Quick Settings tile）均提供一键**释放触控（Free the touch）**功能，无需重启即可立即解脱卡死的触摸笔画。
 
+<p align="center">
+  <img src="docs/assets/touch-safety.jpg" alt="左边是被卡住的触摸点，右边是已经释放的" width="78%" />
+</p>
+<p align="center"><em>左：被卡住的触摸点，这一整类应用都带着这个毛病。右：已释放 —— <code>SF-1</code> 在任何退出路径上都会松手，而「解除卡住的触摸」用来救已经卡死的那一下。</em></p>
+
 ### 2. 👁️ 智能目标识别，告别脆弱的固定坐标
 
 一旦窗口移动、横幅浮动或界面布局自适应调整，写死的坐标就会失效。
@@ -77,6 +82,11 @@
 - **动作（Actions）** — macOS：单击（单/双/三击、长按）、滚动、移动光标、拖拽、输入字符串、快捷键。Android：点击、滑动、多指触控、系统全局动作、输入文本。
 - **目标（Targets）** — macOS：当前光标处、绝对坐标、相对于窗口最近边角的位置、图像**模板**、OCR 文字。Android：指定坐标点，可选附带**模板**搜索校准。
 - **无分支设计** — 每个**步骤**仅在超时时决定自身的命运，绝不能影响或跳过其他步骤（[ADR-0011](docs/adr/0011-a-scenario-has-no-branches.md)）。没有复杂的 `if`/`else` 分支干扰，杜绝逻辑混乱。
+
+<p align="center">
+  <img src="docs/assets/action-times-target.jpg" alt="任意动作都可以与任意目标配对" width="78%" />
+</p>
+<p align="center"><em>左边是动作，右边是目标 —— 一个步骤就是各取其一，两者互相独立地选择。</em></p>
 
 ### 4. 📱 Android 悬浮窗交互
 

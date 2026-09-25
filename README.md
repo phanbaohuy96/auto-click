@@ -67,6 +67,11 @@ until it is rebooted. [XDA reports it as reproducible across *every* app tested]
 - On Android, **Free the touch** is a one-tap recovery in both the run notification and a Quick
   Settings tile, so a latched stroke is unlatched without rebooting.
 
+<p align="center">
+  <img src="docs/assets/touch-safety.jpg" alt="A latched touch on the left, released on the right" width="78%" />
+</p>
+<p align="center"><em>Left: the latched touch this whole category ships. Right: released — <code>SF-1</code> lets go on every exit, and Free the touch rescues one that is already stuck.</em></p>
+
 ### 2. 👁️ Finding the target instead of trusting a coordinate
 
 A fixed point fails the moment a window moves, a banner shifts, or the layout changes.
@@ -100,6 +105,11 @@ A **Step** pairs exactly one **Action** with exactly one **Target** ([ADR-0002](
   image **Template**, a piece of text. Android: a point, optionally moved by a **Template** search.
 - **No branches** — a **Step** decides its own fate on timeout and never another **Step**'s
   ([ADR-0011](docs/adr/0011-a-scenario-has-no-branches.md)). There is no `if`/`else` to debug.
+
+<p align="center">
+  <img src="docs/assets/action-times-target.jpg" alt="Any Action paired with any Target" width="78%" />
+</p>
+<p align="center"><em>Action on the left, Target on the right — a Step is one of each, chosen independently.</em></p>
 
 ### 4. 📱 The Android overlay
 

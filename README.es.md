@@ -55,6 +55,11 @@ El peor fallo de esta categoría es el **bloqueo por pulsación atascada (stuck-
 - **Norma `SF-1`** — El motor de ejecución libera incondicionalmente cualquier botón presionado y cualquier trazo táctil ante **cualquier** salida: finalización, parada, cancelación o error ([especificación de seguridad](docs/sdd/08-permissions-and-safety.md)).
 - En Android, la acción **Liberar el toque (Free the touch)** es una recuperación de un solo toque disponible tanto en la notificación permanente como en los Ajustes Rápidos, desbloqueando la pantalla sin necesidad de reiniciar el dispositivo.
 
+<p align="center">
+  <img src="docs/assets/touch-safety.jpg" alt="Un toque enganchado a la izquierda, liberado a la derecha" width="78%" />
+</p>
+<p align="center"><em>Izquierda: el toque enganchado que arrastra toda la categoría. Derecha: liberado — <code>SF-1</code> suelta en cualquier salida, y Liberar el toque rescata uno que ya está atascado.</em></p>
+
 ### 2. 👁️ Encontrar el objetivo en lugar de confiar en coordenadas ciegas
 
 Un punto fijo falla en el instante en que una ventana se mueve, un anuncio cambia de tamaño o la interfaz se adapta.
@@ -77,6 +82,11 @@ Un **Paso** asocia exactamente una **Acción** con un **Objetivo** ([ADR-0002](d
 - **Acciones** — macOS: clic (simple, doble, triple, mantener presionado), desplazamiento (scroll), mover cursor, arrastrar, escribir texto, atajos de teclado. Android: toque (tap), deslizar (swipe), toque múltiple, acción global del sistema, establecer texto.
 - **Objetivos** — macOS: posición del cursor, punto absoluto, desplazamiento relativo a la esquina más cercana de la ventana, **Plantilla** de imagen, texto OCR. Android: punto fijo, opcionalmente desplazado por búsqueda de **Plantilla**.
 - **Sin bifurcaciones confusas** — Cada **Paso** decide únicamente su propio destino al agotarse el tiempo de espera y nunca altera el flujo de otros pasos ([ADR-0011](docs/adr/0011-a-scenario-has-no-branches.md)). Sin laberintos de `if`/`else`.
+
+<p align="center">
+  <img src="docs/assets/action-times-target.jpg" alt="Cualquier Acción emparejada con cualquier Objetivo" width="78%" />
+</p>
+<p align="center"><em>La Acción a la izquierda, el Objetivo a la derecha — un Paso es uno de cada, elegidos de forma independiente.</em></p>
 
 ### 4. 📱 Panel Superpuesto en Android (Overlay)
 
