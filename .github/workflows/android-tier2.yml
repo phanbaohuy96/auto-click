@@ -1,12 +1,18 @@
 # Tier 2 — the instrumented tests, on an emulator (android/docs/testing.md).
 #
-# This was `workflow_dispatch` only until it had been seen to work here rather than on a developer's
-# emulator. It has: first attempt, 5m55s, of which four minutes is the emulator booting. KVM is
-# available on `ubuntu-latest`, a `google_apis` image exists for API 35, and the grant sequence
-# behaves exactly as it does locally. So it now gates pull requests that touch `android/`.
+# **Dispatch only, and that is a decision rather than a gap.** This has been run here and it works:
+# first attempt, 5m55s, of which four minutes is the emulator booting. `ubuntu-latest` has KVM, API 35
+# has a `google_apis` image, and the grant sequence behaves exactly as it does locally — the runner's
+# default AVD is even a tenth of the size (320 × 640) and the suite passed unchanged. So the reason it
+# is not on `pull_request` is the six minutes, not doubt.
 #
-# It is a separate workflow rather than another step in `android.yml` on purpose: tier 1 stays a
-# ninety-second answer, and an emulator flake stays attributable to the emulator.
+# What replaces it is the pull-request template, which asks for the output of `make tier2` from the
+# machine the change was written on. A number somebody pasted is weaker than a green check and much
+# stronger than nothing, and it costs no runner minutes at all. Turning the check back on is the two
+# lines below this comment.
+#
+# Press *Run workflow* on the Actions tab when a change deserves it — anything touching the
+# accessibility service, the runner, or gesture dispatch.
 #
 # Nothing here grants the accessibility service. The suite grants it to itself in
 # `Tier2.awaitService`, because AGP uninstalls the application before installing the two APKs and a
@@ -15,10 +21,10 @@ name: Android tier 2
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - "android/**"
-      - ".github/workflows/android-tier2.yml"
+  # pull_request:
+  #   paths:
+  #     - "android/**"
+  #     - ".github/workflows/android-tier2.yml"
 
 permissions:
   contents: read

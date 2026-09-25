@@ -151,10 +151,16 @@ Two facts about the device that are not traps, just useful:
   are still only ever driven by hand — and when they are, trap 4 says which instrument to use.
 - **Recording and recognition.** Nothing in tier 2 records a touch or crops a **Template**; `RD-*`
   and the crop-and-find half of `TP-*` are still hand-driven, with what was seen recorded below.
-- **CI covers it, in its own workflow.** `.github/workflows/android-tier2.yml` runs on every pull
-  request touching `android/`, takes about six minutes — four of them the emulator booting — and is
-  deliberately not a step inside `android.yml`, so tier 1 stays a ninety-second answer and an
-  emulator flake stays attributable to the emulator.
+- **CI, on purpose.** `.github/workflows/android-tier2.yml` works — it was run on a GitHub runner
+  and passed, and the paragraph above is the evidence — and it is **dispatch only** anyway. Six
+  minutes of emulator boot on every pull request touching `android/` is the price, and the `on:`
+  block that charges it is commented out rather than deleted, because that trade can change.
+
+  What carries the obligation instead is `.github/pull_request_template.md`, which asks for the
+  output of `make tier2` from the machine the change was written on, for anything touching the
+  service, the runner, gesture dispatch, the **Overlay**'s windows or a **Screen profile**. Weaker
+  than a green check, much stronger than nothing, and it is the reason the harness prints its own
+  measurements.
 
 
 ## Tier 3 — By hand, on real hardware

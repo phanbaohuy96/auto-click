@@ -16,7 +16,9 @@ and **never on a physical device**;
 The assertions that matter most no longer depend on somebody remembering to look: `make tier2` runs
 eight instrumented tests against the **real** accessibility service on an emulator — Stop mid-stroke,
 cancellation, fifteen **Step**s in order, the pixel a **Marker** names — in half a minute. They were
-checked by breaking the code they guard, and they run on every pull request that touches `android/`.
+checked by breaking the code they guard. They are not in CI — the
+[pull-request template](../.github/pull_request_template.md) asks for their output instead, and
+`android-tier2.yml` is there for a runner when a change deserves one.
 
 | Built | Not built, and why |
 |---|---|
