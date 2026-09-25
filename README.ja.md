@@ -22,7 +22,7 @@
 
 | プラットフォーム | インターフェースとステータス | 概要 |
 |---|---|---|
-| [**`macos/`**](macos/README.md) | **メニューバーアプリ**（macOS 14+）· *リリース中* | Swift / SwiftUI 製。ScreenCaptureKit と Apple Vision を活用。実機で手作業による検証済み — [73 件の E2E テスト結果](docs/manual-e2e-tests.md)。 |
+| [**`macos/`**](macos/README.md) | **メニューバーアプリ**（macOS 14+）· *リリース中* | Swift / SwiftUI 製。ScreenCaptureKit と Apple Vision を活用。実機で手作業による検証済み — [結果を一件ずつ記録した手動 E2E テスト](docs/manual-e2e-tests.md)。 |
 | [**`android/`**](android/README.md) | **フローティングオーバーレイサービス**（Android 11+）· *全4スライス完成* | AccessibilityService（ユーザー補助サービス）上で動作する Jetpack Compose オーバーレイ。エミュレータでのみ実行 — **実機テストは未実施**（[テスト計画](android/docs/testing.md)）。 |
 
 ---
@@ -55,6 +55,11 @@
 - **`SF-1` 規準** — ランナーは、完了・停止・キャンセル・エラーの**いかなる終了時にも**、保持されているすべてのマウスボタンおよびタッチストロークを無条件で確実に解放します（[安全性設計ドキュメント](docs/sdd/08-permissions-and-safety.md)）。
 - Android では、常駐通知およびクイック設定タイルの両方に**タッチの解放（Free the touch）**アクションが用意されており、再起動することなく1タップで固着したタッチを強制解除できます。
 
+<p align="center">
+  <img src="docs/assets/touch-safety.jpg" alt="左はラッチされたタッチ、右は解放後" width="78%" />
+</p>
+<p align="center"><em>左：固まったままのタッチ。このカテゴリ全体が抱えるバグです。右：解放後 — <code>SF-1</code> はどの終了経路でも必ず離し、すでに固まったものは「タッチを解放」で戻します。</em></p>
+
 ### 2. 👁️ 座標を盲信せず、ターゲットを自律探索
 
 固定座標は、ウィンドウが移動したり、バナーがずれたり、画面レイアウトが変わった瞬間に誤作動します。
@@ -77,6 +82,11 @@
 - **アクション（Actions）** — macOS：クリック（単一/ダブル/トリプル/長押し）、スクロール、移動、ドラッグ、文字列入力、ショートカット。Android：タップ、スワイプ、マルチタッチ、グローバル操作、テキスト設定。
 - **ターゲット（Targets）** — macOS：カーソル位置、絶対座標、ウィンドウの最近傍角からの相対オフセット、画像**テンプレート**、OCR テキスト。Android：指定座標点、または**テンプレート**検索による移動。
 - **分岐のないシナリオ** — 各**ステップ**はタイムアウト時に自身の運命のみを決定し、他のステップの制御フローに干渉しません（[ADR-0011](docs/adr/0011-a-scenario-has-no-branches.md)）。複雑な `if`/`else` の絡み合いを排除しています。
+
+<p align="center">
+  <img src="docs/assets/action-times-target.jpg" alt="どの Action も、どの Target とも組める" width="78%" />
+</p>
+<p align="center"><em>左が Action、右が Target — Step はその一組で、どちらも互いに独立して選べます。</em></p>
 
 ### 4. 📱 Android フローティングオーバーレイ
 
@@ -124,7 +134,7 @@
 | **ターゲット：OCR テキスト** | ✅ Apple Vision フレームワーク | ❌ 未搭載（ML Kit 依存および野良配布のため） |
 | **操作レコーディング** | ✅ マウスイベント・実時間保持 | ✅ タッチ透過記録（マルチタッチは非対応） |
 | **インターフェース言語** | ✅ 5言語、リアルタイム切替 | ✅ 5言語、両UIで即座に同期切替 |
-| **実機ハードウェア検証** | ✅ [73件の実機テスト結果](docs/manual-e2e-tests.md) | ❌ エミュレータのみ（[テスト計画](android/docs/testing.md)） |
+| **実機ハードウェア検証** | ✅ [手動 E2E テスト](docs/manual-e2e-tests.md) | ❌ エミュレータのみ（[テスト計画](android/docs/testing.md)） |
 
 ---
 
