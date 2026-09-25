@@ -1,8 +1,10 @@
 # Auto Click for Android
 
 The Android member of Auto Click. This document holds **only** the terms that do not exist on
-macOS; everything shared — **Scenario**, **Step**, **Action**, **Target**, **Template**,
-**Search region** — is defined once in the [root glossary](../CONTEXT.md) and is not repeated here.
+macOS; everything shared — **Scenario**, **Step**, **Action**, **Target**, **Guard**, **Template**,
+**Search region**, **Recording session**, **Interface language** — is defined once in the
+[root glossary](../CONTEXT.md) and is not repeated here. The terms that exist only on the other
+platform are in [its own glossary](../macos/CONTEXT.md).
 
 This document is a **glossary**, not a spec.
 
@@ -60,8 +62,8 @@ _Avoid_: current app, active app, locked application
   focused field, so the **Step** before it is normally a tap that puts focus there.
 - A **Gesture** carries no identity: the system delivers it to whatever is in front. The
   **Foreground application** is therefore something Auto Click **observes and may refuse to act
-  on**, never something it can aim at — the opposite of macOS's **Locked application**, which is
-  addressed directly.
+  on**, never something it can aim at — the opposite of macOS's
+  [**Locked application**](../macos/CONTEXT.md), which is addressed directly.
 
 ## Flagged ambiguities
 
@@ -75,8 +77,8 @@ _Avoid_: current app, active app, locked application
   synthetic touches, not by the user's finger.** An application that rejects synthetic input behaves
   one way when recorded and another way when used — so a recording can look broken in exactly the
   application worth recording. See `android/docs/landscape.md`.
-- **"Anchor window" does not migrate either.** Android has no window the user moves, so the
-  window-relative **Target** form has nothing to hang off and is absent.
+- **"Anchor window" does not migrate either.** Android has no window the user moves, so macOS's
+  [window-relative **Target**](../macos/CONTEXT.md) form has nothing to hang off and is absent.
 - **"Type" is the wrong word here, deliberately.** macOS types a string **key by key** so that a game
   sees one key per character; [ADR-0009] argues that at length and it is load-bearing there. Android
   cannot send keys to another application at all, so the chosen mechanism is `ACTION_SET_TEXT`, which

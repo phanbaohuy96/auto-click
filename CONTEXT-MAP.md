@@ -5,12 +5,18 @@ Auto Click is one product on two platforms. The concepts are shared; almost noth
 ## Contexts
 
 - [Auto Click](./CONTEXT.md) — the shared language: **Scenario**, **Step**, **Action**,
-  **Target**, **Template**, **Search region**. True on every platform.
+  **Target**, **Guard**, **Template**, **Search region**, **Recording session**,
+  **Interface language**. True on every platform.
 - [Auto Click for Android](./android/CONTEXT.md) — **Overlay**, **Marker**, **Gesture**,
-  **Foreground application**.
-- Auto Click for macOS — **Anchor window**, **Locked application**, **Recording session**,
-  **Input source**, **Simple mode**. These still live in the root glossary and are carved out into
-  `macos/CONTEXT.md` when the source tree moves under `macos/`.
+  **Global action**, **Set text**, **Screen profile**, **Foreground application**.
+- [Auto Click for macOS](./macos/CONTEXT.md) — **Simple mode**, **Locked application**,
+  **Anchor window**, **Recognition language**, **Input source**.
+
+A term is defined in exactly **one** of the three, and the platform files may cite the root but
+never restate it. The test that keeps them apart: a sentence naming a term from one platform's file
+belongs in that file, whatever it is about. That is why the root no longer lists the four **Target**
+forms — two of them only exist on macOS — and why "the layout fits" is a macOS ambiguity: Compose
+reflows, so Android never had the problem.
 
 ## Relationships
 

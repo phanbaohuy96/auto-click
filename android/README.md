@@ -9,8 +9,16 @@ taking the screen away from you, edits a **Step** and a **Scenario** in the pane
 session of real touches, finds a cropped **Template** on the screen before it presses, and runs
 through the accessibility service in five languages.
 
-It has been run on an emulator (Pixel 10 Pro XL, API 37) and **never on a physical device**;
+It has been run on two emulators (Pixel 10 Pro XL and a 1080 × 2400 Medium Phone, both API 37)
+and **never on a physical device**;
 [`docs/testing.md`](docs/testing.md) records exactly what that has and has not shown.
+
+The assertions that matter most no longer depend on somebody remembering to look: `make tier2` runs
+eight instrumented tests against the **real** accessibility service on an emulator — Stop mid-stroke,
+cancellation, fifteen **Step**s in order, the pixel a **Marker** names — in half a minute. They were
+checked by breaking the code they guard. They are not in CI — the
+[pull-request template](../.github/pull_request_template.md) asks for their output instead, and
+`android-tier2.yml` is there for a runner when a change deserves one.
 
 | Built | Not built, and why |
 |---|---|
@@ -20,9 +28,10 @@ It has been run on an emulator (Pixel 10 Pro XL, API 37) and **never on a physic
 | The runner, and every exit path releasing ([05](docs/sdd/05-gesture-execution.md)) | Importing a **Template** from the gallery — worth having, and it needs a photo picker ([10](docs/sdd/10-recognition.md)) |
 | The **Overlay**, **Marker**s, the movable control, both faces of the panel ([06](docs/sdd/06-overlay-and-markers.md)) | More than one **Guard** per **Step** — a conjunction is most of the way to a branch ([ADR-0011]) |
 | Onboarding, including the Android 13 wall ([02](docs/sdd/02-permissions-and-onboarding.md)) | A blurred control — the platform blur blocks every other window's touches ([07](docs/sdd/07-design-system.md)) |
-| Aiming a **Step** at the screen instead of dropping it in the middle ([09](docs/sdd/09-picking.md)) | **A real rotation** — only a display resize has been tested ([testing](docs/testing.md)) |
+| Aiming a **Step** at the screen instead of dropping it in the middle ([09](docs/sdd/09-picking.md)) | **Anything a console finger cannot stand in for** — real touch latency, vendor power optimisers, a latched touch ([testing](docs/testing.md)) |
 | The panel as a bottom sheet: drag to expand, then scroll ([06](docs/sdd/06-overlay-and-markers.md)) | **Anything at all on physical hardware** ([testing](docs/testing.md)) |
 | A way back from a **Step** to its **Scenario**, and one question before either exit ([06](docs/sdd/06-overlay-and-markers.md)) | |
+| Tier 2: eight instrumented assertions on the real service, and a target app that records what arrived ([testing](docs/testing.md)) | |
 | Landscape: the panel as a side sheet, and the windows put back after a screen change ([06](docs/sdd/06-overlay-and-markers.md)) | |
 | A **Scenario**'s orientation, auto-detected, and rebuilding it for another screen ([03](docs/sdd/03-scenario-model.md)) | |
 | **Recognition**: crop a **Template**, aim a **Step** at it, guard a **Step** on it ([10](docs/sdd/10-recognition.md)) | |
@@ -52,6 +61,17 @@ It has been run on an emulator (Pixel 10 Pro XL, API 37) and **never on a physic
 | [`docs/adr/`](docs/adr/) | Android decisions, numbered from 0012 in the product-wide sequence |
 | [`docs/landscape.md`](docs/landscape.md) | What the competing apps do, what users punish them for, and our answers |
 | [`docs/testing.md`](docs/testing.md) | Three tiers, and what is honestly not verified yet |
+
+## Commands
+
+Every target is in the [`Makefile`](Makefile), and `make check` is exactly what CI runs.
+
+| Command | What it does |
+|---|---|
+| `make check` | Tier 1 in one invocation: assemble, JVM tests, detekt, Spotless, coverage |
+| `make test` | The JVM tests alone |
+| `make lint` / `make format` | detekt and Spotless, checking or fixing |
+| `make tier2` | Tier 2 on a connected emulator or device — see [`docs/testing.md`](docs/testing.md) |
 
 ## What this project is built on, and what it dropped
 

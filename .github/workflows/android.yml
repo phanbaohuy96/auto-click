@@ -1,6 +1,7 @@
-# The Android app. No emulator here on purpose: android/docs/testing.md puts anything that
-# needs a real accessibility service in tier 2, which runs against a purpose-built target app
-# and is not wired into CI yet. This job is tier 1 — the JVM tests — plus the quality gates.
+# The Android app. No emulator here on purpose: android/docs/testing.md puts anything that needs a
+# real accessibility service in tier 2, which has a workflow of its own — `android-tier2.yml`, or
+# `android/tools/testing/tier2.sh` by hand. Keeping them apart keeps this job a ninety-second answer.
+# This job is tier 1 — the JVM tests — plus the quality gates.
 name: Android
 
 on:
@@ -39,8 +40,6 @@ jobs:
           java-version: "21"
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
-        with:
-          build-root-directory: android
       # One invocation, which is how this is verified by hand.
       # The coverage gate names its modules. A root aggregate reported a different number here
       # than on a developer machine while every per-module number matched exactly, so each

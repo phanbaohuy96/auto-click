@@ -17,41 +17,151 @@ are testable against fixture bitmaps with no emulator at all, including the two-
 
 ## Tier 2 — Instrumented tests on an emulator, against a target app
 
-The tier macOS cannot have. On an emulator the permissions are scriptable:
+The tier macOS cannot have, and it exists: `app/src/androidTest/kotlin/com/pbh/autoclick/tier2/`, run
+by `tools/testing/tier2.sh` or `make tier2`. Eight assertions, half a minute on an emulator, driving
+the **real** `AutoClickAccessibilityService` — the fake stops at the tier 1 boundary — against a
+window that writes down what arrived.
 
-- `adb shell appops set … ACCESS_RESTRICTED_SETTINGS allow` — **first**, or the next line is
-  silently reverted. A sideloaded build is behind the restricted-settings wall (`PM-1`…`PM-11`),
-  and the platform does not report the refusal: `settings put` appears to succeed and
-  `settings get` returns `null`.
-- `adb shell settings put secure enabled_accessibility_services …` enables the service
-- `adb shell settings put secure accessibility_enabled 1`
-- `adb shell appops set … SYSTEM_ALERT_WINDOW allow` grants the **Overlay**
+Three pieces:
 
-and a **target app** — a debug-only app whose whole job is to record which touches arrived, where,
-and when — turns "did the tap land" into an assertion instead of a paragraph in a manual.
+- **`Tier2`** grants what the app may not grant itself, then waits for the service to bind.
+- **`TouchLogActivity`** is the target app `docs/testing.md` asked for, reduced to what is actually
+  needed: a full-screen view recording every `MotionEvent` as **screen** pixels, with the time it
+  arrived and the device it came from. It lives in `src/debug`, for a reason given below.
+- **`StrokeReleaseTest`** and **`SequenceFidelityTest`** hold the assertions.
 
-Two facts a harness has to be built around, both found the hard way:
+On an emulator the permissions are scriptable, and this is the order — the suite does it itself, in
+`Tier2.grantTheService`:
 
-- **`adb install -r` and `am force-stop` both clear `enabled_accessibility_services`.** Every
-  reinstall and every force-stop must re-grant, or the app correctly decides the service is off and
-  sends the user to Settings.
-- **`adb shell input tap` does not reach the Overlay while Auto Click's own gesture is in flight**,
-  although it does reach the launcher and the notification shade at the same moment. This is a
-  property of the injection path, not of the window: `dumpsys` shows the control window as
-  `NOT_FOCUSABLE` only — touchable, `alpha=1`, channel `status=NORMAL, responsive=true`, with the
-  tapped point inside its frame. A harness must drive Stop through the notification, which is one
-  of the reasons `OV-15` puts it there.
+- `appops set … ACCESS_RESTRICTED_SETTINGS allow` — **first**, or the next line is silently
+  reverted. A sideloaded build is behind the restricted-settings wall (`PM-1`…`PM-11`), and the
+  platform does not report the refusal: `settings put` appears to succeed and `settings get` returns
+  `null`.
+- `settings put secure enabled_accessibility_services …` enables the service
+- `settings put secure accessibility_enabled 1`
+- `appops set … SYSTEM_ALERT_WINDOW allow` grants the **Overlay**
 
-What this tier is for, in order of importance:
+### What it asserts, and what it measured
 
-1. **Every stroke is terminated, on every exit.** Dispatch a continuing swipe, kill the runner
-   mid-stroke, and assert the target app saw the finger lift. Then again for Stop, for an error, for
-   coroutine cancellation, and for the service being disconnected. This is `SF-1` in Android's
-   vocabulary and the category's worst bug (`landscape.md`, pain 1) — checked on every commit.
-2. **Order and speed.** A 15-**Step** sequence arrives in the right order, with gaps short enough to
-   serve the *speed* pressure rather than merely eventually.
-3. **Coordinates.** A **Marker** at a pixel produces a touch at that pixel, and a **Screen profile**
-   mismatch produces no touch at all.
+Measured on `AutoClick_Medium_Phone`, API 37, 1080 × 2400. The run prints every number itself, under
+the `Tier2` logcat tag, because a ceiling nobody can see the distance to is a ceiling nobody can
+tighten.
+
+| Assertion | Rule | What the machine did |
+|---|---|---|
+| A hold arrives and is let go | `GX-13`, `SF-1` | a 600ms hold was on the screen for **600ms** |
+| Stop lets the stroke in flight finish, and starts no other | [`GX-8`] | Stop asked for 500ms into a 2500ms stroke; the contact ended **2500ms** after it began; **Step 2 never started** |
+| Cancelling the run leaves no finger on the screen | `GX-9`, `GX-10` | cancelled 500ms in; the contact still ended by itself, **2500ms** after it began |
+| A tap lands on the pixel its **Marker** names | `SM-11`, [ADR-0013] | aimed at `(540, 1200)`, arrived at `(540, 1200)`, from device `-1` |
+| Fifteen **Step**s arrive in order, at their own pixels, at speed | `GX-1`, `GX-5`, and A1's acceptance clause | **212ms** end to end; gaps of **12–16ms** between contacts |
+| A **Step** repeats in place | `GX-4` | three contacts, same pixel |
+| A swipe starts at its **Target** and ends at its destination | `GX-14` | 500ms, 31 events, ending exactly on the destination |
+| A **Screen profile** mismatch touches nothing | `GX-2`, `SM-15` | no events at all |
+
+The ceilings come from those numbers rather than from caution: 60ms per gap against 16 measured, two
+seconds for the whole sequence against 212ms, 150ms of slack on a duration the platform reports to
+the millisecond. Loose enough for a slower machine, tight enough that a **Step** which started
+*waiting* would fail.
+
+**And on a GitHub runner, which is the better test of all of that.** API 35, and the AVD
+`avdmanager` makes by default is **320 × 640** — a tenth of the pixels this was written against. The
+suite passed unchanged, first attempt, because a test asks the target app where its window is instead
+of naming a pixel: the tap aimed at `(160, 320)` and arrived at `(160, 320)`. The gaps came out at
+14–24ms against the 60ms ceiling, the sequence at 258ms against 2000ms, and every duration was the
+same to the millisecond. A suite that had hard-coded this emulator's centre would have failed there
+for a reason that has nothing to do with the app.
+
+`GX-8` is the one worth reading the assertion for. A stroke in flight is **completed, not
+abandoned**, so what is asserted is that the contact lasts no longer than that stroke's own duration
+and that no further **Step** begins. An assertion that the finger lifts *immediately* would fail
+against correct behaviour.
+
+### The assertion that matters was checked by breaking the code
+
+A passing test proves nothing until it has been seen to fail for the right reason. `GX-10` forbids
+dispatching a stroke with `willContinue`, because a continuing stroke that is never continued is the
+stuck finger this whole app is arranged around (`landscape.md`, pain 1) — so that is the mutation: one `true` added to
+`StrokeDescription`, and three of the release assertions went red, the first of them with
+
+> `1 contact(s) started and only 0 ended — a finger was left on the screen`
+
+which is `SF-1` caught in the act. The mutation is reverted; what it bought is the knowledge that
+these three tests are load-bearing rather than decorative.
+
+It also reproduced the **bug** and not the **freeze**: with the unfinished stroke's window gone,
+`dumpsys input` showed no pointer still down. The latched touch a user has to reboot out of is still
+a tier 3 item, and nothing here has moved it.
+
+### Four traps, and every one of them is the harness breaking what it measures
+
+1. **Asking for a `UiAutomation` disables the service under test.** This is the expensive one. The
+   suite needs shell to enable the accessibility service, and `UiAutomation.executeShellCommand` is
+   how instrumentation reaches shell — but a registered `UiAutomation` *is* an accessibility service,
+   and the platform gives it accessibility exclusively. The log says it plainly,
+   `UiAutomationManager: Registering UiTestAutomationService`, and from that moment
+   `dumpsys accessibility` reports `Bound services:{}` while still listing ours under
+   `Enabled services`. There is no error: eight tests simply wait twenty seconds each for a service
+   the system has been told to hold back. `Instrumentation.getUiAutomation(FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)`
+   is the whole difference, and the flag belongs to the registration, so it has to be on the **first**
+   call.
+2. **A grant made before Gradle runs is gone by the time the tests do.** `connectedAndroidTest`
+   uninstalls the application before installing the two APKs, and a component that is briefly not
+   installed is dropped from `enabled_accessibility_services` by the system. A script that grants and
+   then calls Gradle — the obvious shape, and the first one tried — leaves `settings get` answering
+   `null`. That is why the grant lives in the suite and the script only prepares the device.
+3. **The target app has to be in the application's own process.** `ActivityScenario` refuses an
+   Activity that resolves elsewhere — *"Intent in process com.pbh.autoclick resolved to different
+   process com.pbh.autoclick.test"* — and the assertions read the recorded touches out of memory,
+   which only works in one process anyway. So `TouchLogActivity` lives in `src/debug`: absent from
+   every build that ships, not exported, and with no intent filter, so nothing but the tests can
+   start it.
+4. **Never drive the interface with `adb shell input` while a gesture is in flight.** It does reach
+   the Overlay; this document once claimed it did not, and the claim was a misreading of the symptom.
+   `input` and `dispatchGesture` inject from the *same* virtual device — `dumpsys input` shows both as
+   `DeviceId(-1)` — so a second injection takes the first one's pointer away. A tap anywhere on the
+   screen, not only on the control, ends the stroke in flight: the
+   `touchingPointers=[Pointer(id=0, UNKNOWN)]` entry simply disappears. A harness that presses Stop
+   this way destroys the very stroke it is trying to prove was released, and then reports a pass.
+
+   The instrument that works is the emulator console. **`adb emu event mouse <x> <y> 0 <1|0>`**
+   arrives as `DeviceId(3)`, `Pointer(id=0, FINGER)` — a real touchscreen device, indistinguishable
+   from a finger, and it **coexists** with a gesture in flight: with a stroke running and a console
+   finger held down, `dumpsys input` lists `DeviceId(-1)` and `DeviceId(3)` at the same moment, and
+   the stroke carries on after the finger lifts. That is also the answer to a question worth asking
+   out loud — *does a user touching the screen cut the run short?* — and the answer is no.
+   Its coordinates are in the panel's own portrait space (`1080 × 2400` on this AVD) whatever the
+   display is rotated to, so a landscape test either converts (`px = 1079 - ly`, `py = lx` at
+   `ROTATION_90`) or runs in portrait and avoids the conversion. A point outside the portrait range
+   silently touches nothing.
+
+Two facts about the device that are not traps, just useful:
+
+- **`am force-stop` clears `enabled_accessibility_services`; `adb install -r` does not.** After a
+  force-stop the key reads back `null` and `accessibility_enabled` becomes `0`. A reinstall was
+  claimed here to do the same and, measured again on API 37, does not: the key survives
+  `install -r` untouched. What *does* clear it is an uninstall, which is trap 2.
+- **A stroke in flight is observable without a target app.** `dumpsys input` names every window a
+  pointer is touching, so *is a finger down* is one shell command and a `grep -c`. Useful while
+  driving the shipped interface by hand, where there is no `TouchLogActivity` in front.
+
+### What tier 2 still does not cover
+
+- **The shipped interface.** The suite drives `ScenarioRunner` and the service directly; nobody
+  presses Play. The floating control, the panel, the run notification and the **Quick Settings tile**
+  are still only ever driven by hand — and when they are, trap 4 says which instrument to use.
+- **Recording and recognition.** Nothing in tier 2 records a touch or crops a **Template**; `RD-*`
+  and the crop-and-find half of `TP-*` are still hand-driven, with what was seen recorded below.
+- **CI, on purpose.** `.github/workflows/android-tier2.yml` works — it was run on a GitHub runner
+  and passed, and the paragraph above is the evidence — and it is **dispatch only** anyway. Six
+  minutes of emulator boot on every pull request touching `android/` is the price, and the `on:`
+  block that charges it is commented out rather than deleted, because that trade can change.
+
+  What carries the obligation instead is `.github/pull_request_template.md`, which asks for the
+  output of `make tier2` from the machine the change was written on, for anything touching the
+  service, the runner, gesture dispatch, the **Overlay**'s windows or a **Screen profile**. Weaker
+  than a green check, much stronger than nothing, and it is the reason the harness prints its own
+  measurements.
+
 
 ## Tier 3 — By hand, on real hardware
 
@@ -133,21 +243,65 @@ confirming one.
   `recorded a touch of 1ms`, 41ms apart — the layer recording its own re-emission. Two guards
   rather than one, and the same test then gave two touches for two taps.
 
+### A second AVD, and the rotation this document said was impossible
+
+A second AVD was added — a plain **Medium Phone, API 37, 1080 × 2400 at 420 dpi** — because a
+second **Screen profile** is the only way to exercise [ADR-0013] end to end, and because one
+device profile is a poor sample of a platform.
+
+**The emulator rotates.** This document previously recorded that the AVD "refused to turn" and
+fell back to `wm size`. That conclusion was wrong, and the cause is worth knowing: every attempt
+had been made with the **launcher** in front, and Nexus Launcher is locked to portrait, so the
+display honours no rotation request while it is the top activity. `dumpsys window` says so plainly
+— `mUserRotationMode=USER_ROTATION_LOCKED mUserRotation=ROTATION_90` alongside `mRotation=0` — and
+the moment a rotatable activity is in front, `settings put system user_rotation 1` turns the
+display for real: `cur=2400x1080`, `mCurrentRotation=ROTATION_90`, configuration `land`.
+
+So `OV-37` is now proved through the sensor path rather than around it, with the **Overlay** up
+over another application:
+
+- the panel window is rebuilt as `(0,0)(1050x1080) gr=TOP END`, frame `[1350,0][2400,1080]` — the
+  side sheet, pinned to the end edge and full height;
+- the **Marker** layer is resized to `2400×1080`, at `alpha=0.8`, which is the platform forcing
+  the full-screen untouchable window to four-fifths as recorded below;
+- the floating control is clamped back inside the new bounds at `[656,381][1350,507]`, ending at
+  exactly the `x` the panel begins at. They abut and do not overlap, which is `OV-13`'s claim in
+  landscape;
+- `Display.rotation` is `ROTATION_90` throughout, which is precisely what `wm size` could never
+  show.
+
+**`SM-18` end to end, under a real rotation.** A **Scenario** measured at `1080 × 2400 Portrait`,
+rotated: the banner reads *"Built on a different screen — Measured on 1080 × 2400 Portrait. This
+screen is 2400 × 1080 Landscape, so the scenario will not run here"*, and *Rebuild for this screen*
+asks first. Confirmed, `scenario.json` becomes `2400 × 1080 LANDSCAPE_LEFT` and the one **Step**'s
+point is pulled from `(540, 1200)` to `(540, 1079)` — inside the screen, at its last row. The
+**Marker** window then sits at `[482,1021][598,1137]`, whose centre is exactly that point, the same
+invariant `OV-31` fixed. Worth noting rather than filing: a handle centred on the last row is half
+off-screen, so it is there to be seen and not to be dragged.
+
+**Coordinates, on a profile nothing had been built against.** Three **Step**s aimed at
+`(600, 300)`, `(1200, 540)` and `(1800, 800)` produced three **Marker** windows centred on exactly
+those pixels, and a **Step** placed by tapping wrote the tapped pixel into `scenario.json`
+unchanged.
+
+**`OV-13` and [`GX-8`], measured at last.** With a twelve-second hold in flight and Stop pressed by
+a console finger on the floating control: the press is received immediately — the control changes
+to **"Stopping…"** while the synthetic pointer is still down — and the pointer is released
+`11.6 s` later, at the stroke's own end, after which the editor returns and the control reads
+*Stopped*. That is `GX-8` exactly as written: *honoured during a stroke, the stroke completed
+rather than abandoned, and the interface saying "stopping" for however long that takes.* The claim
+this document listed as unverified is now verified, and it is the specified behaviour rather than
+the instant stop a reader might assume. The cost is stated in `GX-8` itself and bounded by
+`GestureDescription.getMaxGestureDuration()`.
+
+**The Overlay is invisible over Settings.** With Settings in front the control still exists but
+`dumpsys` reports `mPolicyVisibility=false`, `isVisible=false` and
+`mIsForceHiddenNonSystemOverlayWindow=true` — the platform's anti-tapjacking measure, which hides
+every non-system overlay while certain system screens are up. Nothing to fix; worth knowing before
+someone reports the control "disappearing", and worth remembering when writing onboarding copy
+that sends the user into Settings and back.
+
 ### What the emulator could not be made to do
-
-`OV-37` was verified, but not by rotating the emulator. This AVD (Pixel 10 Pro XL, API 37) refused
-to turn: `settings put system user_rotation 1` with auto-rotate off, `cmd window user-rotation lock
-1`, `cmd window set-ignore-orientation-request true` and `adb emu rotate` all reported success and
-left `dumpsys window displays` at `cur=1344x2992`, with `screencap` returning a portrait image.
-
-So it was verified with `wm size 2992x1344` instead, which delivers the same configuration change
-and the same new `maximumWindowMetrics` to the service. What that **does** prove is everything above
-the sensor: `onConfigurationChanged` arrives, the panel window is rebuilt as
-`(0,0)(1200x1344) gr=TOP END`, the **Marker** layer is resized to `2992x1344`, the floating control
-is clamped back inside the new bounds and held clear of the sheet, and `wm size reset` puts all of
-it back. What it does **not** prove is the rotation path itself — `Display.rotation` stays
-`ROTATION_0` throughout. `SM-18` reads the orientation off the pixels rather than off that value,
-which is why the test works at all, and is also the reason the untested part is narrow.
 
 **Currently unverified — no physical Android device is in use on this project.** Everything below is
 untested until one is:
@@ -158,12 +312,9 @@ untested until one is:
 - Vendor power optimisers — Samsung One UI sleep, MIUI, and their habit of stopping a service that
   looks idle. Reported as a cause of silent death across the category.
 - Skin-specific **Overlay** restrictions.
-- **A real rotation** — see above. The configuration-change path is proved; the sensor path is not.
-- **Stop on the floating control, pressed mid-stroke, with a real finger** (`OV-13`). The window is
-  demonstrably able to take the touch — see the `dumpsys` evidence above — and the notification
-  path is proven, but a finger on the control mid-gesture has never been tried. `OV-13` claims Stop
-  is reachable at every moment of a run; that claim is currently supported by the window's
-  configuration rather than by having seen it work.
+- **Real touch hardware.** Rotation and Stop-mid-stroke have both moved out of this list — see the
+  second-AVD section above — but they moved on the strength of a console finger, which is a real
+  input device and still not a fingertip on glass.
 - **The run notification opens collapsed**, in the *Silent* section, so Stop and *free the touch*
   need one expand before they can be pressed. `OV-15` wants them reachable in a panic; the
   **Quick Settings tile** added for `GX-12` is the answer to that, and the tile itself has not been
@@ -209,16 +360,16 @@ A3 and A4 were both walked end to end on the emulator (Pixel 10 Pro XL, API 37, 
   directories. Choosing *follow the system* removed the key from the preferences rather than
   writing a language, as `IL-1` requires.
 
-### Two things this cost, both found on the emulator
+### What the emulator cost, and it was worth it
 
 - **`TP-7` needs `removeViewImmediate`.** `removeView` is a request: the window survives until the
   window manager next runs. A frame taken 160 ms after the Overlay was dismissed still contained
   the panel and the floating control, which would have been baked into the **Template**. The fix
   is a synchronous removal on the crop path only — `OV-13` re-attaches the control on every state
   change, and removing it synchronously there makes Stop blink.
-- **`adb shell am force-stop` switches the accessibility service off.** The package's entry is
-  taken out of `Settings.Secure.enabled_accessibility_services`, so every force-stop in a test
-  script has to be followed by putting it back. Re-launching with `am start` does not.
+- **`adb shell am force-stop` switches the accessibility service off**, which is the same fact tier 2
+  states above and was first paid for here: a script that force-stops has to put the grant back.
+  Re-launching with `am start` does not.
 
 ### Platform behaviour worth knowing about
 
@@ -235,3 +386,6 @@ A3 and A4 were both walked end to end on the emulator (Pixel 10 Pro XL, API 37, 
 Driving the system permission dialogs with UiAutomator. The dialogs change wording and layout
 between Android versions, so those tests break when Google edits a label rather than when this code
 is wrong — the most brittle coverage available, bought at the highest maintenance price.
+
+[`GX-8`]: ./sdd/05-gesture-execution.md
+[ADR-0013]: ./adr/0013-coordinates-are-raw-pixels-bound-to-a-screen-profile.md

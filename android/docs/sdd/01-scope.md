@@ -19,7 +19,7 @@ alphabet: five **Action**s instead of six, two **Target** forms instead of five,
 
 Every slice leaves a runnable, installable app, as on macOS.
 
-### A1 — Gestures and Markers
+### A1 — Gestures and Markers  ✅
 
 The surface the whole app is built on, and enough to be useful on its own.
 
@@ -35,7 +35,11 @@ The surface the whole app is built on, and enough to be useful on its own.
 
 Done when a 15-step sequence of fixed taps runs in the right order, at speed, and Stop always works.
 
-### A2 — Recording  ✅ pass-through
+All three clauses are now assertions rather than intentions, in tier 2 against the real accessibility
+service: fifteen taps arrive in order at their own pixels 12–16ms apart, and Stop lets the stroke in
+flight finish and starts no other. See [`../testing.md`](../testing.md).
+
+### A2 — Recording  ✅
 
 Placing ten to fifteen **Marker**s by hand, **every time the Scenario is edited**, is the difference
 between a tool that works and one that gets used. Recording is therefore ahead of recognition here,
@@ -43,9 +47,10 @@ the reverse of the macOS order.
 
 - A full-screen **Overlay** swallows each touch and records it
 - **Pass-through** re-emits each touch as a **Gesture** so the application underneath still reacts,
-  which is what a sequence spanning several screens needs. **Built.** *Silent* — swallow and do not
-  re-emit, for marking several points on one screen — is the same thing minus one step and is
-  deferred; see [08](./08-recording.md).
+  which is what a sequence spanning several screens needs, and it is therefore the mode the floating
+  control offers. *Silent* — swallow and do **not** re-emit, for marking several points on one
+  screen without setting any of them off — is the same thing minus that one step, and is built as
+  well; `RD-9` in [08](./08-recording.md) is how the two are told apart on screen.
 - Real timing is kept, as on macOS ([ADR-0004])
 - The recorded sequence becomes ordinary **Marker**s, editable like any others
 
