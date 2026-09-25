@@ -1,6 +1,7 @@
-# The Android app. No emulator here on purpose: android/docs/testing.md puts anything that
-# needs a real accessibility service in tier 2, which runs against a purpose-built target app
-# and is not wired into CI yet. This job is tier 1 — the JVM tests — plus the quality gates.
+# The Android app. No emulator here on purpose: android/docs/testing.md puts anything that needs a
+# real accessibility service in tier 2, which now exists — `android/tools/testing/tier2.sh`, and
+# `android-tier2.yml` for a runner — and is dispatched by hand until it has passed there once. This
+# job is tier 1 — the JVM tests — plus the quality gates.
 name: Android
 
 on:

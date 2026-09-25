@@ -19,7 +19,7 @@ alphabet: five **Action**s instead of six, two **Target** forms instead of five,
 
 Every slice leaves a runnable, installable app, as on macOS.
 
-### A1 — Gestures and Markers
+### A1 — Gestures and Markers  ✅
 
 The surface the whole app is built on, and enough to be useful on its own.
 
@@ -34,6 +34,10 @@ The surface the whole app is built on, and enough to be useful on its own.
   restricted-settings wall ([02](./02-permissions-and-onboarding.md))
 
 Done when a 15-step sequence of fixed taps runs in the right order, at speed, and Stop always works.
+
+All three clauses are now assertions rather than intentions, in tier 2 against the real accessibility
+service: fifteen taps arrive in order at their own pixels 12–16ms apart, and Stop lets the stroke in
+flight finish and starts no other. See [`../testing.md`](../testing.md).
 
 ### A2 — Recording  ✅
 

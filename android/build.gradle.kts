@@ -36,6 +36,17 @@ subprojects {
     extensions.configure<DetektExtension>("detekt") {
         buildUponDefaultConfig = true
         config.setFrom(rootProject.files("detekt.yml"))
+        // The plugin's default source is main and test only, which left the tier 2 harness
+        // (`src/androidTest`) and the target app it drives (`src/debug`) outside every gate but
+        // Spotless. Code that decides whether `SF-1` passes is not code to lint less.
+        source.setFrom(
+            files(
+                "src/main/kotlin",
+                "src/test/kotlin",
+                "src/androidTest/kotlin",
+                "src/debug/kotlin",
+            ),
+        )
     }
 
     configurations.configureEach {

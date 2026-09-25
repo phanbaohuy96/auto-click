@@ -85,6 +85,13 @@ dependencies {
     testImplementation(libs.turbine)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
+    // Tier 2 (docs/testing.md): the tests that need a real accessibility service.
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.coroutines.test)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.kotlin.test)
 }
 
 apply(from = rootProject.file("gradle/signing.gradle.kts"))
