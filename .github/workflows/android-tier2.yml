@@ -1,10 +1,12 @@
 # Tier 2 — the instrumented tests, on an emulator (android/docs/testing.md).
 #
-# Manual for now, and the reason is worth stating rather than hiding: every line below has run on a
-# local emulator and **none of it has run on a GitHub runner**. The emulator step, the API level and
-# whether nested virtualisation is available on this runner class are the unverified parts. Wiring an
-# unproven job into the gate that blocks pull requests would make the next unrelated change look
-# broken, so this waits to be dispatched once, and moves into `android.yml` when it has passed.
+# This was `workflow_dispatch` only until it had been seen to work here rather than on a developer's
+# emulator. It has: first attempt, 5m55s, of which four minutes is the emulator booting. KVM is
+# available on `ubuntu-latest`, a `google_apis` image exists for API 35, and the grant sequence
+# behaves exactly as it does locally. So it now gates pull requests that touch `android/`.
+#
+# It is a separate workflow rather than another step in `android.yml` on purpose: tier 1 stays a
+# ninety-second answer, and an emulator flake stays attributable to the emulator.
 #
 # Nothing here grants the accessibility service. The suite grants it to itself in
 # `Tier2.awaitService`, because AGP uninstalls the application before installing the two APKs and a
@@ -13,12 +15,10 @@ name: Android tier 2
 
 on:
   workflow_dispatch:
-  # TEMPORARY, and it comes out before this branch merges. `workflow_dispatch` only works for a
-  # workflow that is already on the default branch, so there is no way to find out whether any of
-  # this runs on a GitHub runner without a trigger that fires from the branch itself.
-  push:
-    branches:
-      - test/tier-2-harness
+  pull_request:
+    paths:
+      - "android/**"
+      - ".github/workflows/android-tier2.yml"
 
 permissions:
   contents: read
@@ -44,8 +44,6 @@ jobs:
           java-version: "21"
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
-        with:
-          build-root-directory: android
       # Without this the emulator falls back to software rendering and takes long enough to hit the
       # timeout above.
       - name: Enable KVM
@@ -57,8 +55,8 @@ jobs:
       - name: Instrumented tests
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
-          # Everything in docs/testing.md was measured on API 37; 35 is what a runner is most likely
-          # to have an image for. The first dispatch of this workflow is what settles that.
+          # Everything in docs/testing.md was measured on API 37 locally; this image is what the
+          # runner has, and the suite passes on both without knowing which it is on.
           api-level: 35
           target: google_apis
           arch: x86_64

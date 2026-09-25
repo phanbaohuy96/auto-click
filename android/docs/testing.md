@@ -63,6 +63,14 @@ seconds for the whole sequence against 212ms, 150ms of slack on a duration the p
 the millisecond. Loose enough for a slower machine, tight enough that a **Step** which started
 *waiting* would fail.
 
+**And on a GitHub runner, which is the better test of all of that.** API 35, and the AVD
+`avdmanager` makes by default is **320 × 640** — a tenth of the pixels this was written against. The
+suite passed unchanged, first attempt, because a test asks the target app where its window is instead
+of naming a pixel: the tap aimed at `(160, 320)` and arrived at `(160, 320)`. The gaps came out at
+14–24ms against the 60ms ceiling, the sequence at 258ms against 2000ms, and every duration was the
+same to the millisecond. A suite that had hard-coded this emulator's centre would have failed there
+for a reason that has nothing to do with the app.
+
 `GX-8` is the one worth reading the assertion for. A stroke in flight is **completed, not
 abandoned**, so what is asserted is that the contact lasts no longer than that stroke's own duration
 and that no further **Step** begins. An assertion that the finger lifts *immediately* would fail
@@ -143,9 +151,10 @@ Two facts about the device that are not traps, just useful:
   are still only ever driven by hand — and when they are, trap 4 says which instrument to use.
 - **Recording and recognition.** Nothing in tier 2 records a touch or crops a **Template**; `RD-*`
   and the crop-and-find half of `TP-*` are still hand-driven, with what was seen recorded below.
-- **CI.** `.github/workflows/android-tier2.yml` exists and is `workflow_dispatch` only. It has run on
-  a local emulator and **never on a GitHub runner**, so it is not in the gate that blocks pull
-  requests until it has passed there once.
+- **CI covers it, in its own workflow.** `.github/workflows/android-tier2.yml` runs on every pull
+  request touching `android/`, takes about six minutes — four of them the emulator booting — and is
+  deliberately not a step inside `android.yml`, so tier 1 stays a ninety-second answer and an
+  emulator flake stays attributable to the emulator.
 
 
 ## Tier 3 — By hand, on real hardware
