@@ -94,14 +94,35 @@ feedback a session gives — everything else on screen is the other application,
 touch is not a **Step**, and re-emitting one the user did not finish would do something they never
 did.
 
+## Silent
+
+**RD-9** `[A2]` A session is **pass-through** or **silent**, chosen when it starts. Silent records
+the touch and hands nothing back: the application underneath is left exactly as it was.
+
+Silent is `RD-5` minus its last step — the same window, the same **Step**s, no re-emission — and it
+exists for the case pass-through is bad at: marking six places on **one** screen without setting any
+of them off. It is also the only mode in which the application underneath is not being driven
+synthetically, so it is the one to reach for in an application that rejects synthetic input; the
+price is that it cannot follow a sequence across screens, which is why pass-through is the default
+and the mode the floating control offers.
+
+Three consequences that are interface decisions rather than implementation details:
+
+- **The border says which mode is in force.** Red in pass-through, the accent colour in silent. Red
+  means *what you do is being done*; the accent means *what you do is only being noted*. `RD-6`
+  makes the border a promise, and silent never earns the red one — the same accent, and the same
+  reasoning, as `PK-1`'s pick layer.
+- **The choice lives in the panel, not on the floating control.** The control is a row of verbs, and
+  its record button stays the ordinary one. Choosing between two modes is a decision, and a decision
+  belongs where there is room to explain it.
+- **Neither label names a mode.** Both say what happens to the application underneath. "Silent"
+  means nothing to somebody who has not read this page; *the app will not react* is the whole
+  difference.
+
 ## Deferred from A2
 
 Stated so the absence is not read as an oversight.
 
-- **A silent mode**, chosen when the session starts: swallow the touch and do *not* re-emit it, for
-  marking several points on one screen without setting anything off. It is pass-through minus one
-  step and remains worth having; it is not here because pass-through is the mode that makes a
-  multi-screen sequence recordable at all.
 - **Recording a `multiTouch` Step** — see `RD-2`.
 - **Editing the recording as it happens.** The session produces **Step**s and the panel edits them
   afterwards, which is one surface rather than two.
