@@ -13,6 +13,12 @@ name: Android tier 2
 
 on:
   workflow_dispatch:
+  # TEMPORARY, and it comes out before this branch merges. `workflow_dispatch` only works for a
+  # workflow that is already on the default branch, so there is no way to find out whether any of
+  # this runs on a GitHub runner without a trigger that fires from the branch itself.
+  push:
+    branches:
+      - test/tier-2-harness
 
 permissions:
   contents: read
